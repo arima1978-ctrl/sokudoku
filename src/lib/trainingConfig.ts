@@ -43,7 +43,7 @@ export const DISPLAY_AREA = {
 /** フラッシュ設定 */
 export const FLASH_TIMING = {
   /** 表示時間（ms） */
-  showMs: 800,
+  showMs: 400,
   /** 表示間隔（ms）- 表示→非表示→次の表示 */
   intervalMs: 2500,
 } as const
