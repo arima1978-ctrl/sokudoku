@@ -245,10 +245,10 @@ export default function TrainingSessionPage() {
   // ========== テスト画面 ==========
   if (state.phase === 'segment_test' && currentQuiz) {
     return (
-      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #e0f0ff 0%, #b8deff 100%)' }}>
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
         <div className="mx-auto max-w-3xl px-4 py-6">
           {/* ヘッダー */}
-          <div className="mb-4 rounded-lg bg-blue-600 px-4 py-2">
+          <div className="mb-4 rounded-lg px-4 py-2" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
             <span className="text-white font-bold">{segmentLabel}</span>
             <span className="ml-3 text-blue-200 text-sm">テスト</span>
           </div>
@@ -269,10 +269,10 @@ export default function TrainingSessionPage() {
 
   // ========== トレーニング画面（既存デザイン準拠） ==========
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #e0f0ff 0%, #b8deff 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
       <div className="mx-auto max-w-3xl px-4 py-4">
         {/* ヘッダー：青バー */}
-        <div className="mb-3 rounded-lg bg-blue-600 px-4 py-2 flex items-center justify-between">
+        <div className="mb-3 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => router.push('/training')}
               className="text-blue-200 hover:text-white text-sm">← 戻る</button>
@@ -300,8 +300,6 @@ export default function TrainingSessionPage() {
             <ShunkanDisplay
               words={shunkanWords}
               displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'tate_1line') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
-              intervalMs={2000}
-              flashMs={700}
               onFlash={(w) => { lastFlashedWord.current = w }}
               paused={paused}
             />

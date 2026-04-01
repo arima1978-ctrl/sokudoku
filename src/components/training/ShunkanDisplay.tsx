@@ -1,261 +1,256 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import {
+  TRAINING_FONT,
+  FONT_SIZES,
+  DISPLAY_AREA,
+  FLASH_TIMING,
+  ANSWER_BAR,
+  BARABARA_CONFIG,
+} from '@/lib/trainingConfig'
 
 interface ShunkanDisplayProps {
-  /** 表示する単語リスト */
   words: { body: string; answer?: string }[]
-  /** 表示タイプ */
   displayType: 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'
-  /** フラッシュ間隔（ミリ秒） */
-  intervalMs?: number
-  /** フラッシュ表示時間（ミリ秒） */
-  flashMs?: number
-  /** 現在のフラッシュ単語を親に通知 */
   onFlash?: (word: string) => void
-  /** 一時停止中か */
   paused?: boolean
 }
 
-/**
- * 速読トレーニング 文字表示コンポーネント
- * 既存システム（100万人の速読）のデザインを再現
- */
 export default function ShunkanDisplay({
   words,
   displayType,
-  intervalMs = 2000,
-  flashMs = 700,
   onFlash,
   paused = false,
 }: ShunkanDisplayProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [showText, setShowText] = useState(true)
+  const [idx, setIdx] = useState(0)
+  const [visible, setVisible] = useState(true)
   const [showAnswer, setShowAnswer] = useState(false)
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>(null)
+  const nextTimer = useRef<ReturnType<typeof setTimeout>>(null)
 
-  const currentWord = words[currentIndex]
-  const text = currentWord?.body ?? ''
-  const answer = currentWord?.answer ?? text
+  const word = words[idx]
+  const text = word?.body ?? ''
+  const answer = word?.answer ?? text
 
-  const nextWord = useCallback(() => {
-    if (paused) return
+  const advance = useCallback(() => {
+    if (paused || words.length === 0) return
     setShowAnswer(false)
-    setShowText(true)
-    setCurrentIndex((prev) => (prev + 1) % words.length)
+    setVisible(true)
+    setIdx(i => (i + 1) % words.length)
   }, [paused, words.length])
 
-  // フラッシュサイクル
   useEffect(() => {
     if (paused || words.length === 0) return
+    setVisible(true)
+    onFlash?.(text)
 
-    const flashTimer = setTimeout(() => setShowText(false), flashMs)
-    const nextTimer = setTimeout(nextWord, intervalMs)
+    hideTimer.current = setTimeout(() => setVisible(false), FLASH_TIMING.showMs)
+    nextTimer.current = setTimeout(advance, FLASH_TIMING.intervalMs)
 
     return () => {
-      clearTimeout(flashTimer)
-      clearTimeout(nextTimer)
+      if (hideTimer.current) clearTimeout(hideTimer.current)
+      if (nextTimer.current) clearTimeout(nextTimer.current)
     }
-  }, [currentIndex, paused, words.length, flashMs, intervalMs, nextWord])
-
-  // 親に通知
-  useEffect(() => {
-    if (showText && onFlash) {
-      onFlash(text)
-    }
-  }, [currentIndex, showText, text, onFlash])
-
-  const toggleAnswer = () => setShowAnswer((prev) => !prev)
+  }, [idx, paused, words.length, text, onFlash, advance])
 
   return (
-    <div className="flex flex-col h-full">
-      {/* 解答バー */}
-      <div className="flex items-center border-2 border-red-500 rounded-md overflow-hidden mb-4">
-        <button
-          type="button"
-          onClick={toggleAnswer}
-          className="shrink-0 bg-red-600 text-white font-bold px-5 py-2 text-base"
-        >
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {/* ===== 解答バー ===== */}
+      <div style={{
+        display: 'flex',
+        border: `2px solid ${ANSWER_BAR.border}`,
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 20,
+      }}>
+        <button type="button" onClick={() => setShowAnswer(v => !v)} style={{
+          background: ANSWER_BAR.labelBg,
+          color: ANSWER_BAR.labelText,
+          fontWeight: 'bold',
+          fontSize: 15,
+          padding: '10px 24px',
+          border: 'none',
+          cursor: 'pointer',
+          flexShrink: 0,
+          fontFamily: TRAINING_FONT.family,
+        }}>
           解答
         </button>
-        <div className="flex-1 px-4 py-2 bg-white min-h-[40px]">
+        <div style={{
+          flex: 1, padding: '10px 20px', background: '#fff',
+          display: 'flex', alignItems: 'center', minHeight: 44,
+        }}>
           {showAnswer && (
-            <span className="text-red-600 font-bold text-lg">{answer}</span>
+            <span style={{
+              color: ANSWER_BAR.answerText,
+              fontWeight: 'bold',
+              fontSize: 17,
+              fontFamily: TRAINING_FONT.family,
+            }}>
+              {answer}
+            </span>
           )}
         </div>
       </div>
 
-      {/* 文字表示エリア */}
-      <div className="flex-1 flex items-center justify-center bg-white rounded-lg min-h-[400px] relative overflow-hidden">
-        {showText ? (
-          <TrainingText text={text} displayType={displayType} />
+      {/* ===== 文字表示エリア ===== */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#fff',
+        borderRadius: 8,
+        minHeight: DISPLAY_AREA.minHeight,
+        padding: DISPLAY_AREA.padding,
+        position: 'relative',
+      }}>
+        {visible ? (
+          <TextDisplay text={text} type={displayType} />
         ) : (
-          <div className="text-zinc-200 text-6xl select-none">・</div>
+          <span style={{ color: '#ddd', fontSize: 60, userSelect: 'none' }}>・</span>
         )}
       </div>
     </div>
   )
 }
 
-/** 表示タイプ別の文字レンダリング */
-function TrainingText({
-  text,
-  displayType,
-}: {
-  text: string
-  displayType: string
-}) {
-  const chars = text.split('')
+function TextDisplay({ text, type }: { text: string; type: string }) {
+  const font = TRAINING_FONT.family
+  const weight = TRAINING_FONT.weight
 
-  switch (displayType) {
-    case 'barabara':
-      return <BarabaraLayout chars={chars} />
-    case 'tate_1line':
-      return <Tate1LineLayout chars={chars} />
-    case 'tate_2line':
-      return <Tate2LineLayout text={text} />
-    case 'yoko_1line':
-      return <Yoko1LineLayout chars={chars} />
-    case 'yoko_2line':
-      return <Yoko2LineLayout text={text} />
-    default:
-      return <Tate1LineLayout chars={chars} />
+  switch (type) {
+    case 'barabara': return <Barabara text={text} font={font} weight={weight} />
+    case 'tate_1line': return <Tate1 text={text} font={font} weight={weight} />
+    case 'tate_2line': return <Tate2 text={text} font={font} weight={weight} />
+    case 'yoko_1line': return <Yoko1 text={text} font={font} weight={weight} />
+    case 'yoko_2line': return <Yoko2 text={text} font={font} weight={weight} />
+    default: return <Tate1 text={text} font={font} weight={weight} />
   }
 }
 
-/** ばらばら配置: 文字を円形にランダム風に配置 */
-function BarabaraLayout({ chars }: { chars: string[] }) {
-  const positions = getScatteredPositions(chars.length)
+/** ========== ばらばら ========== */
+function Barabara({ text, font, weight }: { text: string; font: string; weight: number }) {
+  const chars = text.split('')
+  const size = FONT_SIZES.barabara
+  const posRef = useRef(makeCirclePositions(chars.length))
+  // 文字数変わったらポジション再計算
+  useEffect(() => { posRef.current = makeCirclePositions(chars.length) }, [chars.length])
+  const pos = posRef.current
 
   return (
-    <div className="relative w-full h-full min-h-[400px]">
-      {chars.map((char, i) => (
-        <span
-          key={i}
-          className="absolute text-black select-none"
-          style={{
-            left: `${positions[i].x}%`,
-            top: `${positions[i].y}%`,
-            transform: `translate(-50%, -50%) rotate(${positions[i].rotate}deg)`,
-            fontSize: `${Math.max(56, 80 - chars.length * 4)}px`,
-            fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-            fontWeight: 400,
-          }}
-        >
-          {char}
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: DISPLAY_AREA.minHeight - DISPLAY_AREA.padding * 2,
+    }}>
+      {chars.map((c, i) => (
+        <span key={i} style={{
+          position: 'absolute',
+          left: `${pos[i].x}%`,
+          top: `${pos[i].y}%`,
+          transform: `translate(-50%, -50%) rotate(${pos[i].r}deg)`,
+          fontSize: size,
+          fontFamily: font,
+          fontWeight: weight,
+          color: '#000',
+          lineHeight: 1,
+          userSelect: 'none',
+        }}>
+          {c}
         </span>
       ))}
     </div>
   )
 }
 
-/** たて1行: 縦書き1列、中央 */
-function Tate1LineLayout({ chars }: { chars: string[] }) {
+/** ========== たて1行 ========== */
+function Tate1({ text, font, weight }: { text: string; font: string; weight: number }) {
   return (
-    <div
-      className="flex flex-col items-center gap-1"
-      style={{ writingMode: 'vertical-rl' }}
-    >
-      <span
-        className="text-black select-none leading-tight"
-        style={{
-          fontSize: `${Math.max(48, 72 - chars.length * 2)}px`,
-          fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-          letterSpacing: '0.1em',
-        }}
-      >
-        {chars.join('')}
-      </span>
+    <div style={{
+      writingMode: 'vertical-rl',
+      textOrientation: 'upright',
+      fontSize: FONT_SIZES.tate_1line,
+      fontFamily: font,
+      fontWeight: weight,
+      color: '#000',
+      lineHeight: 1.4,
+      letterSpacing: '0.05em',
+      userSelect: 'none',
+    }}>
+      {text}
     </div>
   )
 }
 
-/** たて2行: 縦書き2列 */
-function Tate2LineLayout({ text }: { text: string }) {
-  // テキストを2行に分割（テキスト1/テキスト2がある場合は区切り文字で分割）
-  const midpoint = Math.ceil(text.length / 2)
-  const line1 = text.slice(0, midpoint)
-  const line2 = text.slice(midpoint)
-
-  const fontSize = `${Math.max(40, 64 - text.length * 2)}px`
-  const fontStyle = {
-    fontSize,
-    fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-    letterSpacing: '0.1em',
+/** ========== たて2行 ========== */
+function Tate2({ text, font, weight }: { text: string; font: string; weight: number }) {
+  const mid = Math.ceil(text.length / 2)
+  const style: React.CSSProperties = {
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright',
+    fontSize: FONT_SIZES.tate_2line,
+    fontFamily: font,
+    fontWeight: weight,
+    color: '#000',
+    lineHeight: 1.4,
+    letterSpacing: '0.05em',
+    userSelect: 'none',
   }
-
   return (
-    <div className="flex gap-10" style={{ writingMode: 'vertical-rl' }}>
-      <span className="text-black select-none leading-tight" style={fontStyle}>
-        {line1}
-      </span>
-      <span className="text-black select-none leading-tight" style={fontStyle}>
-        {line2}
-      </span>
+    <div style={{ display: 'flex', gap: 48 }}>
+      <div style={style}>{text.slice(0, mid)}</div>
+      <div style={style}>{text.slice(mid)}</div>
     </div>
   )
 }
 
-/** よこ1行: 横書き1行、中央 */
-function Yoko1LineLayout({ chars }: { chars: string[] }) {
+/** ========== よこ1行 ========== */
+function Yoko1({ text, font, weight }: { text: string; font: string; weight: number }) {
   return (
-    <span
-      className="text-black select-none"
-      style={{
-        fontSize: `${Math.max(48, 72 - chars.length * 3)}px`,
-        fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-        letterSpacing: '0.15em',
-      }}
-    >
-      {chars.join('')}
+    <span style={{
+      fontSize: FONT_SIZES.yoko_1line,
+      fontFamily: font,
+      fontWeight: weight,
+      color: '#000',
+      letterSpacing: '0.15em',
+      userSelect: 'none',
+    }}>
+      {text}
     </span>
   )
 }
 
-/** よこ2行: 横書き2行 */
-function Yoko2LineLayout({ text }: { text: string }) {
-  const midpoint = Math.ceil(text.length / 2)
-  const line1 = text.slice(0, midpoint)
-  const line2 = text.slice(midpoint)
-
-  const fontSize = `${Math.max(36, 56 - text.length * 2)}px`
-  const fontStyle = {
-    fontSize,
-    fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
+/** ========== よこ2行 ========== */
+function Yoko2({ text, font, weight }: { text: string; font: string; weight: number }) {
+  const mid = Math.ceil(text.length / 2)
+  const s: React.CSSProperties = {
+    fontSize: FONT_SIZES.yoko_2line,
+    fontFamily: font,
+    fontWeight: weight,
+    color: '#000',
     letterSpacing: '0.12em',
+    userSelect: 'none',
   }
-
   return (
-    <div className="flex flex-col items-center gap-3">
-      <span className="text-black select-none" style={fontStyle}>
-        {line1}
-      </span>
-      <span className="text-black select-none" style={fontStyle}>
-        {line2}
-      </span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <span style={s}>{text.slice(0, mid)}</span>
+      <span style={s}>{text.slice(mid)}</span>
     </div>
   )
 }
 
-/** 円形散布の座標を生成（既存システムのばらばら配置を再現） */
-function getScatteredPositions(count: number) {
-  const positions: { x: number; y: number; rotate: number }[] = []
-  const cx = 50
-  const cy = 50
-  const radius = Math.min(30, 35 - count)
-
-  for (let i = 0; i < count; i++) {
+/** 円形散布座標 */
+function makeCirclePositions(count: number) {
+  const cx = 50, cy = 50
+  const r = BARABARA_CONFIG.radius
+  const range = BARABARA_CONFIG.rotationRange
+  return Array.from({ length: count }, (_, i) => {
     const angle = (i / count) * 2 * Math.PI - Math.PI / 2
-    const r = radius + (Math.random() - 0.5) * 8
-    const x = cx + r * Math.cos(angle)
-    const y = cy + r * Math.sin(angle)
-    const rotate = (Math.random() - 0.5) * 30
-
-    positions.push({
-      x: Math.max(15, Math.min(85, x)),
-      y: Math.max(15, Math.min(85, y)),
-      rotate,
-    })
-  }
-
-  return positions
+    return {
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      r: Math.round((Math.random() - 0.5) * range * 2),
+    }
+  })
 }
