@@ -74,8 +74,8 @@ export const SCREEN_COLORS = {
 export const BARABARA_CONFIG = {
   /** 散布半径（表示エリアの%）- 文字数に関係なく固定 */
   radius: 32,
-  /** 文字の回転角度範囲（±度） */
-  rotationRange: 25,
+  /** 文字の回転角度範囲（±度）- 0で全文字正立 */
+  rotationRange: 0,
 } as const
 
 /** たてブロック設定（training.js由来） */
