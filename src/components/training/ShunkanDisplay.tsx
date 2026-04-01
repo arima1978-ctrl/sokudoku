@@ -167,17 +167,17 @@ export default function ShunkanDisplay({
         </div>
       </div>
 
-      {/* メイン: 文字表示エリア + 右側ボタン */}
-      <div style={{ display: 'flex', gap: 16 }}>
-        {/* 文字表示（正方形コンテナ） */}
+      {/* メイン: 文字表示エリア（画面いっぱい + ボタン重ね表示） */}
+      <div style={{ position: 'relative' }}>
+        {/* 文字表示コンテナ（できるだけ大きく） */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: '#fff', borderRadius: 8,
-          width: 500, height: 500, flexShrink: 0,
+          width: '100%', aspectRatio: '1 / 1', maxHeight: 'calc(100vh - 220px)',
           padding: DISPLAY_AREA.padding,
         }}>
           {showCountdown && (
-            <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
+            <span style={{ fontSize: 140, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
               {countNum}
             </span>
           )}
@@ -189,27 +189,29 @@ export default function ShunkanDisplay({
           )}
         </div>
 
-        {/* 右側ボタン */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          gap: 12, minWidth: 130,
-        }}>
-          {showButtons && phase === 'hidden' && (
-            <>
-              <button type="button" onClick={handleRetry} style={btnSide('#fff', '#333', '#999')}>
-                もう一度
+        {/* ボタン（右側に重ねて表示） */}
+        {showButtons && (
+          <div style={{
+            position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+            display: 'flex', flexDirection: 'column', gap: 12, minWidth: 120,
+          }}>
+            {phase === 'hidden' && (
+              <>
+                <button type="button" onClick={handleRetry} style={btnSide('rgba(255,255,255,0.95)', '#333', '#999')}>
+                  もう一度
+                </button>
+                <button type="button" onClick={handleAnswer} style={btnSide(ANSWER_BAR.labelBg, '#fff', ANSWER_BAR.border)}>
+                  解答
+                </button>
+              </>
+            )}
+            {phase === 'answer' && (
+              <button type="button" onClick={handleNext} style={btnSideYellow()}>
+                次の問題へ
               </button>
-              <button type="button" onClick={handleAnswer} style={btnSide(ANSWER_BAR.labelBg, '#fff', ANSWER_BAR.border)}>
-                解答
-              </button>
-            </>
-          )}
-          {showButtons && phase === 'answer' && (
-            <button type="button" onClick={handleNext} style={btnSideYellow()}>
-              次の問題へ
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
