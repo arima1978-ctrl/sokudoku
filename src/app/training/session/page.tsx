@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ShunkanDisplay from '@/components/training/ShunkanDisplay'
+import { FLASH_TIMING } from '@/lib/trainingConfig'
 import TrainingTimer from '@/components/training/TrainingTimer'
 import QuizCard from '@/components/training/QuizCard'
 import SessionSummary from '@/components/training/SessionSummary'
@@ -55,7 +56,9 @@ type SessionState =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
   | { phase: 'segment_active'; segmentIndex: number }
-  | { phase: 'segment_test'; segmentIndex: number }
+  | { phase: 'test_flash'; segmentIndex: number }   // テスト: ばらばらフラッシュ中
+  | { phase: 'test_answer'; segmentIndex: number }   // テスト: 4択回答
+  | { phase: 'segment_test'; segmentIndex: number }  // テスト: 長文系
   | { phase: 'summary' }
 
 interface QuizData {
@@ -82,6 +85,8 @@ export default function TrainingSessionPage() {
   const [shunkanWords, setShunkanWords] = useState<{ body: string; answer?: string }[]>([])
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
+  const [testFlashWord, setTestFlashWord] = useState<string>('')  // テスト用フラッシュ単語
+  const [testFlashVisible, setTestFlashVisible] = useState(false)
   const lastFlashedWord = useRef<string>('')
   const flashedWords = useRef<string[]>([])  // 練習中に表示された全単語を記録
   const [questionCount, setQuestionCount] = useState(0)
@@ -127,29 +132,41 @@ export default function TrainingSessionPage() {
     init()
   }, [menuId, stepId, router])
 
-  // テスト問題生成
-  useEffect(() => {
-    if (state.phase !== 'segment_test') return
-    const seg = segments[state.segmentIndex]
+  // 瞬間読みテスト: フラッシュ→4択の準備
+  function prepareShunkanTest(segIdx: number) {
+    // ランダムに1語選んでフラッシュ
+    const pool = shunkanWords.length > 0 ? shunkanWords : [{ body: '---' }]
+    const correct = pool[Math.floor(Math.random() * pool.length)]
+    setTestFlashWord(correct.body)
+    setTestFlashVisible(true)
+    setState({ phase: 'test_flash', segmentIndex: segIdx })
 
-    if (isShunkanType(seg.segment_type)) {
-      // 練習中に表示された単語からランダムに1つ正解として選ぶ
-      const practiced = flashedWords.current.length > 0 ? flashedWords.current : [shunkanWords[0]?.body ?? '---']
-      const correctWord = practiced[Math.floor(Math.random() * practiced.length)]
-      // 不正解は練習で出ていない単語から選ぶ
+    // 0.4秒後に消して4択へ
+    setTimeout(() => {
+      setTestFlashVisible(false)
+      // 4択を生成
       const others = shunkanWords
-        .filter(w => w.body !== correctWord)
+        .filter(w => w.body !== correct.body)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
         .map(w => w.body)
       while (others.length < 3) others.push('---')
-      const choices = [...others, correctWord].sort(() => Math.random() - 0.5) as [string, string, string, string]
+      const choices = [...others, correct.body].sort(() => Math.random() - 0.5) as [string, string, string, string]
       setCurrentQuiz({
-        question: '練習で表示された言葉はどれですか？',
+        question: '何と書いてありましたか？',
         choices,
-        correctIndex: choices.indexOf(correctWord),
+        correctIndex: choices.indexOf(correct.body),
       })
-    } else if (readingText) {
+      setState({ phase: 'test_answer', segmentIndex: segIdx })
+    }, FLASH_TIMING.showMs)
+  }
+
+  // テスト問題生成（長文系）
+  useEffect(() => {
+    if (state.phase !== 'segment_test') return
+    const seg = segments[state.segmentIndex]
+
+    if (readingText) {
       getQuizForContent(readingText.id).then(quiz => {
         if (quiz && quiz.questions.length > 0) {
           const q = quiz.questions[Math.floor(Math.random() * quiz.questions.length)]
@@ -175,8 +192,13 @@ export default function TrainingSessionPage() {
     if (state.phase !== 'segment_active') return
     const seg = segments[state.segmentIndex]
     if (seg.has_test) {
-      // 練習時間終了 → テストへ
-      setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
+      if (isShunkanType(seg.segment_type)) {
+        // 瞬間読みテスト: まずフラッシュ → 4択
+        prepareShunkanTest(state.segmentIndex)
+      } else {
+        // 長文系テスト
+        setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
+      }
     } else {
       moveToNextSegment(state.segmentIndex)
     }
@@ -247,7 +269,52 @@ export default function TrainingSessionPage() {
   const currentSegment = segments[state.segmentIndex]
   const segmentLabel = SEGMENT_LABELS[currentSegment.segment_type] ?? currentSegment.segment_type
 
-  // ========== テスト画面 ==========
+  // ========== 瞬間読みテスト: フラッシュ表示中 ==========
+  if (state.phase === 'test_flash') {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div style={{ padding: '16px' }}>
+          <div className="mb-4 rounded-lg px-4 py-2" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
+            <span className="text-white font-bold">{segmentLabel}</span>
+            <span className="ml-3 text-blue-200 text-sm">テスト</span>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#fff', borderRadius: 8,
+            width: '100%', aspectRatio: '1 / 1', maxHeight: 'calc(100vh - 180px)',
+          }}>
+            {testFlashVisible ? (
+              <BarabaraFlash text={testFlashWord} />
+            ) : (
+              <span style={{ color: '#ccc', fontSize: 18 }}>...</span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ========== 瞬間読みテスト: 4択回答 ==========
+  if (state.phase === 'test_answer' && currentQuiz) {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div className="mx-auto max-w-3xl px-4 py-6">
+          <div className="mb-4 rounded-lg px-4 py-2" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
+            <span className="text-white font-bold">{segmentLabel}</span>
+            <span className="ml-3 text-blue-200 text-sm">テスト</span>
+          </div>
+          <QuizCard
+            question={currentQuiz.question}
+            choices={currentQuiz.choices}
+            correctIndex={currentQuiz.correctIndex}
+            onAnswer={handleQuizAnswer}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ========== 長文系テスト画面 ==========
   if (state.phase === 'segment_test' && currentQuiz) {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
@@ -377,5 +444,32 @@ export default function TrainingSessionPage() {
           )}
         </div>
       </div>
+  )
+}
+
+/** テスト用ばらばらフラッシュ表示 */
+function BarabaraFlash({ text }: { text: string }) {
+  const chars = text.split('')
+  const cx = 50, cy = 50, r = 38
+  const positions = chars.map((_, i) => ({
+    x: cx + r * Math.cos((i / chars.length) * 2 * Math.PI - Math.PI / 2),
+    y: cy + r * Math.sin((i / chars.length) * 2 * Math.PI - Math.PI / 2),
+  }))
+  const shuffled = [...positions].sort(() => Math.random() - 0.5)
+
+  return (
+    <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1' }}>
+      {chars.map((c, i) => (
+        <span key={i} style={{
+          position: 'absolute',
+          left: `${shuffled[i].x}%`, top: `${shuffled[i].y}%`,
+          transform: 'translate(-50%, -50%)',
+          fontSize: 96,
+          fontFamily: '"Noto Sans JP", sans-serif',
+          fontWeight: 500,
+          color: '#000', lineHeight: 1, userSelect: 'none',
+        }}>{c}</span>
+      ))}
+    </div>
   )
 }
