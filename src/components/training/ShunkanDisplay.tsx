@@ -246,13 +246,15 @@ function TextDisplay({ text, type }: { text: string; type: string }) {
 
 function Barabara({ text, font, weight }: { text: string; font: string; weight: number }) {
   const chars = text.split('')
+  // 文字の配置順をランダムにシャッフル
   const positions = makeCirclePositions(chars.length)
+  const shuffledPositions = [...positions].sort(() => Math.random() - 0.5)
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1/1', margin: '0 auto' }}>
       {chars.map((c, i) => (
         <span key={`${text}-${i}`} style={{
           position: 'absolute',
-          left: `${positions[i].x}%`, top: `${positions[i].y}%`,
+          left: `${shuffledPositions[i].x}%`, top: `${shuffledPositions[i].y}%`,
           transform: 'translate(-50%, -50%)',
           fontSize: FONT_SIZES.barabara, fontFamily: font, fontWeight: weight,
           color: '#000', lineHeight: 1, userSelect: 'none',
