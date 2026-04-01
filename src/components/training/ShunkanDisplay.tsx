@@ -202,9 +202,14 @@ function Barabara({ text, font, weight }: { text: string; font: string; weight: 
   const chars = text.split('')
   // 文字数が変わるたびに均等配置を再計算
   const positions = makeCirclePositions(chars.length)
-  const sq = DISPLAY_AREA.minHeight - DISPLAY_AREA.padding * 2
   return (
-    <div style={{ position: 'relative', width: sq, height: sq, margin: '0 auto' }}>
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      maxWidth: 500,
+      aspectRatio: '1 / 1',
+      margin: '0 auto',
+    }}>
       {chars.map((c, i) => (
         <span key={`${text}-${i}`} style={{
           position: 'absolute',
