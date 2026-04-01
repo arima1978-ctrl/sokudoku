@@ -85,11 +85,14 @@ export default function TrainingSessionPage() {
   const [shunkanWords, setShunkanWords] = useState<{ body: string; answer?: string }[]>([])
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
-  const [testFlashWord, setTestFlashWord] = useState<string>('')  // テスト用フラッシュ単語
+  const [testFlashWord, setTestFlashWord] = useState<string>('')
   const [testFlashVisible, setTestFlashVisible] = useState(false)
   const lastFlashedWord = useRef<string>('')
-  const flashedWords = useRef<string[]>([])  // 練習中に表示された全単語を記録
+  const flashedWords = useRef<string[]>([])
   const [questionCount, setQuestionCount] = useState(0)
+  const [testRound, setTestRound] = useState(0)       // テスト現在の問番号(0-9)
+  const [testCorrect, setTestCorrect] = useState(0)   // テスト正解数
+  const TEST_TOTAL = 10                                // テスト全10問
 
   // 初期化
   useEffect(() => {
@@ -193,7 +196,9 @@ export default function TrainingSessionPage() {
     const seg = segments[state.segmentIndex]
     if (seg.has_test) {
       if (isShunkanType(seg.segment_type)) {
-        // 瞬間読みテスト: まずフラッシュ → 4択
+        // 瞬間読みテスト: フラッシュ→4択を10回
+        setTestRound(0)
+        setTestCorrect(0)
         prepareShunkanTest(state.segmentIndex)
       } else {
         // 長文系テスト
@@ -216,13 +221,39 @@ export default function TrainingSessionPage() {
   }
 
   async function handleQuizAnswer(_selected: number, isCorrect: boolean) {
-    if (!session || !student || state.phase !== 'segment_test') return
+    if (!session || !student) return
+    if (!('segmentIndex' in state)) return
     const seg = segments[state.segmentIndex]
-    try {
-      const result = await submitSegmentTest(session.id, student.id, seg.segment_type, 1, isCorrect ? 1 : 0)
-      setResults(prev => [...prev, result])
-    } catch { /* continue */ }
-    setTimeout(() => moveToNextSegment(state.segmentIndex), 1000)
+
+    // 瞬間読みテスト（10回繰り返し）
+    if (state.phase === 'test_answer') {
+      if (isCorrect) setTestCorrect(c => c + 1)
+      const nextRound = testRound + 1
+
+      if (nextRound < TEST_TOTAL) {
+        // 次の問題（1秒待ってからフラッシュ）
+        setTestRound(nextRound)
+        setTimeout(() => prepareShunkanTest(state.segmentIndex), 1000)
+      } else {
+        // 10問終了 → 結果をDBに保存して次のセグメントへ
+        const finalCorrect = isCorrect ? testCorrect + 1 : testCorrect
+        try {
+          const result = await submitSegmentTest(session.id, student.id, seg.segment_type, TEST_TOTAL, finalCorrect)
+          setResults(prev => [...prev, result])
+        } catch { /* continue */ }
+        setTimeout(() => moveToNextSegment(state.segmentIndex), 1000)
+      }
+      return
+    }
+
+    // 長文系テスト（1回）
+    if (state.phase === 'segment_test') {
+      try {
+        const result = await submitSegmentTest(session.id, student.id, seg.segment_type, 1, isCorrect ? 1 : 0)
+        setResults(prev => [...prev, result])
+      } catch { /* continue */ }
+      setTimeout(() => moveToNextSegment(state.segmentIndex), 1000)
+    }
   }
 
   async function finishSession() {
@@ -274,9 +305,12 @@ export default function TrainingSessionPage() {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
         <div style={{ padding: '16px' }}>
-          <div className="mb-4 rounded-lg px-4 py-2" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
-            <span className="text-white font-bold">{segmentLabel}</span>
-            <span className="ml-3 text-blue-200 text-sm">テスト</span>
+          <div className="mb-4 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
+            <div>
+              <span className="text-white font-bold">{segmentLabel}</span>
+              <span className="ml-3 text-blue-200 text-sm">テスト</span>
+            </div>
+            <span className="text-white text-sm font-mono">{testRound + 1} / {TEST_TOTAL}</span>
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -299,9 +333,12 @@ export default function TrainingSessionPage() {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
         <div className="mx-auto max-w-3xl px-4 py-6">
-          <div className="mb-4 rounded-lg px-4 py-2" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
-            <span className="text-white font-bold">{segmentLabel}</span>
-            <span className="ml-3 text-blue-200 text-sm">テスト</span>
+          <div className="mb-4 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
+            <div>
+              <span className="text-white font-bold">{segmentLabel}</span>
+              <span className="ml-3 text-blue-200 text-sm">テスト</span>
+            </div>
+            <span className="text-white text-sm font-mono">{testRound + 1} / {TEST_TOTAL}</span>
           </div>
           <QuizCard
             question={currentQuiz.question}
