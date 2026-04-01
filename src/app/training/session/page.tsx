@@ -274,131 +274,104 @@ export default function TrainingSessionPage() {
   }
 
   // ========== トレーニング画面（既存デザイン準拠） ==========
+  // 既存レイアウト: タイマー(最上部) → 解答バー+表示エリア(白背景一体)
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-      <div className="mx-auto max-w-3xl px-4 py-4">
-        {/* ヘッダー：青バー */}
-        <div className="mb-3 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => router.push('/training')}
-              className="text-blue-200 hover:text-white text-sm">← 戻る</button>
-            <span className="text-white font-bold text-base">{segmentLabel}</span>
-          </div>
-          <span className="text-blue-200 text-sm">
-            {state.segmentIndex + 1} / {segments.length}
-          </span>
-        </div>
+      {/* ===== 最上部: タイマーバー ===== */}
+      <div style={{ padding: '8px 16px 0' }}>
+        <TrainingTimer
+          key={`timer-${state.segmentIndex}`}
+          durationSec={currentSegment.duration_sec}
+          onComplete={handleTimerComplete}
+          paused={paused}
+          onPauseToggle={() => setPaused(p => !p)}
+        />
+      </div>
 
-        {/* タイマー */}
-        <div className="mb-4">
-          <TrainingTimer
-            key={`timer-${state.segmentIndex}`}
-            durationSec={currentSegment.duration_sec}
-            onComplete={handleTimerComplete}
-            paused={paused}
-            onPauseToggle={() => setPaused(p => !p)}
+      {/* ===== メインコンテンツ ===== */}
+      <div style={{ padding: '12px 16px' }}>
+        {isShunkanType(currentSegment.segment_type) && shunkanWords.length > 0 && (
+          <ShunkanDisplay
+            words={shunkanWords}
+            displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'tate_1line') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
+            onFlash={(w) => { lastFlashedWord.current = w }}
           />
-        </div>
-
-        {/* トレーニング表示エリア */}
-        <div className="rounded-xl bg-white shadow-sm border border-gray-200 p-4" style={{ minHeight: '480px' }}>
-          {isShunkanType(currentSegment.segment_type) && shunkanWords.length > 0 && (
-            <ShunkanDisplay
-              words={shunkanWords}
-              displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'tate_1line') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
-              onFlash={(w) => { lastFlashedWord.current = w }}
-            />
-          )}
+        )}
 
           {(currentSegment.segment_type === 'block_tate' || currentSegment.segment_type === 'block_yoko') && readingText && (
-            <div className="h-full flex flex-col">
-              <div className="flex items-center border-2 border-blue-500 rounded-md overflow-hidden mb-4">
-                <span className="shrink-0 bg-blue-600 text-white font-bold px-4 py-2 text-sm">コンテンツ</span>
-                <span className="flex-1 px-4 py-2 text-sm text-gray-700 truncate">{readingText.title}</span>
+            <div style={{ background: '#fff', borderRadius: 8, padding: 16, minHeight: 480 }}>
+              <div style={{ display: 'flex', border: '2px solid #0084E8', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+                <span style={{ background: '#0084E8', color: '#fff', fontWeight: 'bold', padding: '8px 16px', fontSize: 14 }}>コンテンツ</span>
+                <span style={{ flex: 1, padding: '8px 16px', fontSize: 14, color: '#666' }}>{readingText.title}</span>
               </div>
-              <div
-                className="flex-1 overflow-y-auto px-4"
-                style={{
-                  writingMode: currentSegment.segment_type === 'block_tate' ? 'vertical-rl' : 'horizontal-tb',
-                  fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-                  fontSize: '20px',
-                  lineHeight: '2',
-                  minHeight: '400px',
-                }}
-              >
+              <div style={{
+                writingMode: currentSegment.segment_type === 'block_tate' ? 'vertical-rl' : 'horizontal-tb',
+                fontFamily: '"Noto Sans JP", sans-serif', fontSize: 20, lineHeight: 2,
+                overflowY: 'auto', minHeight: 400,
+              }}>
                 {readingText.body.slice(0, 3000)}
               </div>
             </div>
           )}
 
           {(currentSegment.segment_type === 'output_tate' || currentSegment.segment_type === 'output_yoko') && readingText && (
-            <div className="h-full flex flex-col">
-              <div className="flex items-center border-2 border-green-500 rounded-md overflow-hidden mb-4">
-                <span className="shrink-0 bg-green-600 text-white font-bold px-4 py-2 text-sm">アウトプット</span>
-                <span className="flex-1 px-4 py-2 text-sm text-gray-700 truncate">{readingText.title}</span>
+            <div style={{ background: '#fff', borderRadius: 8, padding: 16, minHeight: 480 }}>
+              <div style={{ display: 'flex', border: '2px solid #00aa6e', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+                <span style={{ background: '#00aa6e', color: '#fff', fontWeight: 'bold', padding: '8px 16px', fontSize: 14 }}>アウトプット</span>
+                <span style={{ flex: 1, padding: '8px 16px', fontSize: 14, color: '#666' }}>{readingText.title}</span>
               </div>
-              <div
-                className="flex-1 overflow-y-auto px-4"
-                style={{
-                  writingMode: currentSegment.segment_type === 'output_tate' ? 'vertical-rl' : 'horizontal-tb',
-                  fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-                  fontSize: '20px',
-                  lineHeight: '2',
-                  minHeight: '400px',
-                }}
-              >
+              <div style={{
+                writingMode: currentSegment.segment_type === 'output_tate' ? 'vertical-rl' : 'horizontal-tb',
+                fontFamily: '"Noto Sans JP", sans-serif', fontSize: 20, lineHeight: 2,
+                overflowY: 'auto', minHeight: 400,
+              }}>
                 {readingText.body.slice(0, 3000)}
               </div>
             </div>
           )}
 
           {currentSegment.segment_type === 'reading_speed' && readingText && (
-            <div className="h-full flex flex-col">
-              <div className="flex items-center border-2 border-amber-500 rounded-md overflow-hidden mb-4">
-                <span className="shrink-0 bg-amber-500 text-white font-bold px-4 py-2 text-sm">読書速度計測</span>
-                <span className="flex-1 px-4 py-2 text-sm text-gray-700">{readingText.body.length}文字</span>
+            <div style={{ background: '#fff', borderRadius: 8, padding: 16, minHeight: 480 }}>
+              <div style={{ display: 'flex', border: '2px solid #f59e0b', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+                <span style={{ background: '#f59e0b', color: '#fff', fontWeight: 'bold', padding: '8px 16px', fontSize: 14 }}>読書速度計測</span>
+                <span style={{ flex: 1, padding: '8px 16px', fontSize: 14, color: '#666' }}>{readingText.body.length}文字</span>
               </div>
-              <div
-                className="flex-1 overflow-y-auto px-6"
-                style={{
-                  fontFamily: '"Yu Mincho", "游明朝", "Hiragino Mincho Pro", serif',
-                  fontSize: '18px',
-                  lineHeight: '2.2',
-                  minHeight: '400px',
-                }}
-              >
+              <div style={{
+                fontFamily: '"Noto Sans JP", sans-serif', fontSize: 18, lineHeight: 2.2,
+                overflowY: 'auto', minHeight: 400, padding: '0 8px',
+              }}>
                 {readingText.body.slice(0, 3000)}
               </div>
-              <p className="mt-3 text-center text-sm text-gray-400">
+              <p style={{ textAlign: 'center', color: '#999', fontSize: 14, marginTop: 12 }}>
                 読み終わったら「次へ」を押してください
               </p>
             </div>
           )}
-        </div>
-
-        {/* 次へボタン（黄色スタートボタン風） */}
-        <div className="mt-5 flex justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              const seg = segments[state.segmentIndex]
-              if (seg.has_test) {
-                setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
-              } else {
-                moveToNextSegment(state.segmentIndex)
-              }
-            }}
-            className="rounded-full px-10 py-3 text-base font-bold shadow-md transition-transform hover:scale-105"
-            style={{
-              background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
-              color: '#333',
-              border: '2px solid #E6C200',
-            }}
-          >
-            次へ →
-          </button>
+          {/* ブロック/アウトプット/読書速度の「次へ」ボタン */}
+          {!isShunkanType(currentSegment.segment_type) && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const seg = segments[state.segmentIndex]
+                  if (seg.has_test) {
+                    setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
+                  } else {
+                    moveToNextSegment(state.segmentIndex)
+                  }
+                }}
+                style={{
+                  padding: '12px 48px', borderRadius: 28,
+                  border: '2px solid #E6C200',
+                  background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
+                  color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
+                }}
+              >
+                {'次へ \u2192'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
-    </div>
   )
 }

@@ -19,8 +19,8 @@ interface ShunkanDisplayProps {
 /**
  * 瞬間読みトレーニング（練習モード）
  *
- * フロー: 文字フラッシュ → 消える → 「解答」で確認 → 「次へ」→ 繰り返し
- * タイマーは親コンポーネントが管理。時間切れで練習終了 → テストへ。
+ * ばらばら: 文字が表示されたまま → 「解答」で確認 → 「次の問題へ」
+ * たて/よこ: 0.4秒フラッシュ → 消える → 「もう一度」or「解答」→「次へ」
  */
 export default function ShunkanDisplay({
   words,
@@ -37,8 +37,10 @@ export default function ShunkanDisplay({
   const text = word?.body ?? ''
   const answer = word?.answer ?? text
 
-  // 初回フラッシュ
-  if (showText && !hideTimer.current) {
+  const isBarabara = displayType === 'barabara'
+
+  // 初回：ばらばら以外はフラッシュ後に消す
+  if (!isBarabara && showText && !showAnswer && !hideTimer.current) {
     onFlash?.(text)
     hideTimer.current = setTimeout(() => {
       setShowText(false)
@@ -46,36 +48,55 @@ export default function ShunkanDisplay({
     }, FLASH_TIMING.showMs)
   }
 
-  // 解答を見る
-  const handleAnswer = () => {
-    setShowAnswer(true)
-    setShowText(true) // 文字も再表示
+  // ばらばらの場合は常に表示
+  if (isBarabara && !showText && !showAnswer) {
+    setShowText(true)
   }
 
-  // 次の問題
+  const handleAnswer = () => {
+    setShowAnswer(true)
+    setShowText(true)
+  }
+
   const handleNext = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = null
     const nextIdx = (idx + 1) % words.length
     setIdx(nextIdx)
     setCount(c => c + 1)
     setShowAnswer(false)
     setShowText(true)
     onFlash?.(words[nextIdx]?.body ?? '')
-    hideTimer.current = setTimeout(() => {
-      setShowText(false)
-      hideTimer.current = null
-    }, FLASH_TIMING.showMs)
+
+    // ばらばら以外はフラッシュ後に消す
+    if (!isBarabara) {
+      hideTimer.current = setTimeout(() => {
+        setShowText(false)
+        hideTimer.current = null
+      }, FLASH_TIMING.showMs)
+    }
   }
 
-  // もう一度
   const handleRetry = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = null
     setShowAnswer(false)
     setShowText(true)
     onFlash?.(text)
-    hideTimer.current = setTimeout(() => {
-      setShowText(false)
-      hideTimer.current = null
-    }, FLASH_TIMING.showMs)
+
+    if (!isBarabara) {
+      hideTimer.current = setTimeout(() => {
+        setShowText(false)
+        hideTimer.current = null
+      }, FLASH_TIMING.showMs)
+    }
   }
+
+  // ばらばら: 表示中は「解答」と「次の問題へ」
+  // たて/よこ: 消えたら「もう一度」と「解答」、解答後は「次の問題へ」
+  const showRetryBtn = !isBarabara && !showText && !showAnswer
+  const showAnswerBtn = isBarabara ? !showAnswer : (!showText && !showAnswer)
+  const showNextBtn = showAnswer
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -133,19 +154,19 @@ export default function ShunkanDisplay({
 
       {/* 操作ボタン */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 20 }}>
-        {!showAnswer && !showText && (
-          <>
-            <button type="button" onClick={handleRetry} style={btnStyle('#fff', '#666', '#999')}>
-              もう一度
-            </button>
-            <button type="button" onClick={handleAnswer} style={btnStyle(ANSWER_BAR.labelBg, '#fff', ANSWER_BAR.border)}>
-              解答
-            </button>
-          </>
+        {showRetryBtn && (
+          <button type="button" onClick={handleRetry} style={btnOutline()}>
+            もう一度
+          </button>
         )}
-        {showAnswer && (
-          <button type="button" onClick={handleNext} style={btnStyleYellow()}>
-            次へ →
+        {showAnswerBtn && (
+          <button type="button" onClick={handleAnswer} style={btnRed()}>
+            解答
+          </button>
+        )}
+        {showNextBtn && (
+          <button type="button" onClick={handleNext} style={btnYellow()}>
+            次の問題へ →
           </button>
         )}
       </div>
@@ -154,14 +175,21 @@ export default function ShunkanDisplay({
 }
 
 // ===== ボタンスタイル =====
-function btnStyle(bg: string, color: string, border: string): React.CSSProperties {
+function btnOutline(): React.CSSProperties {
   return {
     padding: '10px 32px', borderRadius: 24,
-    border: `2px solid ${border}`, background: bg,
-    color, fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+    border: '2px solid #999', background: '#fff',
+    color: '#333', fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
   }
 }
-function btnStyleYellow(): React.CSSProperties {
+function btnRed(): React.CSSProperties {
+  return {
+    padding: '10px 32px', borderRadius: 24,
+    border: `2px solid ${ANSWER_BAR.border}`, background: ANSWER_BAR.labelBg,
+    color: '#fff', fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+  }
+}
+function btnYellow(): React.CSSProperties {
   return {
     padding: '10px 40px', borderRadius: 24,
     border: '2px solid #E6C200',
@@ -248,6 +276,5 @@ function makeCirclePositions(count: number) {
   return Array.from({ length: count }, (_, i) => ({
     x: cx + r * Math.cos((i / count) * 2 * Math.PI - Math.PI / 2),
     y: cy + r * Math.sin((i / count) * 2 * Math.PI - Math.PI / 2),
-    r: 0,
   }))
 }
