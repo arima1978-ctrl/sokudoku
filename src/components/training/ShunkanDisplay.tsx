@@ -171,9 +171,10 @@ export default function ShunkanDisplay({
       <div style={{ display: 'flex', gap: 16 }}>
         {/* 文字表示（正方形コンテナ） */}
         <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: '#fff', borderRadius: 8,
-          aspectRatio: '1 / 1', maxHeight: 550, padding: DISPLAY_AREA.padding,
+          width: 500, height: 500, flexShrink: 0,
+          padding: DISPLAY_AREA.padding,
         }}>
           {showCountdown && (
             <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>

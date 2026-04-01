@@ -83,6 +83,7 @@ export default function TrainingSessionPage() {
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
   const lastFlashedWord = useRef<string>('')
+  const flashedWords = useRef<string[]>([])  // 練習中に表示された全単語を記録
   const [questionCount, setQuestionCount] = useState(0)
 
   // 初期化
@@ -132,10 +133,10 @@ export default function TrainingSessionPage() {
     const seg = segments[state.segmentIndex]
 
     if (isShunkanType(seg.segment_type)) {
-      // レベル1のコンテンツからテスト出題
-      // 練習で表示した単語の中からランダムに正解を選び、他の単語を不正解にする
-      const correctWord = lastFlashedWord.current || shunkanWords[0]?.body || '---'
-      // 不正解の選択肢はレベル1の短い単語（shunkanWords）から選ぶ
+      // 練習中に表示された単語からランダムに1つ正解として選ぶ
+      const practiced = flashedWords.current.length > 0 ? flashedWords.current : [shunkanWords[0]?.body ?? '---']
+      const correctWord = practiced[Math.floor(Math.random() * practiced.length)]
+      // 不正解は練習で出ていない単語から選ぶ
       const others = shunkanWords
         .filter(w => w.body !== correctWord)
         .sort(() => Math.random() - 0.5)
@@ -294,7 +295,10 @@ export default function TrainingSessionPage() {
           <ShunkanDisplay
             words={shunkanWords}
             displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'tate_1line') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
-            onFlash={(w) => { lastFlashedWord.current = w }}
+            onFlash={(w) => {
+              lastFlashedWord.current = w
+              if (!flashedWords.current.includes(w)) flashedWords.current.push(w)
+            }}
           />
         )}
 
