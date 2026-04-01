@@ -37,20 +37,13 @@ export default function ShunkanDisplay({
   const text = word?.body ?? ''
   const answer = word?.answer ?? text
 
-  const isBarabara = displayType === 'barabara'
-
-  // 初回：ばらばら以外はフラッシュ後に消す
-  if (!isBarabara && showText && !showAnswer && !hideTimer.current) {
+  // 全種目共通: 0.4秒フラッシュ→消える
+  if (showText && !showAnswer && !hideTimer.current) {
     onFlash?.(text)
     hideTimer.current = setTimeout(() => {
       setShowText(false)
       hideTimer.current = null
     }, FLASH_TIMING.showMs)
-  }
-
-  // ばらばらの場合は常に表示
-  if (isBarabara && !showText && !showAnswer) {
-    setShowText(true)
   }
 
   const handleAnswer = () => {
@@ -68,13 +61,10 @@ export default function ShunkanDisplay({
     setShowText(true)
     onFlash?.(words[nextIdx]?.body ?? '')
 
-    // ばらばら以外はフラッシュ後に消す
-    if (!isBarabara) {
-      hideTimer.current = setTimeout(() => {
-        setShowText(false)
-        hideTimer.current = null
-      }, FLASH_TIMING.showMs)
-    }
+    hideTimer.current = setTimeout(() => {
+      setShowText(false)
+      hideTimer.current = null
+    }, FLASH_TIMING.showMs)
   }
 
   const handleRetry = () => {
@@ -83,19 +73,15 @@ export default function ShunkanDisplay({
     setShowAnswer(false)
     setShowText(true)
     onFlash?.(text)
-
-    if (!isBarabara) {
-      hideTimer.current = setTimeout(() => {
-        setShowText(false)
-        hideTimer.current = null
-      }, FLASH_TIMING.showMs)
-    }
+    hideTimer.current = setTimeout(() => {
+      setShowText(false)
+      hideTimer.current = null
+    }, FLASH_TIMING.showMs)
   }
 
-  // ばらばら: 表示中は「解答」と「次の問題へ」
-  // たて/よこ: 消えたら「もう一度」と「解答」、解答後は「次の問題へ」
-  const showRetryBtn = !isBarabara && !showText && !showAnswer
-  const showAnswerBtn = isBarabara ? !showAnswer : (!showText && !showAnswer)
+  // 全種目共通: 消えたら「もう一度」「解答」、解答後は「次の問題へ」
+  const showRetryBtn = !showText && !showAnswer
+  const showAnswerBtn = !showText && !showAnswer
   const showNextBtn = showAnswer
 
   return (
