@@ -72,8 +72,8 @@ export const SCREEN_COLORS = {
 
 /** ばらばら配置の設定 */
 export const BARABARA_CONFIG = {
-  /** 散布半径（表示エリアの%） */
-  radius: 28,
+  /** 散布半径（表示エリアの%）- 文字数に関係なく固定 */
+  radius: 32,
   /** 文字の回転角度範囲（±度） */
   rotationRange: 25,
 } as const
