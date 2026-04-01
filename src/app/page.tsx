@@ -1,12 +1,12 @@
-import { getJukus } from '@/app/actions/juku'
-import JukuTable from '@/components/JukuTable'
+import { getSchools } from '@/app/actions/juku'
+import SchoolTable from '@/components/JukuTable'
 
 export default async function Home() {
-  let jukus: Awaited<ReturnType<typeof getJukus>> = []
+  let schools: Awaited<ReturnType<typeof getSchools>> = []
   let error: string | null = null
 
   try {
-    jukus = await getJukus()
+    schools = await getSchools()
   } catch (e) {
     error = e instanceof Error ? e.message : 'データの取得に失敗しました'
   }
@@ -16,10 +16,10 @@ export default async function Home() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            塾ID一覧
+            スクール一覧
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
-            100万人の速読 - 塾ID/パスワード管理
+            100万人の速読 - スクールID/パスワード管理
           </p>
         </div>
       </div>
@@ -29,7 +29,7 @@ export default async function Home() {
           {error}
         </div>
       ) : (
-        <JukuTable initialData={jukus} />
+        <SchoolTable initialData={schools} />
       )}
     </div>
   )

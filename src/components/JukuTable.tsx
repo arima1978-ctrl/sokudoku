@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import type { Juku, MemberType, JukuStatus } from '@/types/database'
-import { MEMBER_TYPE_LABELS, JUKU_STATUS_LABELS } from '@/types/database'
+import type { School, MemberType, SchoolStatus } from '@/types/database'
+import { MEMBER_TYPE_LABELS, SCHOOL_STATUS_LABELS } from '@/types/database'
 
-interface JukuTableProps {
-  initialData: Juku[]
+interface SchoolTableProps {
+  initialData: School[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -14,18 +14,18 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 }
 
-export default function JukuTable({ initialData }: JukuTableProps) {
+export default function SchoolTable({ initialData }: SchoolTableProps) {
   const [data] = useState(initialData)
   const [search, setSearch] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const filtered = data.filter((juku) => {
+  const filtered = data.filter((school) => {
     if (!search) return true
     const q = search.toLowerCase()
     return (
-      juku.juku_name.toLowerCase().includes(q) ||
-      juku.juku_id.toLowerCase().includes(q) ||
-      juku.family_code.toLowerCase().includes(q)
+      school.school_name.toLowerCase().includes(q) ||
+      school.school_id.toLowerCase().includes(q) ||
+      school.family_code.toLowerCase().includes(q)
     )
   })
 
@@ -40,7 +40,7 @@ export default function JukuTable({ initialData }: JukuTableProps) {
       <div className="flex items-center gap-4">
         <input
           type="text"
-          placeholder="塾名・塾ID・家族コードで検索..."
+          placeholder="スクール名・ID・家族コードで検索..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-md rounded-lg border border-zinc-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
@@ -52,8 +52,8 @@ export default function JukuTable({ initialData }: JukuTableProps) {
         <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
           <thead className="bg-zinc-100 dark:bg-zinc-900">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">塾ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">塾名</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">スクールID</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">スクール名</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">パスワード</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">会員種別</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">ステータス</th>
@@ -70,40 +70,40 @@ export default function JukuTable({ initialData }: JukuTableProps) {
                 </td>
               </tr>
             )}
-            {filtered.map((juku) => (
-              <tr key={juku.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+            {filtered.map((school) => (
+              <tr key={school.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
                 <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-zinc-900 dark:text-zinc-100">
-                  {juku.juku_id}
+                  {school.school_id}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {juku.juku_name}
+                  {school.school_name}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm">
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(juku.password, juku.id)}
+                    onClick={() => copyToClipboard(school.password, school.id)}
                     className="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                     title="クリックでコピー"
                   >
-                    {copiedId === juku.id ? 'Copied!' : '****'}
+                    {copiedId === school.id ? 'Copied!' : '****'}
                   </button>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                  {MEMBER_TYPE_LABELS[juku.member_type as MemberType] ?? juku.member_type}
+                  {MEMBER_TYPE_LABELS[school.member_type as MemberType] ?? school.member_type}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[juku.status] ?? ''}`}>
-                    {JUKU_STATUS_LABELS[juku.status as JukuStatus] ?? juku.status}
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[school.status] ?? ''}`}>
+                    {SCHOOL_STATUS_LABELS[school.status as SchoolStatus] ?? school.status}
                   </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                  {juku.tantou ?? '-'}
+                  {school.tantou ?? '-'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                  {juku.tel ?? '-'}
+                  {school.tel ?? '-'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-500">
-                  {new Date(juku.created_at).toLocaleDateString('ja-JP')}
+                  {new Date(school.created_at).toLocaleDateString('ja-JP')}
                 </td>
               </tr>
             ))}

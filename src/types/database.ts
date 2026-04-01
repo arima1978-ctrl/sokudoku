@@ -1,46 +1,9 @@
-export interface Database {
-  public: {
-    Tables: {
-      jukus: {
-        Row: Juku
-        Insert: JukuInsert
-        Update: JukuUpdate
-        Relationships: []
-      }
-      students: {
-        Row: Student
-        Insert: StudentInsert
-        Update: StudentUpdate
-        Relationships: [
-          {
-            foreignKeyName: 'students_juku_id_fkey'
-            columns: ['juku_id']
-            isOneToOne: false
-            referencedRelation: 'jukus'
-            referencedColumns: ['id']
-          }
-        ]
-      }
-      login_history: {
-        Row: LoginHistory
-        Insert: LoginHistoryInsert
-        Update: LoginHistoryInsert
-        Relationships: []
-      }
-    }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
-    CompositeTypes: Record<string, never>
-  }
-}
-
-// ========== 塾 ==========
-export interface Juku {
+// ========== スクール ==========
+export interface School {
   id: string
-  juku_id: string
+  school_id: string
   family_code: string
-  juku_name: string
+  school_name: string
   password: string
   email: string | null
   prefecture: string | null
@@ -58,26 +21,27 @@ export interface Juku {
   updated_at: string
 }
 
-export type JukuInsert = Omit<Juku, 'id' | 'created_at' | 'updated_at'> & {
+export type SchoolInsert = Omit<School, 'id' | 'created_at' | 'updated_at'> & {
   id?: string
   created_at?: string
   updated_at?: string
 }
 
-export type JukuUpdate = Partial<JukuInsert>
+export type SchoolUpdate = Partial<SchoolInsert>
 
 export type MemberType = 'culture_kids' | 'eduplus' | 'none'
-export type JukuStatus = 'active' | 'trial' | 'cancelled'
+export type SchoolStatus = 'active' | 'trial' | 'cancelled'
 export type FormType = 'contract' | 'trial'
 
 // ========== 生徒 ==========
 export interface Student {
   id: string
-  juku_id: string
+  school_id: string
   student_login_id: string
   student_password: string
   student_name: string | null
   grade: string | null
+  grade_level_id: string | null
   status: string
   start_date: string | null
   end_date: string | null
@@ -86,30 +50,120 @@ export interface Student {
   updated_at: string
 }
 
-export type StudentInsert = Omit<Student, 'id' | 'created_at' | 'updated_at'> & {
-  id?: string
-  created_at?: string
-  updated_at?: string
-}
-
-export type StudentUpdate = Partial<StudentInsert>
-
 export type StudentStatus = 'active' | 'inactive'
 
-// ========== ログイン履歴 ==========
-export interface LoginHistory {
+// ========== 学年マスター ==========
+export interface GradeLevel {
   id: string
-  juku_id: string | null
-  student_id: string | null
-  login_type: string
-  logged_in_at: string
-  ip_address: string | null
-  user_agent: string | null
+  name: string
+  display_order: number
+  max_kanji_level: number
 }
 
-export type LoginHistoryInsert = Omit<LoginHistory, 'id' | 'logged_in_at'> & {
-  id?: string
-  logged_in_at?: string
+// ========== 分野マスター ==========
+export interface Subject {
+  id: string
+  name: string
+  icon: string | null
+  display_order: number
+}
+
+// ========== コンテンツ ==========
+export interface Content {
+  id: string
+  grade_level_id: string
+  subject_id: string
+  difficulty: number
+  title: string
+  body: string
+  char_count: number
+  reading_time_sec: number | null
+  is_active: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+// ========== 4択テスト ==========
+export interface Quiz {
+  id: string
+  content_id: string
+  pattern: 'A' | 'B' | 'C'
+  created_at: string
+}
+
+export interface QuizQuestion {
+  id: string
+  quiz_id: string
+  question_no: number
+  question_text: string
+  choice_a: string
+  choice_b: string
+  choice_c: string
+  choice_d: string
+  correct: 'A' | 'B' | 'C' | 'D'
+  explanation: string | null
+}
+
+// ========== 読書セッション ==========
+export interface ReadingSession {
+  id: string
+  student_id: string
+  content_id: string
+  started_at: string
+  finished_at: string | null
+  reading_time_sec: number | null
+  char_count: number
+  wpm: number | null
+  display_speed: number | null
+  is_completed: boolean
+  created_at: string
+}
+
+// ========== テスト結果 ==========
+export interface QuizResult {
+  id: string
+  reading_session_id: string
+  quiz_id: string
+  student_id: string
+  total_questions: number
+  correct_count: number
+  accuracy_pct: number
+  answers: QuizAnswer[]
+  completed_at: string
+}
+
+export interface QuizAnswer {
+  question_no: number
+  selected: string
+  correct: string
+  is_correct: boolean
+}
+
+// ========== 生徒プロファイル ==========
+export interface StudentProfile {
+  student_id: string
+  grade_level_id: string
+  current_wpm: number | null
+  avg_wpm: number | null
+  avg_accuracy_pct: number | null
+  recommended_speed: number
+  recommended_difficulty: number
+  total_sessions: number
+  total_contents_read: number
+  last_session_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ========== スピード履歴 ==========
+export interface SpeedHistory {
+  id: string
+  student_id: string
+  wpm: number
+  accuracy_pct: number | null
+  content_id: string | null
+  measured_at: string
 }
 
 // ========== 表示用ラベル ==========
@@ -119,7 +173,7 @@ export const MEMBER_TYPE_LABELS: Record<MemberType, string> = {
   none: '非会員',
 }
 
-export const JUKU_STATUS_LABELS: Record<JukuStatus, string> = {
+export const SCHOOL_STATUS_LABELS: Record<SchoolStatus, string> = {
   active: '本入会',
   trial: '体験中',
   cancelled: '解約済',

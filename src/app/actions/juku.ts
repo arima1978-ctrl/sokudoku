@@ -1,79 +1,79 @@
 'use server'
 
 import { supabase } from '@/lib/supabase'
-import type { Juku } from '@/types/database'
+import type { School } from '@/types/database'
 
-export async function getJukus(search?: string): Promise<Juku[]> {
+export async function getSchools(search?: string): Promise<School[]> {
   let query = supabase
-    .from('jukus')
+    .from('schools')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (search) {
     query = query.or(
-      `juku_name.ilike.%${search}%,juku_id.ilike.%${search}%,family_code.ilike.%${search}%`
+      `school_name.ilike.%${search}%,school_id.ilike.%${search}%,family_code.ilike.%${search}%`
     )
   }
 
   const { data, error } = await query
 
   if (error) {
-    throw new Error(`塾データの取得に失敗しました: ${error.message}`)
+    throw new Error(`スクールデータの取得に失敗しました: ${error.message}`)
   }
 
-  return (data ?? []) as Juku[]
+  return (data ?? []) as School[]
 }
 
-export async function getJuku(id: string): Promise<Juku> {
+export async function getSchool(id: string): Promise<School> {
   const { data, error } = await supabase
-    .from('jukus')
+    .from('schools')
     .select('*')
     .eq('id', id)
     .single()
 
   if (error) {
-    throw new Error(`塾データの取得に失敗しました: ${error.message}`)
+    throw new Error(`スクールデータの取得に失敗しました: ${error.message}`)
   }
 
-  return data as Juku
+  return data as School
 }
 
-export async function createJuku(input: Record<string, unknown>): Promise<Juku> {
+export async function createSchool(input: Record<string, unknown>): Promise<School> {
   const { data, error } = await supabase
-    .from('jukus')
+    .from('schools')
     .insert(input)
     .select()
     .single()
 
   if (error) {
-    throw new Error(`塾の登録に失敗しました: ${error.message}`)
+    throw new Error(`スクールの登録に失敗しました: ${error.message}`)
   }
 
-  return data as Juku
+  return data as School
 }
 
-export async function updateJuku(id: string, input: Record<string, unknown>): Promise<Juku> {
+export async function updateSchool(id: string, input: Record<string, unknown>): Promise<School> {
   const { data, error } = await supabase
-    .from('jukus')
+    .from('schools')
     .update(input)
     .eq('id', id)
     .select()
     .single()
 
   if (error) {
-    throw new Error(`塾の更新に失敗しました: ${error.message}`)
+    throw new Error(`スクールの更新に失敗しました: ${error.message}`)
   }
 
-  return data as Juku
+  return data as School
 }
 
-export async function deleteJuku(id: string): Promise<void> {
+export async function deleteSchool(id: string): Promise<void> {
   const { error } = await supabase
-    .from('jukus')
+    .from('schools')
     .delete()
     .eq('id', id)
 
   if (error) {
-    throw new Error(`塾の削除に失敗しました: ${error.message}`)
+    throw new Error(`スクールの削除に失敗しました: ${error.message}`)
   }
 }
