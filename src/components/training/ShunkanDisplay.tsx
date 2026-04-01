@@ -133,17 +133,24 @@ function TextDisplay({ text, type }: { text: string; type: string }) {
 function Barabara({ text, font, weight }: { text: string; font: string; weight: number }) {
   const chars = text.split('')
   const size = FONT_SIZES.barabara
+  const containerRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(makeCirclePositions(chars.length))
-  // 文字数変わったらポジション再計算
   useEffect(() => { posRef.current = makeCirclePositions(chars.length) }, [chars.length])
   const pos = posRef.current
 
+  // 正方形コンテナにして、円が歪まないようにする
+  const squareSize = DISPLAY_AREA.minHeight - DISPLAY_AREA.padding * 2
+
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      height: DISPLAY_AREA.minHeight - DISPLAY_AREA.padding * 2,
-    }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        width: squareSize,
+        height: squareSize,
+        margin: '0 auto',
+      }}
+    >
       {chars.map((c, i) => (
         <span key={i} style={{
           position: 'absolute',
