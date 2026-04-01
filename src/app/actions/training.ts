@@ -232,6 +232,95 @@ export async function completeTrainingSession(
   return (evalResult as StepEvaluation) ?? { action: 'maintain' }
 }
 
+// ========== コンテンツ取得 ==========
+
+export async function getShunkanContent(gradeLevelId: string) {
+  // 学年に合った瞬間読みコンテンツをランダムに取得
+  const { data, error } = await supabase
+    .from('contents')
+    .select('id, title, body, char_count')
+    .eq('grade_level_id', gradeLevelId)
+    .lte('char_count', 30) // 短文のみ
+    .eq('is_active', true)
+    .limit(20)
+
+  if (error || !data || data.length === 0) {
+    // フォールバック: 全学年から取得
+    const { data: fallback } = await supabase
+      .from('contents')
+      .select('id, title, body, char_count')
+      .lte('char_count', 30)
+      .eq('is_active', true)
+      .limit(20)
+    return (fallback ?? []) as Array<{ id: string; title: string; body: string; char_count: number }>
+  }
+
+  return data as Array<{ id: string; title: string; body: string; char_count: number }>
+}
+
+export async function getReadingContent(gradeLevelId: string, subjectId?: string) {
+  // 学年に合った長文コンテンツを取得
+  let query = supabase
+    .from('contents')
+    .select('id, title, body, char_count, subject_id, difficulty')
+    .eq('grade_level_id', gradeLevelId)
+    .gt('char_count', 100) // 長文のみ
+    .eq('is_active', true)
+
+  if (subjectId) {
+    query = query.eq('subject_id', subjectId)
+  }
+
+  const { data, error } = await query.limit(10)
+
+  if (error || !data || data.length === 0) {
+    // フォールバック
+    const { data: fallback } = await supabase
+      .from('contents')
+      .select('id, title, body, char_count, subject_id, difficulty')
+      .gt('char_count', 100)
+      .eq('is_active', true)
+      .limit(10)
+    return (fallback ?? []) as Array<Record<string, unknown>>
+  }
+
+  return data as Array<Record<string, unknown>>
+}
+
+export async function getQuizForContent(contentId: string) {
+  // コンテンツに紐づくテストをランダム1パターン取得
+  const { data: quizzes } = await supabase
+    .from('quizzes')
+    .select('id, pattern')
+    .eq('content_id', contentId)
+
+  if (!quizzes || quizzes.length === 0) return null
+
+  // ランダムに1パターン選択
+  const quiz = quizzes[Math.floor(Math.random() * quizzes.length)]
+
+  const { data: questions } = await supabase
+    .from('quiz_questions')
+    .select('*')
+    .eq('quiz_id', (quiz as Record<string, unknown>).id)
+    .order('question_no', { ascending: true })
+
+  return {
+    quiz_id: (quiz as Record<string, unknown>).id as string,
+    pattern: (quiz as Record<string, unknown>).pattern as string,
+    questions: (questions ?? []) as Array<{
+      id: string
+      question_no: number
+      question_text: string
+      choice_a: string
+      choice_b: string
+      choice_c: string
+      choice_d: string
+      correct: string
+    }>,
+  }
+}
+
 export async function getStudentStats(studentId: string) {
   // Get session count
   const { count: sessionCount } = await supabase

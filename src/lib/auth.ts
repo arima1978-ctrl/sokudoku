@@ -33,20 +33,20 @@ export async function loginStudent(
   // Look up the school first
   const { data: school, error: schoolError } = await supabase
     .from('schools')
-    .select('school_id')
+    .select('id, school_id')
     .eq('school_id', schoolId)
-    .eq('status', 'active')
+    .in('status', ['active', 'trial'])
     .single()
 
   if (schoolError || !school) {
     return { success: false, error: 'スクールIDが見つかりません' }
   }
 
-  // Look up the student
+  // Look up the student (school_id is UUID reference to schools.id)
   const { data: student, error: studentError } = await supabase
     .from('students')
     .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, status')
-    .eq('school_id', schoolId)
+    .eq('school_id', (school as Record<string, string>).id)
     .eq('student_login_id', loginId)
     .single()
 

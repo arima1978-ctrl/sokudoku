@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Timer from '@/components/training/Timer'
 import QuizCard from '@/components/training/QuizCard'
@@ -10,6 +10,9 @@ import {
   startTrainingSession,
   submitSegmentTest,
   completeTrainingSession,
+  getShunkanContent,
+  getReadingContent,
+  getQuizForContent,
   type MenuSegment,
   type SegmentTestResult,
   type StepEvaluation,
@@ -17,68 +20,32 @@ import {
 } from '@/app/actions/training'
 import { getLoggedInStudent, type LoggedInStudent } from '@/lib/auth'
 
-// ========== Placeholder content generators ==========
-
-const FLASH_WORDS = [
-  '桜の花', '青い空', '夏休み', '秋の風', '冬の朝',
-  '元気な子', '大きな木', '美しい海', '新しい本', '楽しい日',
-  '走る馬', '飛ぶ鳥', '光る星', '流れる川', '揺れる花',
-]
-
-const PLACEHOLDER_TEXT =
-  'むかしむかし、あるところに、おじいさんとおばあさんが住んでいました。おじいさんは山へ芝刈りに、おばあさんは川へ洗濯に行きました。おばあさんが川で洗濯をしていると、大きな桃がどんぶらこ、どんぶらこと流れてきました。'
-
-function generateQuiz(segmentType: string): {
-  question: string
-  choices: [string, string, string, string]
-  correctIndex: number
-} {
-  if (segmentType === 'shunkan') {
-    const word = FLASH_WORDS[Math.floor(Math.random() * FLASH_WORDS.length)]
-    const wrong = FLASH_WORDS.filter((w) => w !== word)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-    const choices = [...wrong, word].sort(() => Math.random() - 0.5) as [
-      string,
-      string,
-      string,
-      string,
-    ]
-    return {
-      question: '今表示された言葉は?',
-      choices,
-      correctIndex: choices.indexOf(word),
-    }
-  }
-
-  // Default comprehension quiz
-  const quizzes = [
-    {
-      question: 'おじいさんはどこへ行きましたか?',
-      choices: ['川', '山', '海', '森'] as [string, string, string, string],
-      correctIndex: 1,
-    },
-    {
-      question: '川から流れてきたものは?',
-      choices: ['りんご', 'すいか', '桃', 'みかん'] as [string, string, string, string],
-      correctIndex: 2,
-    },
-    {
-      question: 'おばあさんは川で何をしていましたか?',
-      choices: ['釣り', '洗濯', '水泳', '散歩'] as [string, string, string, string],
-      correctIndex: 1,
-    },
-  ]
-  return quizzes[Math.floor(Math.random() * quizzes.length)]
-}
-
 // ========== Segment type labels ==========
 
 const SEGMENT_LABELS: Record<string, string> = {
-  shunkan: '瞬間認識トレーニング',
-  block: 'ブロック読みトレーニング',
-  output: 'アウトプットトレーニング',
-  reading_speed: '読書速度測定',
+  barabara: 'ばらばら読み',
+  shunkan_tate_1line: 'たて1行 瞬間よみ',
+  shunkan_tate_2line: 'たて2行 瞬間よみ',
+  shunkan_yoko_1line: 'よこ1行 瞬間よみ',
+  shunkan_yoko_2line: 'よこ2行 瞬間よみ',
+  koe_e: '声になる/絵になる',
+  block_tate: 'たてブロック読み',
+  block_yoko: 'よこブロック読み',
+  output_tate: 'たてアウトプット',
+  output_yoko: 'よこアウトプット',
+  reading_speed: '読書速度計測',
+}
+
+function isShunkanType(type: string) {
+  return ['barabara', 'shunkan_tate_1line', 'shunkan_tate_2line', 'shunkan_yoko_1line', 'shunkan_yoko_2line', 'koe_e'].includes(type)
+}
+
+function isBlockType(type: string) {
+  return ['block_tate', 'block_yoko'].includes(type)
+}
+
+function isOutputType(type: string) {
+  return ['output_tate', 'output_yoko'].includes(type)
 }
 
 // ========== State machine ==========
@@ -89,6 +56,17 @@ type SessionState =
   | { phase: 'segment_active'; segmentIndex: number }
   | { phase: 'segment_test'; segmentIndex: number }
   | { phase: 'summary' }
+
+interface ShunkanWord {
+  id: string
+  body: string
+}
+
+interface QuizData {
+  question: string
+  choices: [string, string, string, string]
+  correctIndex: number
+}
 
 export default function TrainingSessionPage() {
   const router = useRouter()
@@ -103,9 +81,14 @@ export default function TrainingSessionPage() {
   const [results, setResults] = useState<SegmentTestResult[]>([])
   const [evaluation, setEvaluation] = useState<StepEvaluation | null>(null)
 
-  // For shunkan flash
+  // Content state
+  const [shunkanWords, setShunkanWords] = useState<ShunkanWord[]>([])
   const [flashWord, setFlashWord] = useState<string | null>(null)
   const [showFlash, setShowFlash] = useState(false)
+  const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
+  const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
+  const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const flashIndexRef = useRef(0)
 
   // Initialize session
   useEffect(() => {
@@ -122,6 +105,18 @@ export default function TrainingSessionPage() {
           return
         }
         setStudent(loggedIn)
+
+        // Load content
+        const grade = loggedIn.grade_level_id || 'g4'
+        const [shunkan, reading] = await Promise.all([
+          getShunkanContent(grade),
+          getReadingContent(grade),
+        ])
+        setShunkanWords(shunkan.map(c => ({ id: c.id, body: c.body })))
+        if (reading.length > 0) {
+          const r = reading[Math.floor(Math.random() * reading.length)]
+          setReadingText({ id: r.id as string, title: r.title as string, body: r.body as string })
+        }
 
         const menuSegments = await getMenuSegments(menuId, loggedIn.id)
         const activeSegments = menuSegments.filter((s) => !s.should_skip)
@@ -148,22 +143,89 @@ export default function TrainingSessionPage() {
     init()
   }, [menuId, stepId, router])
 
-  // Handle flash word for shunkan segments
+  // Handle flash words for shunkan segments
   useEffect(() => {
-    if (
-      state.phase === 'segment_active' &&
-      segments[state.segmentIndex]?.segment_type === 'shunkan'
-    ) {
-      const word = FLASH_WORDS[Math.floor(Math.random() * FLASH_WORDS.length)]
-      setFlashWord(word)
+    if (state.phase === 'segment_active' && isShunkanType(segments[state.segmentIndex]?.segment_type)) {
+      if (shunkanWords.length === 0) return
+
+      // Flash words periodically
+      flashIndexRef.current = Math.floor(Math.random() * shunkanWords.length)
+      const word = shunkanWords[flashIndexRef.current]
+      setFlashWord(word.body)
       setShowFlash(true)
-      const timer = setTimeout(() => setShowFlash(false), 800)
-      return () => clearTimeout(timer)
+
+      flashIntervalRef.current = setInterval(() => {
+        flashIndexRef.current = Math.floor(Math.random() * shunkanWords.length)
+        const w = shunkanWords[flashIndexRef.current]
+        setFlashWord(w.body)
+        setShowFlash(true)
+        setTimeout(() => setShowFlash(false), 600)
+      }, 2000)
+
+      const hideTimer = setTimeout(() => setShowFlash(false), 600)
+
+      return () => {
+        if (flashIntervalRef.current) clearInterval(flashIntervalRef.current)
+        clearTimeout(hideTimer)
+      }
     }
-  }, [state, segments])
+  }, [state, segments, shunkanWords])
+
+  // Generate quiz for test phase
+  useEffect(() => {
+    if (state.phase !== 'segment_test') return
+    const seg = segments[state.segmentIndex]
+
+    if (isShunkanType(seg.segment_type)) {
+      // 瞬間読み: 最後に表示された単語を当てる
+      const correctWord = flashWord || (shunkanWords[0]?.body ?? '桜の花')
+      const others = shunkanWords
+        .filter(w => w.body !== correctWord)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3)
+        .map(w => w.body)
+
+      while (others.length < 3) others.push('---')
+
+      const choices = [...others, correctWord].sort(() => Math.random() - 0.5) as [string, string, string, string]
+      setCurrentQuiz({
+        question: '今表示された言葉はどれですか？',
+        choices,
+        correctIndex: choices.indexOf(correctWord),
+      })
+    } else if (readingText) {
+      // 長文: DBにテストがあれば使う、なければ簡易生成
+      getQuizForContent(readingText.id).then(quiz => {
+        if (quiz && quiz.questions.length > 0) {
+          const q = quiz.questions[Math.floor(Math.random() * quiz.questions.length)]
+          const choices = [q.choice_a, q.choice_b, q.choice_c, q.choice_d] as [string, string, string, string]
+          const correctIdx = ['A', 'B', 'C', 'D'].indexOf(q.correct)
+          setCurrentQuiz({
+            question: q.question_text,
+            choices,
+            correctIndex: correctIdx >= 0 ? correctIdx : 0,
+          })
+        } else {
+          // フォールバック: テキストの最初の文を使った簡易クイズ
+          const firstSentence = readingText.body.slice(0, 50)
+          setCurrentQuiz({
+            question: 'この文章の最初に書かれていたことは？',
+            choices: [
+              firstSentence + '...',
+              'それは違う内容です。',
+              'まったく別の話でした。',
+              '覚えていません。',
+            ],
+            correctIndex: 0,
+          })
+        }
+      })
+    }
+  }, [state, segments, flashWord, shunkanWords, readingText])
 
   const handleTimerComplete = useCallback(() => {
     if (state.phase !== 'segment_active') return
+    if (flashIntervalRef.current) clearInterval(flashIntervalRef.current)
     const seg = segments[state.segmentIndex]
 
     if (seg.has_test) {
@@ -175,6 +237,7 @@ export default function TrainingSessionPage() {
 
   const handleSkipToTest = useCallback(() => {
     if (state.phase !== 'segment_active') return
+    if (flashIntervalRef.current) clearInterval(flashIntervalRef.current)
     const seg = segments[state.segmentIndex]
 
     if (seg.has_test) {
@@ -189,6 +252,7 @@ export default function TrainingSessionPage() {
     if (nextIndex >= segments.length) {
       finishSession()
     } else {
+      setCurrentQuiz(null)
       setState({ phase: 'segment_active', segmentIndex: nextIndex })
     }
   }
@@ -201,26 +265,23 @@ export default function TrainingSessionPage() {
     if (!session || !student) return
 
     const seg = segments[segmentIndex]
-    const totalQ = 1
-    const correctCount = isCorrect ? 1 : 0
 
     try {
       const result = await submitSegmentTest(
         session.id,
         student.id,
         seg.segment_type,
-        totalQ,
-        correctCount
+        1,
+        isCorrect ? 1 : 0
       )
       setResults((prev) => [...prev, result])
     } catch {
       // Continue even if save fails
     }
 
-    // Wait a moment for the answer reveal, then move on
     setTimeout(() => {
       moveToNextSegment(segmentIndex)
-    }, 300)
+    }, 1000)
   }
 
   async function finishSession() {
@@ -288,15 +349,12 @@ export default function TrainingSessionPage() {
   }
 
   const currentSegment = segments[state.segmentIndex]
-  const segmentLabel =
-    SEGMENT_LABELS[currentSegment.segment_type] ?? currentSegment.segment_type
+  const segmentLabel = SEGMENT_LABELS[currentSegment.segment_type] ?? currentSegment.segment_type
 
   // Test phase
-  if (state.phase === 'segment_test') {
-    const quiz = generateQuiz(currentSegment.segment_type)
-
+  if (state.phase === 'segment_test' && currentQuiz) {
     return (
-      <div>
+      <div className="mx-auto max-w-2xl px-4 py-8">
         <SegmentHeader
           label={segmentLabel}
           current={state.segmentIndex + 1}
@@ -304,9 +362,9 @@ export default function TrainingSessionPage() {
           subtitle="テスト"
         />
         <QuizCard
-          question={quiz.question}
-          choices={quiz.choices}
-          correctIndex={quiz.correctIndex}
+          question={currentQuiz.question}
+          choices={currentQuiz.choices}
+          correctIndex={currentQuiz.correctIndex}
           onAnswer={(selected, isCorrect) =>
             handleQuizAnswer(state.segmentIndex, selected, isCorrect)
           }
@@ -317,7 +375,7 @@ export default function TrainingSessionPage() {
 
   // Active segment phase
   return (
-    <div>
+    <div className="mx-auto max-w-2xl px-4 py-8">
       <SegmentHeader
         label={segmentLabel}
         current={state.segmentIndex + 1}
@@ -335,59 +393,35 @@ export default function TrainingSessionPage() {
 
       {/* Segment content */}
       <div className="rounded-xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
-        {currentSegment.segment_type === 'shunkan' && (
+        {isShunkanType(currentSegment.segment_type) && (
           <div className="flex min-h-[200px] items-center justify-center">
             {showFlash ? (
-              <p className="text-4xl font-bold text-zinc-900 dark:text-zinc-50">
+              <p className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 transition-opacity">
                 {flashWord}
               </p>
             ) : (
-              <p className="text-zinc-400">
-                {flashWord ? '表示された言葉を覚えてください' : '準備中...'}
-              </p>
+              <p className="text-lg text-zinc-300 dark:text-zinc-600">・・・</p>
             )}
           </div>
         )}
 
-        {currentSegment.segment_type === 'block' && (
+        {(isBlockType(currentSegment.segment_type) || isOutputType(currentSegment.segment_type)) && readingText && (
           <div className="min-h-[200px]">
-            <p className="text-lg leading-relaxed text-zinc-800 dark:text-zinc-200">
-              {PLACEHOLDER_TEXT}
-            </p>
-            <p className="mt-4 text-sm text-zinc-400">
-              ブロック単位で素早く読み取ってください
+            <h4 className="mb-3 text-sm font-medium text-blue-600">{readingText.title}</h4>
+            <p className="text-base leading-8 text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
+              {readingText.body.slice(0, 2000)}
             </p>
           </div>
         )}
 
-        {currentSegment.segment_type === 'output' && (
+        {currentSegment.segment_type === 'reading_speed' && readingText && (
           <div className="min-h-[200px]">
-            <p className="text-lg leading-relaxed text-zinc-800 dark:text-zinc-200">
-              {PLACEHOLDER_TEXT}
+            <h4 className="mb-3 text-sm font-medium text-green-600">読書速度計測</h4>
+            <p className="text-base leading-8 text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
+              {readingText.body.slice(0, 2000)}
             </p>
             <p className="mt-4 text-sm text-zinc-400">
-              内容を理解しながら読み進めてください
-            </p>
-          </div>
-        )}
-
-        {currentSegment.segment_type === 'reading_speed' && (
-          <div className="min-h-[200px]">
-            <p className="text-lg leading-relaxed text-zinc-800 dark:text-zinc-200">
-              {PLACEHOLDER_TEXT}
-            </p>
-            <p className="mt-4 text-sm text-zinc-400">
-              普段のスピードで読んでください。読み終わったら「次へ」を押してください。
-            </p>
-          </div>
-        )}
-
-        {!['shunkan', 'block', 'output', 'reading_speed'].includes(
-          currentSegment.segment_type
-        ) && (
-          <div className="flex min-h-[200px] items-center justify-center">
-            <p className="text-zinc-400">
-              {segmentLabel} - コンテンツ準備中
+              読み終わったら「次へ」を押してください（{readingText.body.length}文字）
             </p>
           </div>
         )}
@@ -397,9 +431,9 @@ export default function TrainingSessionPage() {
         <button
           type="button"
           onClick={handleSkipToTest}
-          className="rounded-lg bg-zinc-200 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          次へ
+          次へ →
         </button>
       </div>
     </div>
@@ -423,16 +457,16 @@ function SegmentHeader({
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
           {label}
           {subtitle && (
-            <span className="ml-2 text-sm font-normal text-zinc-500">
-              - {subtitle}
+            <span className="ml-2 text-sm font-normal text-blue-500">
+              {subtitle}
             </span>
           )}
         </h3>
-        <span className="text-sm text-zinc-500">
+        <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
           {current} / {total}
         </span>
       </div>
-      <div className="mt-2 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700">
+      <div className="mt-2 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
         <div
           className="h-full rounded-full bg-blue-500 transition-all"
           style={{ width: `${(current / total) * 100}%` }}
