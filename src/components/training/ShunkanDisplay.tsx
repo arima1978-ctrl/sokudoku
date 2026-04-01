@@ -200,14 +200,15 @@ function TextDisplay({ text, type }: { text: string; type: string }) {
 
 function Barabara({ text, font, weight }: { text: string; font: string; weight: number }) {
   const chars = text.split('')
-  const posRef = useRef(makeCirclePositions(chars.length))
+  // 文字数が変わるたびに均等配置を再計算
+  const positions = makeCirclePositions(chars.length)
   const sq = DISPLAY_AREA.minHeight - DISPLAY_AREA.padding * 2
   return (
     <div style={{ position: 'relative', width: sq, height: sq, margin: '0 auto' }}>
       {chars.map((c, i) => (
-        <span key={i} style={{
+        <span key={`${text}-${i}`} style={{
           position: 'absolute',
-          left: `${posRef.current[i].x}%`, top: `${posRef.current[i].y}%`,
+          left: `${positions[i].x}%`, top: `${positions[i].y}%`,
           transform: 'translate(-50%, -50%)',
           fontSize: FONT_SIZES.barabara, fontFamily: font, fontWeight: weight,
           color: '#000', lineHeight: 1, userSelect: 'none',
