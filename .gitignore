@@ -35,6 +35,9 @@ yarn-error.log*
 .env*.local
 !.env.local.example
 
+# temp
+tmp_pptx/
+
 # vercel
 .vercel
 
