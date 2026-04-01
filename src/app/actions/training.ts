@@ -234,28 +234,38 @@ export async function completeTrainingSession(
 
 // ========== コンテンツ取得 ==========
 
-export async function getShunkanContent(gradeLevelId: string) {
-  // 学年に合った瞬間読みコンテンツをランダムに取得
-  const { data, error } = await supabase
+export async function getShunkanContent(gradeLevelId: string, difficulty?: number) {
+  // 学年に合った瞬間読みコンテンツを取得
+  let query = supabase
     .from('contents')
-    .select('id, title, body, char_count')
+    .select('id, title, body, char_count, difficulty')
     .eq('grade_level_id', gradeLevelId)
     .lte('char_count', 30) // 短文のみ
     .eq('is_active', true)
-    .limit(20)
+
+  if (difficulty) {
+    query = query.eq('difficulty', difficulty)
+  }
+
+  const { data, error } = await query.limit(30)
 
   if (error || !data || data.length === 0) {
     // フォールバック: 全学年から取得
-    const { data: fallback } = await supabase
+    let fallbackQuery = supabase
       .from('contents')
-      .select('id, title, body, char_count')
+      .select('id, title, body, char_count, difficulty')
       .lte('char_count', 30)
       .eq('is_active', true)
-      .limit(20)
-    return (fallback ?? []) as Array<{ id: string; title: string; body: string; char_count: number }>
+
+    if (difficulty) {
+      fallbackQuery = fallbackQuery.eq('difficulty', difficulty)
+    }
+
+    const { data: fallback } = await fallbackQuery.limit(30)
+    return (fallback ?? []) as Array<{ id: string; title: string; body: string; char_count: number; difficulty: number }>
   }
 
-  return data as Array<{ id: string; title: string; body: string; char_count: number }>
+  return data as Array<{ id: string; title: string; body: string; char_count: number; difficulty: number }>
 }
 
 export async function getReadingContent(gradeLevelId: string, subjectId?: string) {

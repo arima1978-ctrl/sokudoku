@@ -99,7 +99,7 @@ export default function TrainingSessionPage() {
 
         const grade = loggedIn.grade_level_id || 'g4'
         const [shunkan, reading] = await Promise.all([
-          getShunkanContent(grade),
+          getShunkanContent(grade, 1), // レベル1のコンテンツ
           getReadingContent(grade),
         ])
         setShunkanWords(shunkan.map(c => ({ body: c.body, answer: c.body })))
@@ -132,7 +132,10 @@ export default function TrainingSessionPage() {
     const seg = segments[state.segmentIndex]
 
     if (isShunkanType(seg.segment_type)) {
+      // レベル1のコンテンツからテスト出題
+      // 練習で表示した単語の中からランダムに正解を選び、他の単語を不正解にする
       const correctWord = lastFlashedWord.current || shunkanWords[0]?.body || '---'
+      // 不正解の選択肢はレベル1の短い単語（shunkanWords）から選ぶ
       const others = shunkanWords
         .filter(w => w.body !== correctWord)
         .sort(() => Math.random() - 0.5)
@@ -141,7 +144,7 @@ export default function TrainingSessionPage() {
       while (others.length < 3) others.push('---')
       const choices = [...others, correctWord].sort(() => Math.random() - 0.5) as [string, string, string, string]
       setCurrentQuiz({
-        question: '今表示された言葉はどれですか？',
+        question: '練習で表示された言葉はどれですか？',
         choices,
         correctIndex: choices.indexOf(correctWord),
       })
