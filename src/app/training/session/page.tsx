@@ -317,7 +317,7 @@ export default function TrainingSessionPage() {
   if (state.phase === 'test_flash' || state.phase === 'test_answer') {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-        <div className="mx-auto max-w-2xl" style={{ padding: '12px 16px' }}>
+        <div style={{ padding: '12px 16px' }}>
           {/* ヘッダー */}
           <div className="mb-3 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
             <div>
@@ -331,16 +331,14 @@ export default function TrainingSessionPage() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: '#fff', borderRadius: 8,
-              width: '100%', maxWidth: 500, aspectRatio: '1 / 1',
-              margin: '0 auto', padding: 24,
+              width: '100%', aspectRatio: '1 / 1', maxHeight: 'calc(100vh - 220px)',
+              padding: 24,
             }}>
               {testFlashVisible && /^[123]$/.test(testFlashWord) ? (
-                /* カウントダウン数字 */
                 <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
                   {testFlashWord}
                 </span>
               ) : testFlashVisible ? (
-                /* ばらばらフラッシュ */
                 <BarabaraFlash text={testFlashWord} />
               ) : (
                 <span style={{ color: '#ccc', fontSize: 16 }}>
@@ -351,7 +349,7 @@ export default function TrainingSessionPage() {
           )}
 
           {state.phase === 'test_answer' && currentQuiz && (
-            <div style={{ maxWidth: 500, margin: '0 auto' }}>
+            <div>
               <p style={{ textAlign: 'center', fontSize: 15, color: '#333', fontWeight: 'bold', marginBottom: 16 }}>
                 何と書いてありましたか？
               </p>
