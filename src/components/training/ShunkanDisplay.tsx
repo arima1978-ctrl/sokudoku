@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   TRAINING_FONT,
   FONT_SIZES,
@@ -16,11 +16,14 @@ interface ShunkanDisplayProps {
   onFlash?: (word: string) => void
 }
 
+type Phase = 'countdown' | 'flash' | 'hidden' | 'answer'
+
 /**
  * 瞬間読みトレーニング（練習モード）
  *
- * ばらばら: 文字が表示されたまま → 「解答」で確認 → 「次の問題へ」
- * たて/よこ: 0.4秒フラッシュ → 消える → 「もう一度」or「解答」→「次へ」
+ * カウントダウンON: 3→2→1 → 0.4秒フラッシュ → 消える → 解答/もう一度 → 次へ
+ * カウントダウンOFF: 即フラッシュ → 消える → 解答/もう一度 → 次へ
+ * ボタンは画面右側に配置
  */
 export default function ShunkanDisplay({
   words,
@@ -28,71 +31,119 @@ export default function ShunkanDisplay({
   onFlash,
 }: ShunkanDisplayProps) {
   const [idx, setIdx] = useState(0)
-  const [showText, setShowText] = useState(true)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [count, setCount] = useState(1)
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>(null)
+  const [phase, setPhase] = useState<Phase>('countdown')
+  const [countNum, setCountNum] = useState(3)
+  const [questionNo, setQuestionNo] = useState(1)
+  const [countdownOn, setCountdownOn] = useState(true)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null>(null)
+  const initialized = useRef(false)
 
   const word = words[idx]
   const text = word?.body ?? ''
   const answer = word?.answer ?? text
 
-  // 全種目共通: 0.4秒フラッシュ→消える
-  if (showText && !showAnswer && !hideTimer.current) {
-    onFlash?.(text)
-    hideTimer.current = setTimeout(() => {
-      setShowText(false)
-      hideTimer.current = null
+  // 初回起動
+  useEffect(() => {
+    if (initialized.current || words.length === 0) return
+    initialized.current = true
+    if (countdownOn) {
+      runCountdown(text)
+    } else {
+      doFlash(text)
+    }
+  }, [words])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  function runCountdown(flashText: string) {
+    setPhase('countdown')
+    setCountNum(3)
+    let n = 3
+    timerRef.current = setInterval(() => {
+      n--
+      if (n > 0) {
+        setCountNum(n)
+      } else {
+        if (timerRef.current) clearInterval(timerRef.current)
+        doFlash(flashText)
+      }
+    }, 500)
+  }
+
+  function doFlash(flashText: string) {
+    setPhase('flash')
+    onFlash?.(flashText)
+    timerRef.current = setTimeout(() => {
+      setPhase('hidden')
     }, FLASH_TIMING.showMs)
   }
 
-  const handleAnswer = () => {
-    setShowAnswer(true)
-    setShowText(true)
+  function handleAnswer() {
+    setPhase('answer')
   }
 
-  const handleNext = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current)
-    hideTimer.current = null
+  function handleNext() {
+    if (timerRef.current) { clearTimeout(timerRef.current); clearInterval(timerRef.current) }
     const nextIdx = (idx + 1) % words.length
+    const nextText = words[nextIdx]?.body ?? ''
     setIdx(nextIdx)
-    setCount(c => c + 1)
-    setShowAnswer(false)
-    setShowText(true)
-    onFlash?.(words[nextIdx]?.body ?? '')
-
-    hideTimer.current = setTimeout(() => {
-      setShowText(false)
-      hideTimer.current = null
-    }, FLASH_TIMING.showMs)
+    setQuestionNo(q => q + 1)
+    if (countdownOn) {
+      runCountdown(nextText)
+    } else {
+      doFlash(nextText)
+    }
   }
 
-  const handleRetry = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current)
-    hideTimer.current = null
-    setShowAnswer(false)
-    setShowText(true)
-    onFlash?.(text)
-    hideTimer.current = setTimeout(() => {
-      setShowText(false)
-      hideTimer.current = null
-    }, FLASH_TIMING.showMs)
+  function handleRetry() {
+    if (timerRef.current) { clearTimeout(timerRef.current); clearInterval(timerRef.current) }
+    if (countdownOn) {
+      runCountdown(text)
+    } else {
+      doFlash(text)
+    }
   }
 
-  // 全種目共通: 消えたら「もう一度」「解答」、解答後は「次の問題へ」
-  const showRetryBtn = !showText && !showAnswer
-  const showAnswerBtn = !showText && !showAnswer
-  const showNextBtn = showAnswer
+  // 表示内容の判定
+  const showCountdown = phase === 'countdown'
+  const showText = phase === 'flash' || phase === 'answer'
+  const showAnswerText = phase === 'answer'
+  const showButtons = phase === 'hidden' || phase === 'answer'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {/* カウントダウン ON/OFF + 問題数 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: '#888' }}>カウントダウン</span>
+          <button
+            type="button"
+            onClick={() => setCountdownOn(v => !v)}
+            style={{
+              width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+              background: countdownOn ? '#0084E8' : '#ccc',
+              position: 'relative', transition: 'background 0.2s',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2,
+              left: countdownOn ? 20 : 2,
+              width: 18, height: 18, borderRadius: '50%', background: '#fff',
+              transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+        </div>
+        <span style={{ fontSize: 13, color: '#666', fontFamily: 'monospace' }}>
+          {questionNo}{'問目'}
+        </span>
+      </div>
+
       {/* 解答バー */}
       <div style={{
         display: 'flex',
         border: `2px solid ${ANSWER_BAR.border}`,
-        borderRadius: 4,
-        overflow: 'hidden',
-        marginBottom: 20,
+        borderRadius: 4, overflow: 'hidden', marginBottom: 16,
       }}>
         <div style={{
           background: ANSWER_BAR.labelBg, color: ANSWER_BAR.labelText,
@@ -105,7 +156,7 @@ export default function ShunkanDisplay({
           flex: 1, padding: '10px 20px', background: '#fff',
           display: 'flex', alignItems: 'center', minHeight: 44,
         }}>
-          {showAnswer && (
+          {showAnswerText && (
             <span style={{
               color: ANSWER_BAR.answerText, fontWeight: 'bold',
               fontSize: 17, fontFamily: TRAINING_FONT.family,
@@ -114,102 +165,90 @@ export default function ShunkanDisplay({
             </span>
           )}
         </div>
+      </div>
+
+      {/* メイン: 文字表示エリア + 右側ボタン */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {/* 文字表示（正方形コンテナ） */}
         <div style={{
-          padding: '10px 16px', background: '#fff', display: 'flex',
-          alignItems: 'center', borderLeft: '1px solid #eee',
-          fontSize: 13, color: '#666', whiteSpace: 'nowrap',
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#fff', borderRadius: 8,
+          aspectRatio: '1 / 1', maxHeight: 550, padding: DISPLAY_AREA.padding,
         }}>
-          {count}問目
+          {showCountdown && (
+            <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
+              {countNum}
+            </span>
+          )}
+          {showText && <TextDisplay text={text} type={displayType} />}
+          {phase === 'hidden' && (
+            <span style={{ color: '#ccc', fontSize: 16 }}>
+              表示された言葉を思い出してください
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* 文字表示エリア */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#fff', borderRadius: 8,
-        minHeight: DISPLAY_AREA.minHeight, padding: DISPLAY_AREA.padding,
-      }}>
-        {showText ? (
-          <TextDisplay text={text} type={displayType} />
-        ) : (
-          <span style={{ color: '#ccc', fontSize: 16 }}>
-            表示された言葉を思い出してください
-          </span>
-        )}
-      </div>
-
-      {/* 操作ボタン */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 20 }}>
-        {showRetryBtn && (
-          <button type="button" onClick={handleRetry} style={btnOutline()}>
-            もう一度
-          </button>
-        )}
-        {showAnswerBtn && (
-          <button type="button" onClick={handleAnswer} style={btnRed()}>
-            解答
-          </button>
-        )}
-        {showNextBtn && (
-          <button type="button" onClick={handleNext} style={btnYellow()}>
-            次の問題へ →
-          </button>
-        )}
+        {/* 右側ボタン */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          gap: 12, minWidth: 130,
+        }}>
+          {showButtons && phase === 'hidden' && (
+            <>
+              <button type="button" onClick={handleRetry} style={btnSide('#fff', '#333', '#999')}>
+                もう一度
+              </button>
+              <button type="button" onClick={handleAnswer} style={btnSide(ANSWER_BAR.labelBg, '#fff', ANSWER_BAR.border)}>
+                解答
+              </button>
+            </>
+          )}
+          {showButtons && phase === 'answer' && (
+            <button type="button" onClick={handleNext} style={btnSideYellow()}>
+              次の問題へ
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
 // ===== ボタンスタイル =====
-function btnOutline(): React.CSSProperties {
+function btnSide(bg: string, color: string, border: string): React.CSSProperties {
   return {
-    padding: '10px 32px', borderRadius: 24,
-    border: '2px solid #999', background: '#fff',
-    color: '#333', fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+    padding: '12px 16px', borderRadius: 8, width: '100%',
+    border: `2px solid ${border}`, background: bg,
+    color, fontSize: 14, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center',
   }
 }
-function btnRed(): React.CSSProperties {
+function btnSideYellow(): React.CSSProperties {
   return {
-    padding: '10px 32px', borderRadius: 24,
-    border: `2px solid ${ANSWER_BAR.border}`, background: ANSWER_BAR.labelBg,
-    color: '#fff', fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
-  }
-}
-function btnYellow(): React.CSSProperties {
-  return {
-    padding: '10px 40px', borderRadius: 24,
+    padding: '12px 16px', borderRadius: 8, width: '100%',
     border: '2px solid #E6C200',
     background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
-    color: '#333', fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+    color: '#333', fontSize: 14, fontWeight: 'bold', cursor: 'pointer', textAlign: 'center',
   }
 }
 
 // ===== テキスト表示 =====
 function TextDisplay({ text, type }: { text: string; type: string }) {
-  const font = TRAINING_FONT.family
-  const weight = TRAINING_FONT.weight
+  const f = TRAINING_FONT.family, w = TRAINING_FONT.weight
   switch (type) {
-    case 'barabara': return <Barabara text={text} font={font} weight={weight} />
-    case 'tate_1line': return <Tate1 text={text} font={font} weight={weight} />
-    case 'tate_2line': return <Tate2 text={text} font={font} weight={weight} />
-    case 'yoko_1line': return <Yoko1 text={text} font={font} weight={weight} />
-    case 'yoko_2line': return <Yoko2 text={text} font={font} weight={weight} />
-    default: return <Tate1 text={text} font={font} weight={weight} />
+    case 'barabara': return <Barabara text={text} font={f} weight={w} />
+    case 'tate_1line': return <Tate1 text={text} font={f} weight={w} />
+    case 'tate_2line': return <Tate2 text={text} font={f} weight={w} />
+    case 'yoko_1line': return <Yoko1 text={text} font={f} weight={w} />
+    case 'yoko_2line': return <Yoko2 text={text} font={f} weight={w} />
+    default: return <Tate1 text={text} font={f} weight={w} />
   }
 }
 
 function Barabara({ text, font, weight }: { text: string; font: string; weight: number }) {
   const chars = text.split('')
-  // 文字数が変わるたびに均等配置を再計算
   const positions = makeCirclePositions(chars.length)
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      maxWidth: 500,
-      aspectRatio: '1 / 1',
-      margin: '0 auto',
-    }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1/1', margin: '0 auto' }}>
       {chars.map((c, i) => (
         <span key={`${text}-${i}`} style={{
           position: 'absolute',
