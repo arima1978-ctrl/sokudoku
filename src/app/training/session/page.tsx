@@ -85,8 +85,8 @@ export default function TrainingSessionPage() {
   const [shunkanWords, setShunkanWords] = useState<{ body: string; answer?: string }[]>([])
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
-  const [testFlashWord, setTestFlashWord] = useState<string>('')
-  const [testFlashVisible, setTestFlashVisible] = useState(false)
+  const [testWord, setTestWord] = useState<{ body: string }>({ body: '' }) // テスト中の正解単語
+  const [testPhaseInner, setTestPhaseInner] = useState<'flash' | 'quiz'>('flash') // テスト内部状態
   const lastFlashedWord = useRef<string>('')
   const flashedWords = useRef<string[]>([])
   const [questionCount, setQuestionCount] = useState(0)
@@ -135,46 +135,34 @@ export default function TrainingSessionPage() {
     init()
   }, [menuId, stepId, router])
 
-  // 瞬間読みテスト: カウントダウン→フラッシュ→4択
+  // 瞬間読みテスト: ShunkanDisplayと同じフラッシュ→消えたら4択表示
   function prepareShunkanTest(segIdx: number) {
     const pool = shunkanWords.length > 0 ? shunkanWords : [{ body: '---' }]
     const correct = pool[Math.floor(Math.random() * pool.length)]
-
-    // カウントダウン 3→2→1→フラッシュ
-    setTestFlashWord('3')
-    setTestFlashVisible(true)
+    setTestWord(correct)
+    setTestPhaseInner('flash')
+    // 4択を事前に準備
+    const others = shunkanWords
+      .filter(w => w.body !== correct.body)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map(w => w.body)
+    while (others.length < 3) others.push('---')
+    const choices = [...others, correct.body].sort(() => Math.random() - 0.5) as [string, string, string, string]
+    setCurrentQuiz({
+      question: '何と書いてありましたか？',
+      choices,
+      correctIndex: choices.indexOf(correct.body),
+    })
     setState({ phase: 'test_flash', segmentIndex: segIdx })
+  }
 
-    let n = 3
-    const countdownId = setInterval(() => {
-      n--
-      if (n > 0) {
-        setTestFlashWord(String(n))
-      } else {
-        clearInterval(countdownId)
-        // フラッシュ表示
-        setTestFlashWord(correct.body)
-        setTestFlashVisible(true)
-
-        // 0.4秒後に消して4択へ
-        setTimeout(() => {
-          setTestFlashVisible(false)
-          const others = shunkanWords
-            .filter(w => w.body !== correct.body)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3)
-            .map(w => w.body)
-          while (others.length < 3) others.push('---')
-          const choices = [...others, correct.body].sort(() => Math.random() - 0.5) as [string, string, string, string]
-          setCurrentQuiz({
-            question: '何と書いてありましたか？',
-            choices,
-            correctIndex: choices.indexOf(correct.body),
-          })
-          setState({ phase: 'test_answer', segmentIndex: segIdx })
-        }, FLASH_TIMING.showMs)
-      }
-    }, 500)
+  // テスト中のShunkanDisplay「解答」クリック → 4択表示に切替
+  function handleTestFlashAnswer() {
+    setTestPhaseInner('quiz')
+    if ('segmentIndex' in state) {
+      setState({ phase: 'test_answer', segmentIndex: state.segmentIndex })
+    }
   }
 
   // テスト問題生成（長文系）
@@ -313,44 +301,36 @@ export default function TrainingSessionPage() {
   const currentSegment = segments[state.segmentIndex]
   const segmentLabel = SEGMENT_LABELS[currentSegment.segment_type] ?? currentSegment.segment_type
 
-  // ========== 瞬間読みテスト: フラッシュ or カウントダウン or 4択 ==========
+  // ========== 瞬間読みテスト: トレーニングと同じフラッシュ → 消えたら4択 ==========
   if (state.phase === 'test_flash' || state.phase === 'test_answer') {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-        <div style={{ padding: '12px 16px' }}>
-          {/* ヘッダー */}
-          <div className="mb-3 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
-            <div>
-              <span className="text-white font-bold text-sm">{segmentLabel}</span>
-              <span className="ml-2 text-blue-200 text-xs">テスト</span>
-            </div>
-            <span className="text-white text-sm font-mono">{testRound + 1} / {TEST_TOTAL}</span>
+        {/* タイマーの代わりにテスト進捗 */}
+        <div style={{ padding: '8px 16px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: '#666' }}>{segmentLabel} テスト</span>
+            <span style={{ fontSize: 14, color: '#333', fontFamily: 'monospace', fontWeight: 'bold' }}>
+              {testRound + 1} / {TEST_TOTAL}
+            </span>
           </div>
+        </div>
 
-          {state.phase === 'test_flash' && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#fff', borderRadius: 8,
-              width: '100%', aspectRatio: '1 / 1', maxHeight: 'calc(100vh - 220px)',
-              padding: 24,
-            }}>
-              {testFlashVisible && /^[123]$/.test(testFlashWord) ? (
-                <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
-                  {testFlashWord}
-                </span>
-              ) : testFlashVisible ? (
-                <BarabaraFlash text={testFlashWord} />
-              ) : (
-                <span style={{ color: '#ccc', fontSize: 16 }}>
-                  表示された言葉を思い出してください
-                </span>
-              )}
-            </div>
+        <div style={{ padding: '12px 16px' }}>
+          {/* フラッシュ中: トレーニングと同じShunkanDisplay（1語のみ、ボタン非表示） */}
+          {testPhaseInner === 'flash' && (
+            <ShunkanDisplay
+              key={`test-${testRound}`}
+              words={[testWord]}
+              displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'barabara') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
+              hideButtons
+              onHidden={handleTestFlashAnswer}
+            />
           )}
 
-          {state.phase === 'test_answer' && currentQuiz && (
+          {/* 4択表示（フラッシュ消えた後） */}
+          {testPhaseInner === 'quiz' && currentQuiz && (
             <div>
-              <p style={{ textAlign: 'center', fontSize: 15, color: '#333', fontWeight: 'bold', marginBottom: 16 }}>
+              <p style={{ textAlign: 'center', fontSize: 16, color: '#333', fontWeight: 'bold', marginBottom: 20 }}>
                 何と書いてありましたか？
               </p>
               <QuizCard

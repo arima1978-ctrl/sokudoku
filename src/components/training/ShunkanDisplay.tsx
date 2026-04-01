@@ -14,6 +14,10 @@ interface ShunkanDisplayProps {
   words: { body: string; answer?: string }[]
   displayType: 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'
   onFlash?: (word: string) => void
+  /** フラッシュが消えた後に呼ばれる（テストモード用） */
+  onHidden?: () => void
+  /** trueの場合、解答/次へボタンを非表示（テストモード用） */
+  hideButtons?: boolean
 }
 
 type Phase = 'countdown' | 'flash' | 'hidden' | 'answer'
@@ -29,6 +33,8 @@ export default function ShunkanDisplay({
   words,
   displayType,
   onFlash,
+  onHidden,
+  hideButtons = false,
 }: ShunkanDisplayProps) {
   const [idx, setIdx] = useState(0)
   const [phase, setPhase] = useState<Phase>('countdown')
@@ -73,6 +79,7 @@ export default function ShunkanDisplay({
     onFlash?.(flashText)
     timerRef.current = setTimeout(() => {
       setPhase('hidden')
+      onHidden?.()
     }, FLASH_TIMING.showMs)
   }
 
@@ -190,7 +197,7 @@ export default function ShunkanDisplay({
         </div>
 
         {/* ボタン（右側に重ねて表示） */}
-        {showButtons && (
+        {showButtons && !hideButtons && (
           <div style={{
             position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
             display: 'flex', flexDirection: 'column', gap: 12, minWidth: 120,
