@@ -135,33 +135,46 @@ export default function TrainingSessionPage() {
     init()
   }, [menuId, stepId, router])
 
-  // 瞬間読みテスト: フラッシュ→4択の準備
+  // 瞬間読みテスト: カウントダウン→フラッシュ→4択
   function prepareShunkanTest(segIdx: number) {
-    // ランダムに1語選んでフラッシュ
     const pool = shunkanWords.length > 0 ? shunkanWords : [{ body: '---' }]
     const correct = pool[Math.floor(Math.random() * pool.length)]
-    setTestFlashWord(correct.body)
+
+    // カウントダウン 3→2→1→フラッシュ
+    setTestFlashWord('3')
     setTestFlashVisible(true)
     setState({ phase: 'test_flash', segmentIndex: segIdx })
 
-    // 0.4秒後に消して4択へ
-    setTimeout(() => {
-      setTestFlashVisible(false)
-      // 4択を生成
-      const others = shunkanWords
-        .filter(w => w.body !== correct.body)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3)
-        .map(w => w.body)
-      while (others.length < 3) others.push('---')
-      const choices = [...others, correct.body].sort(() => Math.random() - 0.5) as [string, string, string, string]
-      setCurrentQuiz({
-        question: '何と書いてありましたか？',
-        choices,
-        correctIndex: choices.indexOf(correct.body),
-      })
-      setState({ phase: 'test_answer', segmentIndex: segIdx })
-    }, FLASH_TIMING.showMs)
+    let n = 3
+    const countdownId = setInterval(() => {
+      n--
+      if (n > 0) {
+        setTestFlashWord(String(n))
+      } else {
+        clearInterval(countdownId)
+        // フラッシュ表示
+        setTestFlashWord(correct.body)
+        setTestFlashVisible(true)
+
+        // 0.4秒後に消して4択へ
+        setTimeout(() => {
+          setTestFlashVisible(false)
+          const others = shunkanWords
+            .filter(w => w.body !== correct.body)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map(w => w.body)
+          while (others.length < 3) others.push('---')
+          const choices = [...others, correct.body].sort(() => Math.random() - 0.5) as [string, string, string, string]
+          setCurrentQuiz({
+            question: '何と書いてありましたか？',
+            choices,
+            correctIndex: choices.indexOf(correct.body),
+          })
+          setState({ phase: 'test_answer', segmentIndex: segIdx })
+        }, FLASH_TIMING.showMs)
+      }
+    }, 500)
   }
 
   // テスト問題生成（長文系）
@@ -300,52 +313,56 @@ export default function TrainingSessionPage() {
   const currentSegment = segments[state.segmentIndex]
   const segmentLabel = SEGMENT_LABELS[currentSegment.segment_type] ?? currentSegment.segment_type
 
-  // ========== 瞬間読みテスト: フラッシュ表示中 ==========
-  if (state.phase === 'test_flash') {
+  // ========== 瞬間読みテスト: フラッシュ or カウントダウン or 4択 ==========
+  if (state.phase === 'test_flash' || state.phase === 'test_answer') {
     return (
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-        <div style={{ padding: '16px' }}>
-          <div className="mb-4 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
+        <div className="mx-auto max-w-2xl" style={{ padding: '12px 16px' }}>
+          {/* ヘッダー */}
+          <div className="mb-3 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
             <div>
-              <span className="text-white font-bold">{segmentLabel}</span>
-              <span className="ml-3 text-blue-200 text-sm">テスト</span>
+              <span className="text-white font-bold text-sm">{segmentLabel}</span>
+              <span className="ml-2 text-blue-200 text-xs">テスト</span>
             </div>
             <span className="text-white text-sm font-mono">{testRound + 1} / {TEST_TOTAL}</span>
           </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#fff', borderRadius: 8,
-            width: '100%', aspectRatio: '1 / 1', maxHeight: 'calc(100vh - 180px)',
-          }}>
-            {testFlashVisible ? (
-              <BarabaraFlash text={testFlashWord} />
-            ) : (
-              <span style={{ color: '#ccc', fontSize: 18 }}>...</span>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
-  // ========== 瞬間読みテスト: 4択回答 ==========
-  if (state.phase === 'test_answer' && currentQuiz) {
-    return (
-      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-        <div className="mx-auto max-w-3xl px-4 py-6">
-          <div className="mb-4 rounded-lg px-4 py-2 flex items-center justify-between" style={{ background: 'linear-gradient(90deg, #1478C3 0%, #00345B 100%)' }}>
-            <div>
-              <span className="text-white font-bold">{segmentLabel}</span>
-              <span className="ml-3 text-blue-200 text-sm">テスト</span>
+          {state.phase === 'test_flash' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#fff', borderRadius: 8,
+              width: '100%', maxWidth: 500, aspectRatio: '1 / 1',
+              margin: '0 auto', padding: 24,
+            }}>
+              {testFlashVisible && /^[123]$/.test(testFlashWord) ? (
+                /* カウントダウン数字 */
+                <span style={{ fontSize: 120, fontWeight: 'bold', color: '#0084E8', userSelect: 'none' }}>
+                  {testFlashWord}
+                </span>
+              ) : testFlashVisible ? (
+                /* ばらばらフラッシュ */
+                <BarabaraFlash text={testFlashWord} />
+              ) : (
+                <span style={{ color: '#ccc', fontSize: 16 }}>
+                  表示された言葉を思い出してください
+                </span>
+              )}
             </div>
-            <span className="text-white text-sm font-mono">{testRound + 1} / {TEST_TOTAL}</span>
-          </div>
-          <QuizCard
-            question={currentQuiz.question}
-            choices={currentQuiz.choices}
-            correctIndex={currentQuiz.correctIndex}
-            onAnswer={handleQuizAnswer}
-          />
+          )}
+
+          {state.phase === 'test_answer' && currentQuiz && (
+            <div style={{ maxWidth: 500, margin: '0 auto' }}>
+              <p style={{ textAlign: 'center', fontSize: 15, color: '#333', fontWeight: 'bold', marginBottom: 16 }}>
+                何と書いてありましたか？
+              </p>
+              <QuizCard
+                question={currentQuiz.question}
+                choices={currentQuiz.choices}
+                correctIndex={currentQuiz.correctIndex}
+                onAnswer={handleQuizAnswer}
+              />
+            </div>
+          )}
         </div>
       </div>
     )
