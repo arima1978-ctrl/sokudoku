@@ -171,6 +171,7 @@ export default function TrainingSessionPage() {
     if (state.phase !== 'segment_active') return
     const seg = segments[state.segmentIndex]
     if (seg.has_test) {
+      // 練習時間終了 → テストへ
       setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
     } else {
       moveToNextSegment(state.segmentIndex)
@@ -252,9 +253,11 @@ export default function TrainingSessionPage() {
             <span className="text-white font-bold">{segmentLabel}</span>
             <span className="ml-3 text-blue-200 text-sm">テスト</span>
           </div>
-          {/* 問題カウント */}
-          <div className="mb-4 text-right text-sm text-gray-600">
-            〈 問題数 〉{questionCount + 1}問目
+          {/* テスト開始表示 */}
+          <div className="mb-4 rounded-lg bg-yellow-50 border border-yellow-300 px-4 py-3 text-center">
+            <span className="text-yellow-800 font-bold text-sm">
+              練習終了！テストに答えてください
+            </span>
           </div>
           <QuizCard
             question={currentQuiz.question}
@@ -301,7 +304,6 @@ export default function TrainingSessionPage() {
               words={shunkanWords}
               displayType={(DISPLAY_TYPE_MAP[currentSegment.segment_type] ?? 'tate_1line') as 'barabara' | 'tate_1line' | 'tate_2line' | 'yoko_1line' | 'yoko_2line'}
               onFlash={(w) => { lastFlashedWord.current = w }}
-              paused={paused}
             />
           )}
 
