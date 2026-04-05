@@ -6,6 +6,7 @@ interface SessionSummaryProps {
   results: SegmentTestResult[]
   evaluation: StepEvaluation | null
   onFinish: () => void
+  finishLabel?: string
 }
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -26,6 +27,7 @@ export default function SessionSummary({
   results,
   evaluation,
   onFinish,
+  finishLabel = 'メニューに戻る',
 }: SessionSummaryProps) {
   const totalCorrect = results.reduce((sum, r) => sum + r.correct_count, 0)
   const totalQuestions = results.reduce((sum, r) => sum + r.total_questions, 0)
@@ -103,7 +105,7 @@ export default function SessionSummary({
           onClick={onFinish}
           className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
         >
-          メニューに戻る
+          {finishLabel}
         </button>
       </div>
     </div>

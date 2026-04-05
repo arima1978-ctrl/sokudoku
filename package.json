@@ -27,6 +27,7 @@
     "officegen": "^0.6.5",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^4.0.379",
+    "pg": "^8.20.0",
     "pptx-parser": "^1.1.7-beta.9",
     "tailwindcss": "^4",
     "typescript": "^5"

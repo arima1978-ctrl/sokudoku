@@ -14,11 +14,14 @@ export interface LoggedInStudent {
   student_login_id: string
   student_name: string | null
   grade_level_id: string | null
+  preferred_subject_id: string | null
+  onboarding_completed: boolean
 }
 
 export interface LoginResult {
   success: boolean
   error?: string
+  onboarding_completed?: boolean
 }
 
 export async function loginStudent(
@@ -45,7 +48,7 @@ export async function loginStudent(
   // Look up the student (school_id is UUID reference to schools.id)
   const { data: student, error: studentError } = await supabase
     .from('students')
-    .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, status')
+    .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, preferred_subject_id, onboarding_completed, status')
     .eq('school_id', (school as Record<string, string>).id)
     .eq('student_login_id', loginId)
     .single()
@@ -71,6 +74,8 @@ export async function loginStudent(
     student_login_id: s.student_login_id,
     student_name: s.student_name,
     grade_level_id: s.grade_level_id,
+    preferred_subject_id: s.preferred_subject_id ?? null,
+    onboarding_completed: s.onboarding_completed ?? false,
   }
 
   const cookieStore = await cookies()
@@ -82,7 +87,7 @@ export async function loginStudent(
     path: '/',
   })
 
-  return { success: true }
+  return { success: true, onboarding_completed: s.onboarding_completed ?? false }
 }
 
 export async function getLoggedInStudent(): Promise<LoggedInStudent | null> {

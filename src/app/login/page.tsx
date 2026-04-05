@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       const result = await loginStudent(schoolId, loginId, password)
       if (result.success) {
-        router.push('/training')
+        router.push(result.onboarding_completed ? '/training' : '/onboarding')
       } else {
         setError(result.error ?? 'ログインに失敗しました')
       }

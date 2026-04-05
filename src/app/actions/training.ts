@@ -176,10 +176,17 @@ export async function submitSegmentTest(
   const accuracyPct =
     totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0
 
+  // segment_type に応じた test_type を決定
+  const shunkanTypes = ['barabara', 'shunkan_tate_1line', 'shunkan_tate_2line', 'shunkan_yoko_1line', 'shunkan_yoko_2line', 'koe_e']
+  const outputTypes = ['output_tate', 'output_yoko']
+  let testType = 'content_comprehension'
+  if (shunkanTypes.includes(segmentType)) testType = 'shunkan_recall'
+  else if (outputTypes.includes(segmentType)) testType = 'vocab_check'
+
   const { error } = await supabase.from('training_tests').insert({
     training_session_id: sessionId,
     student_id: studentId,
-    test_type: 'comprehension',
+    test_type: testType,
     segment_type: segmentType,
     total_questions: totalQuestions,
     correct_count: correctCount,

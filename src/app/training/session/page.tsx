@@ -72,6 +72,7 @@ export default function TrainingSessionPage() {
   const searchParams = useSearchParams()
   const menuId = searchParams.get('menu')
   const stepId = searchParams.get('step')
+  const dailySessionId = searchParams.get('daily')
 
   const [state, setState] = useState<SessionState>({ phase: 'loading' })
   const [student, setStudent] = useState<LoggedInStudent | null>(null)
@@ -295,7 +296,21 @@ export default function TrainingSessionPage() {
   }
 
   if (state.phase === 'summary') {
-    return <SessionSummary results={results} evaluation={evaluation} onFinish={() => router.push('/training')} />
+    return (
+      <SessionSummary
+        results={results}
+        evaluation={evaluation}
+        onFinish={() => {
+          if (dailySessionId) {
+            // dailyフローの場合: 速度計測(後)へ遷移
+            router.push(`/training/post-speed?daily=${dailySessionId}`)
+          } else {
+            router.push('/training')
+          }
+        }}
+        finishLabel={dailySessionId ? '速度計測へ進む' : 'メニューに戻る'}
+      />
+    )
   }
 
   const currentSegment = segments[state.segmentIndex]

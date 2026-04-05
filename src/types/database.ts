@@ -42,6 +42,10 @@ export interface Student {
   student_name: string | null
   grade: string | null
   grade_level_id: string | null
+  preferred_subject_id: string | null
+  parent_email: string | null
+  parent_line_id: string | null
+  onboarding_completed: boolean
   status: string
   start_date: string | null
   end_date: string | null
