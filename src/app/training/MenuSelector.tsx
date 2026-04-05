@@ -8,14 +8,14 @@ interface MenuSelectorProps {
 }
 
 const DURATION_LABELS: Record<number, string> = {
-  7: '7分',
-  15: '15分',
+  10: '10分',
+  20: '20分',
   30: '30分',
 }
 
 const DURATION_COLORS: Record<number, string> = {
-  7: 'border-green-300 hover:bg-green-50',
-  15: 'border-blue-300 hover:bg-blue-50',
+  10: 'border-green-300 hover:bg-green-50',
+  20: 'border-blue-300 hover:bg-blue-50',
   30: 'border-purple-300 hover:bg-purple-50',
 }
 

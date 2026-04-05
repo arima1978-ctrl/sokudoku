@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 const NAV_ITEMS = [
+  { href: '/admin/students', label: '生徒進捗一覧' },
   { href: '/admin/schools', label: 'スクール管理' },
   { href: '/admin/contents', label: 'コンテンツ管理' },
 ] as const

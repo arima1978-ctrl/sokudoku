@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import SpeedMeasurement from '@/components/training/SpeedMeasurement'
 import DailyResult from '@/components/training/DailyResult'
+import GrowthChart from '@/components/training/GrowthChart'
+import { getStudentDashboard } from '@/app/actions/history'
 import {
   startDailySession,
   updateDailySessionStatus,
@@ -55,10 +57,10 @@ interface QuizData {
   correctIndex: number
 }
 
-const DURATION_CONFIG: Record<number, { label: string; color: string; icon: string }> = {
-  7:  { label: '7分', color: 'border-green-400 bg-green-50 hover:bg-green-100', icon: '⚡' },
-  15: { label: '15分', color: 'border-blue-400 bg-blue-50 hover:bg-blue-100', icon: '📖' },
-  30: { label: '30分', color: 'border-purple-400 bg-purple-50 hover:bg-purple-100', icon: '🏆' },
+const DURATION_CONFIG: Record<number, { label: string; desc: string; color: string; icon: string }> = {
+  10: { label: '10分', desc: 'ウォーミングアップ', color: 'border-green-400 bg-green-50 hover:bg-green-100', icon: '⚡' },
+  20: { label: '20分', desc: 'トレーニング+読書', color: 'border-blue-400 bg-blue-50 hover:bg-blue-100', icon: '📖' },
+  30: { label: '30分', desc: 'フルコース', color: 'border-purple-400 bg-purple-50 hover:bg-purple-100', icon: '🏆' },
 }
 
 export default function TrainingHome({ student, progress, stats, menus }: TrainingHomeProps) {
@@ -74,6 +76,16 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
   const [preWpm, setPreWpm] = useState<number | null>(null)
   const [postWpm, setPostWpm] = useState<number | null>(null)
   const [trainingResults, setTrainingResults] = useState<Array<{ segment: string; accuracy: number }>>([])
+  const [activeTab, setActiveTab] = useState<'training' | 'growth'>('training')
+  const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getStudentDashboard>> | null>(null)
+
+  // 成長記録タブ切り替え時にデータ取得
+  async function loadDashboard() {
+    if (dashboardData) { setActiveTab('growth'); return }
+    const data = await getStudentDashboard(student.id)
+    setDashboardData(data)
+    setActiveTab('growth')
+  }
 
   // メニュー選択 → daily_session 開始 → 速度計測(前)
   async function handleMenuSelect(menuId: string, durationMin: number) {
@@ -261,52 +273,86 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
         </p>
       </div>
 
-      {/* 統計カード */}
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-zinc-200 bg-white p-3">
-          <div className="text-xs text-zinc-500">読書速度</div>
-          <div className="mt-1 text-lg font-bold text-zinc-900">
-            {stats.latestWpm ? `${stats.latestWpm} 文字/分` : '-'}
+      {/* タブ切り替え */}
+      <div className="mb-6 flex rounded-lg bg-zinc-100 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('training')}
+          className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            activeTab === 'training' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'
+          }`}
+        >
+          トレーニング
+        </button>
+        <button
+          type="button"
+          onClick={loadDashboard}
+          className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            activeTab === 'growth' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'
+          }`}
+        >
+          成長記録
+        </button>
+      </div>
+
+      {activeTab === 'growth' && dashboardData ? (
+        <GrowthChart
+          speedHistory={dashboardData.speedHistory}
+          testHistory={dashboardData.testHistory}
+          latestWpm={dashboardData.latestWpm}
+          growthRate={dashboardData.growthRate}
+          avgAccuracy={dashboardData.avgAccuracy}
+        />
+      ) : (
+        <>
+          {/* 統計カード */}
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-zinc-200 bg-white p-3">
+              <div className="text-xs text-zinc-500">読書速度</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">
+                {stats.latestWpm ? `${stats.latestWpm} 文字/分` : '-'}
+              </div>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-white p-3">
+              <div className="text-xs text-zinc-500">セッション数</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">{stats.totalSessions} 回</div>
+            </div>
           </div>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-3">
-          <div className="text-xs text-zinc-500">セッション数</div>
-          <div className="mt-1 text-lg font-bold text-zinc-900">{stats.totalSessions} 回</div>
-        </div>
-      </div>
 
-      {/* メニュー選択 */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
-          トレーニング時間を選択
-        </h3>
-        <div className="space-y-3">
-          {menus.map((menu) => {
-            const duration = menu.duration_min as number
-            const menuId = menu.id as string
-            const config = DURATION_CONFIG[duration]
-            if (!config) return null
-            return (
-              <button
-                key={menuId}
-                type="button"
-                onClick={() => handleMenuSelect(menuId, duration)}
-                className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${config.color}`}
-              >
-                <span className="text-3xl">{config.icon}</span>
-                <div>
-                  <div className="text-lg font-bold text-zinc-900">{config.label}コース</div>
-                  <div className="text-xs text-zinc-500">{menu.description as string}</div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
+          {/* メニュー選択 */}
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
+              トレーニング時間を選択
+            </h3>
+            <div className="space-y-3">
+              {menus.map((menu) => {
+                const duration = menu.duration_min as number
+                const menuId = menu.id as string
+                const config = DURATION_CONFIG[duration]
+                if (!config) return null
+                return (
+                  <button
+                    key={menuId}
+                    type="button"
+                    onClick={() => handleMenuSelect(menuId, duration)}
+                    className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${config.color}`}
+                  >
+                    <span className="text-3xl">{config.icon}</span>
+                    <div>
+                      <div className="text-lg font-bold text-zinc-900">{config.label}コース</div>
+                      <div className="text-xs text-zinc-500">{config.desc}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
 
-        <p className="mt-4 text-center text-xs text-zinc-400">
-          速度計測 → トレーニング → 速度計測 の流れで進みます
-        </p>
-      </div>
+            <p className="mt-4 text-center text-xs text-zinc-400">
+              速度計測 → トレーニング → 速度計測 の流れで進みます
+            </p>
+          </div>
+        </>
+      )}
     </div>
   )
 }
