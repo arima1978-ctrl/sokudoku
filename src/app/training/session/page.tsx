@@ -56,6 +56,8 @@ type SessionState =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
   | { phase: 'segment_active'; segmentIndex: number }
+  | { phase: 'segment_intro'; segmentIndex: number }  // トレーニング種目表示
+  | { phase: 'test_start'; segmentIndex: number }    // テスト開始合図
   | { phase: 'test_flash'; segmentIndex: number }   // テスト: ばらばらフラッシュ中
   | { phase: 'test_answer'; segmentIndex: number }   // テスト: 4択回答
   | { phase: 'segment_test'; segmentIndex: number }  // テスト: 長文系
@@ -128,7 +130,8 @@ export default function TrainingSessionPage() {
 
         const newSession = await startTrainingSession(loggedIn.id, menuId, stepId)
         setSession(newSession)
-        setState({ phase: 'segment_active', segmentIndex: 0 })
+        // 最初の種目名を表示してから開始
+        setState({ phase: 'segment_intro', segmentIndex: 0 })
       } catch (err) {
         setState({ phase: 'error', message: err instanceof Error ? err.message : 'エラーが発生しました' })
       }
@@ -197,19 +200,24 @@ export default function TrainingSessionPage() {
     if (state.phase !== 'segment_active') return
     const seg = segments[state.segmentIndex]
     if (seg.has_test) {
-      if (isShunkanType(seg.segment_type)) {
-        // 瞬間読みテスト: フラッシュ→4択を10回
-        setTestRound(0)
-        setTestCorrect(0)
-        prepareShunkanTest(state.segmentIndex)
-      } else {
-        // 長文系テスト
-        setState({ phase: 'segment_test', segmentIndex: state.segmentIndex })
-      }
+      // テスト開始合図画面を表示
+      setState({ phase: 'test_start', segmentIndex: state.segmentIndex })
     } else {
       moveToNextSegment(state.segmentIndex)
     }
   }, [state, segments])
+
+  // テスト開始合図 → 実際のテストへ
+  function startTestFromAnnounce(segIdx: number) {
+    const seg = segments[segIdx]
+    if (isShunkanType(seg.segment_type)) {
+      setTestRound(0)
+      setTestCorrect(0)
+      prepareShunkanTest(segIdx)
+    } else {
+      setState({ phase: 'segment_test', segmentIndex: segIdx })
+    }
+  }
 
   function moveToNextSegment(currentIndex: number) {
     const nextIndex = currentIndex + 1
@@ -218,7 +226,8 @@ export default function TrainingSessionPage() {
     } else {
       setCurrentQuiz(null)
       setQuestionCount(prev => prev + 1)
-      setState({ phase: 'segment_active', segmentIndex: nextIndex })
+      // 次の種目名を表示してから開始
+      setState({ phase: 'segment_intro', segmentIndex: nextIndex })
     }
   }
 
@@ -290,6 +299,74 @@ export default function TrainingSessionPage() {
           <p className="mb-4 text-red-600">{state.message}</p>
           <button type="button" onClick={() => router.push('/training')}
             className="rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700">メニューに戻る</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ========== 種目紹介画面 ==========
+  if (state.phase === 'segment_intro') {
+    const introSegment = segments[state.segmentIndex]
+    const introLabel = SEGMENT_LABELS[introSegment.segment_type] ?? introSegment.segment_type
+    const segNum = state.segmentIndex + 1
+    const segTotal = segments.length
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div className="text-center px-6">
+          <div className="mb-3 text-sm text-zinc-500">{segNum} / {segTotal}</div>
+          <div className="mb-4 inline-block rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white">
+            次のトレーニング
+          </div>
+          <h2 className="mb-3 text-2xl font-bold text-zinc-900">{introLabel}</h2>
+          <p className="mb-8 text-sm text-zinc-500">
+            {`${Math.round(introSegment.duration_sec / 60 * 10) / 10}分間のトレーニングです`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setState({ phase: 'segment_active', segmentIndex: state.segmentIndex })}
+            style={{
+              padding: '14px 48px', borderRadius: 28,
+              border: '2px solid #E6C200',
+              background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
+              color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
+            }}
+          >
+            スタート
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ========== テスト開始合図画面 ==========
+  if (state.phase === 'test_start') {
+    const testSegment = segments[state.segmentIndex]
+    const testLabel = SEGMENT_LABELS[testSegment.segment_type] ?? testSegment.segment_type
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div className="text-center px-6">
+          <div className="mb-4 inline-block rounded-full bg-red-500 px-5 py-2 text-sm font-bold text-white animate-pulse">
+            テスト開始
+          </div>
+          <h2 className="mb-3 text-2xl font-bold text-zinc-900">{testLabel}</h2>
+          <p className="mb-2 text-sm text-zinc-600">
+            {isShunkanType(testSegment.segment_type) ? '10問出題されます' : '内容理解テストです'}
+          </p>
+          <p className="mb-8 text-sm text-zinc-500">
+            各問題は10秒以内に回答してください
+          </p>
+          <button
+            type="button"
+            onClick={() => startTestFromAnnounce(state.segmentIndex)}
+            style={{
+              padding: '14px 48px', borderRadius: 28,
+              background: 'linear-gradient(180deg, #ff6b6b 0%, #ee5a24 100%)',
+              border: '2px solid #c0392b',
+              color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
+            }}
+          >
+            テストを始める
+          </button>
         </div>
       </div>
     )
