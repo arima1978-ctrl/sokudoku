@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ShunkanDisplay from '@/components/training/ShunkanDisplay'
+import SpeedReading from '@/components/training/SpeedReading'
 import { FLASH_TIMING } from '@/lib/trainingConfig'
 import TrainingTimer from '@/components/training/TrainingTimer'
 import QuizCard from '@/components/training/QuizCard'
@@ -465,6 +466,26 @@ export default function TrainingSessionPage() {
     )
   }
 
+  // ========== 高速読み（reading_speed）は専用全画面コンポーネント ==========
+  if (currentSegment.segment_type === 'reading_speed' && readingText) {
+    return (
+      <SpeedReading
+        title={readingText.title}
+        body={readingText.body}
+        charCount={readingText.body.length}
+        minReadingSec={120}
+        onComplete={(readingTimeSec, wpm) => {
+          if (session && student) {
+            submitSegmentTest(session.id, student.id, 'reading_speed', 1, wpm >= 100 ? 1 : 0)
+              .then(result => setResults(prev => [...prev, result]))
+              .catch(() => {})
+          }
+          moveToNextSegment(state.segmentIndex)
+        }}
+      />
+    )
+  }
+
   // ========== トレーニング画面（既存デザイン準拠） ==========
   // 既存レイアウト: タイマー(最上部) → 解答バー+表示エリア(白背景一体)
   return (
@@ -525,23 +546,7 @@ export default function TrainingSessionPage() {
             </div>
           )}
 
-          {currentSegment.segment_type === 'reading_speed' && readingText && (
-            <div style={{ background: '#fff', borderRadius: 8, padding: 16, minHeight: 480 }}>
-              <div style={{ display: 'flex', border: '2px solid #f59e0b', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
-                <span style={{ background: '#f59e0b', color: '#fff', fontWeight: 'bold', padding: '8px 16px', fontSize: 14 }}>読書速度計測</span>
-                <span style={{ flex: 1, padding: '8px 16px', fontSize: 14, color: '#666' }}>{readingText.body.length}文字</span>
-              </div>
-              <div style={{
-                fontFamily: '"Noto Sans JP", sans-serif', fontSize: 18, lineHeight: 2.2,
-                overflowY: 'auto', minHeight: 400, padding: '0 8px',
-              }}>
-                {readingText.body.slice(0, 3000)}
-              </div>
-              <p style={{ textAlign: 'center', color: '#999', fontSize: 14, marginTop: 12 }}>
-                読み終わったら「次へ」を押してください
-              </p>
-            </div>
-          )}
+          {/* reading_speed は専用全画面で表示（上のブロックで処理済み） */}
           {/* ブロック/アウトプット/読書速度の「次へ」ボタン */}
           {!isShunkanType(currentSegment.segment_type) && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
