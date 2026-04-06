@@ -19,7 +19,7 @@ export default function HomePage() {
             生徒ログイン
           </Link>
           <Link
-            href="/admin/schools"
+            href="/admin/login"
             className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-8 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
             管理者
