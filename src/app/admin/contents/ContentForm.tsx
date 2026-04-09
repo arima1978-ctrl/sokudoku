@@ -53,6 +53,19 @@ export default function ContentForm({ mode, initial, canDelete }: ContentFormPro
     const cleanInWords = inWords.map(w => w.trim()).filter(Boolean)
     const cleanDecoyWords = decoyWords.map(w => w.trim()).filter(Boolean)
 
+    if (cleanInWords.length !== 5) {
+      setError('本文中の単語は5語すべて入力してください')
+      return
+    }
+    if (cleanDecoyWords.length !== 5) {
+      setError('ダミー単語は5語すべて入力してください')
+      return
+    }
+    if (new Set([...cleanInWords, ...cleanDecoyWords]).size !== 10) {
+      setError('認識単語に重複があります')
+      return
+    }
+
     const input = {
       title,
       body,

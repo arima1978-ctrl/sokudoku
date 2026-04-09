@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import SpeedMeasurement from '@/components/training/SpeedMeasurement'
 import SpeedResultScreen from '@/components/training/SpeedResultScreen'
@@ -104,6 +104,7 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
   } | null>(null)
   // コンテンツ選択用
   const [contentList, setContentList] = useState<Array<{ id: string; title: string; body: string; char_count: number }>>([])
+  const mountedRef = useRef(true)
   const [trainingResults, setTrainingResults] = useState<Array<{ segment: string; accuracy: number }>>([])
   const [activeTab, setActiveTab] = useState<'training' | 'growth'>('training')
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getStudentDashboard>> | null>(null)
@@ -170,10 +171,13 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     setPendingSpeedResult({ charCount: result.charCount, readingTimeSec: result.readingTimeSec })
     try {
       const words = await getRecognitionWords(speedContent.id)
+      if (!mountedRef.current) return
       setRecognitionWords(words)
     } catch {
+      if (!mountedRef.current) return
       setRecognitionWords({ in_words: [], decoy_words: [] })
     }
+    if (!mountedRef.current) return
     setFlowPhase('pre_speed_test')
   }, [dailySessionId, speedContent])
 
@@ -232,10 +236,13 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     setPendingSpeedResult({ charCount: result.charCount, readingTimeSec: result.readingTimeSec })
     try {
       const words = await getRecognitionWords(speedContent.id)
+      if (!mountedRef.current) return
       setRecognitionWords(words)
     } catch {
+      if (!mountedRef.current) return
       setRecognitionWords({ in_words: [], decoy_words: [] })
     }
+    if (!mountedRef.current) return
     setFlowPhase('post_speed_test')
   }, [dailySessionId, speedContent])
 
@@ -253,6 +260,27 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     setPendingSpeedResult(null)
     setFlowPhase('post_speed_result')
   }, [dailySessionId, speedContent, student.id, pendingSpeedResult])
+
+  // unmount フラグ
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  // 認識単語が未登録のテスト画面に入った場合、副作用で自動スキップ（レンダー中setter呼び出しを回避）
+  useEffect(() => {
+    if (flowPhase !== 'pre_speed_test' && flowPhase !== 'post_speed_test') return
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (!wordsMissing) return
+    if (flowPhase === 'pre_speed_test') {
+      handlePreRecognitionComplete(0, 0)
+    } else {
+      handlePostRecognitionComplete(0, 0)
+    }
+  }, [flowPhase, recognitionWords, handlePreRecognitionComplete, handlePostRecognitionComplete])
 
   // ========== Render ==========
 
@@ -316,9 +344,9 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
 
   // 単語認識テスト(前)
   if (flowPhase === 'pre_speed_test') {
-    if (recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5) {
-      // 単語未登録ならスキップして結果へ
-      handlePreRecognitionComplete(0, 0)
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (wordsMissing) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center">
           <p className="text-zinc-500">認識単語が未登録のためスキップします...</p>
@@ -336,8 +364,9 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
 
   // 単語認識テスト(後)
   if (flowPhase === 'post_speed_test') {
-    if (recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5) {
-      handlePostRecognitionComplete(0, 0)
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (wordsMissing) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center">
           <p className="text-zinc-500">認識単語が未登録のためスキップします...</p>

@@ -1,7 +1,25 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { timingSafeEqual } from 'crypto'
 import { supabase } from '@/lib/supabase'
+
+/** タイミング攻撃を避けるための定時比較 */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf8')
+  const bb = Buffer.from(b, 'utf8')
+  if (ab.length !== bb.length) {
+    // 長さの違いも timingSafeEqual で比較するためパディング
+    const len = Math.max(ab.length, bb.length)
+    const ap = Buffer.alloc(len)
+    const bp = Buffer.alloc(len)
+    ab.copy(ap)
+    bb.copy(bp)
+    timingSafeEqual(ap, bp)
+    return false
+  }
+  return timingSafeEqual(ab, bb)
+}
 
 const COOKIE_NAME = 'sokudoku_admin'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -40,7 +58,7 @@ export async function loginAdmin(
 
   const platformId = process.env.SOKUDOKU_MANAGER_ID
   const platformPw = process.env.SOKUDOKU_MANAGER_PW
-  if (platformId && platformPw && id === platformId && password === platformPw) {
+  if (platformId && platformPw && safeEqual(id, platformId) && safeEqual(password, platformPw)) {
     const data: LoggedInAdmin = {
       role: 'platform',
       id: null,
@@ -70,7 +88,7 @@ export async function loginAdmin(
   }
 
   const s = school as { id: string; school_id: string; school_name: string; password: string }
-  if (s.password !== password) {
+  if (!safeEqual(s.password ?? '', password)) {
     return { success: false, error: 'パスワードが正しくありません' }
   }
 
@@ -105,15 +123,8 @@ export async function getLoggedInAdmin(): Promise<LoggedInAdmin | null> {
   if (!cookie?.value) return null
   try {
     const parsed = JSON.parse(cookie.value) as Partial<LoggedInAdmin>
-    if (!parsed.role) {
-      // 旧フォーマット互換: role 欠落時は school とみなす
-      return {
-        role: 'school',
-        id: (parsed.id as string) ?? null,
-        school_id: (parsed.school_id as string) ?? null,
-        school_name: (parsed.school_name as string) ?? '',
-      }
-    }
+    // role を持たない / 不正な role の cookie は拒否（権限昇格回避）
+    if (parsed.role !== 'platform' && parsed.role !== 'school') return null
     return parsed as LoggedInAdmin
   } catch {
     return null

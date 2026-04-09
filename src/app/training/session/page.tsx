@@ -7,7 +7,7 @@ import VerticalBlockReader from '@/components/training/VerticalBlockReader'
 import WordRecognitionTest from '@/components/training/WordRecognitionTest'
 import ContentPicker from '@/components/training/ContentPicker'
 import type { ReadingMode } from '@/components/training/VerticalBlockReader'
-import { FLASH_TIMING } from '@/lib/trainingConfig'
+import { FLASH_TIMING, BLOCK_CONFIG } from '@/lib/trainingConfig'
 import TrainingTimer from '@/components/training/TrainingTimer'
 import QuizCard from '@/components/training/QuizCard'
 import SessionSummary from '@/components/training/SessionSummary'
@@ -37,7 +37,19 @@ const MODE_UPGRADE: Record<ReadingMode, ReadingMode> = {
   '1line': '2line',
   '2line': '2line', // 最上位
 }
-const BLOCK_CONFIG_CHARS = 24 // 1行文字数（verticalSplitWord）
+
+// 現在モードの C_line 値（1カウントあたりの行消化数）
+const C_LINE_BY_MODE: Record<ReadingMode, number> = {
+  '3point': 3,
+  '2point': 2,
+  '1line': 1,
+  '2line': 0.5,
+}
+
+/** cpm × (1行文字数 / C_line) で字/分換算 */
+function calcWpmFor(cpm: number, mode: ReadingMode): number {
+  return Math.round((cpm / C_LINE_BY_MODE[mode]) * BLOCK_CONFIG.verticalSplitWord)
+}
 
 // ========== 種目ラベル ==========
 const SEGMENT_LABELS: Record<string, string> = {
@@ -129,10 +141,17 @@ export default function TrainingSessionPage() {
   const [testPhaseInner, setTestPhaseInner] = useState<'flash' | 'quiz'>('flash') // テスト内部状態
   const lastFlashedWord = useRef<string>('')
   const flashedWords = useRef<string[]>([])
+  const mountedRef = useRef(true)
   const [questionCount, setQuestionCount] = useState(0)
   const [testRound, setTestRound] = useState(0)       // テスト現在の問番号(0-9)
   const [testCorrect, setTestCorrect] = useState(0)   // テスト正解数
   const TEST_TOTAL = 5                                 // テスト全5問
+
+  // unmount フラグ管理
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   // セグメント切替時: たて1行/たて2行のときその日のスタイル(koe or e)プールを使う
   useEffect(() => {
@@ -343,6 +362,10 @@ export default function TrainingSessionPage() {
     } else {
       setCurrentQuiz(null)
       setQuestionCount(prev => prev + 1)
+      // 次セグメントへ進む前に reading_speed 用ステージをリセット
+      setFastReadStage('picker')
+      setFastReadResult(null)
+      setRecognitionWords({ in_words: [], decoy_words: [] })
       // 次の種目名を表示してから開始
       setState({ phase: 'segment_intro', segmentIndex: nextIndex })
     }
@@ -624,13 +647,15 @@ export default function TrainingSessionPage() {
           initialMode={fastReadInitialMode}
           onComplete={(result) => {
             setFastReadResult(result)
-            // 認識単語を取得してテスト画面へ
+            // 認識単語を取得してテスト画面へ（unmount 後は state 反映しない）
             getRecognitionWords(readingText.id)
               .then(words => {
+                if (!mountedRef.current) return
                 setRecognitionWords(words)
                 setFastReadStage('test')
               })
               .catch(() => {
+                if (!mountedRef.current) return
                 // 取得失敗時はテストをスキップして結果保存+次セグメント
                 if (student) saveFastReadResult(student.id, result.maxCpm, result.finalMode).catch(() => {})
                 moveToNextSegment(state.segmentIndex)
@@ -662,7 +687,9 @@ export default function TrainingSessionPage() {
           onComplete={(correct, total) => {
             const accuracy = correct / total
             const passed = accuracy >= 0.9
-            const wpmImproved = fastReadResult.maxWpm > fastReadInitialCpm * (BLOCK_CONFIG_CHARS / 3)
+            // 初期モードでの開始WPMを計算し、到達WPMが上回れば「速度向上」と判定
+            const startWpm = calcWpmFor(fastReadInitialCpm, fastReadInitialMode)
+            const wpmImproved = fastReadResult.maxWpm > startWpm
             // 合格 AND 速度向上 で次モードに昇格
             const nextMode: ReadingMode = passed && wpmImproved
               ? MODE_UPGRADE[fastReadResult.finalMode]

@@ -166,6 +166,8 @@ export default function VerticalBlockReader({
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const completedRef = useRef(false)
+  const hasStartedRef = useRef(false) // 初tick実行済みフラグ（初期レンダーの誤ハイライト回避）
+  const pendingResetRef = useRef(false) // セット境界リセット予約（tick内で処理してレース回避）
 
   // WebAudio: ピッ音合成
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -205,6 +207,32 @@ export default function VerticalBlockReader({
   }, [maxCpm, maxWpm, onComplete])
 
   const tick = useCallback(() => {
+    if (completedRef.current) return
+    hasStartedRef.current = true
+
+    // セット境界リセットが予約されていれば、ここで処理（レース回避）
+    if (pendingResetRef.current) {
+      pendingResetRef.current = false
+      cpmRef.current = initialCpm
+      setCpm(initialCpm)
+      beatRef.current = 0
+      blockRef.current = 0
+      lineRef.current = 0
+      pageRef.current = 0
+      setBlockIndex(0)
+      setLineIndex(0)
+      setPageIndex(0)
+      // pendingMode があれば切替
+      setPendingMode(prev => {
+        if (prev) {
+          modeRef.current = prev
+          setMode(prev)
+          return null
+        }
+        return prev
+      })
+    }
+
     playTick()
 
     const curMode = modeRef.current
@@ -252,7 +280,7 @@ export default function VerticalBlockReader({
       const intervalMs = Math.max(50, Math.round(60000 / cpmRef.current))
       tickTimerRef.current = setTimeout(tick, intervalMs)
     }
-  }, [pages, playTick])
+  }, [initialCpm, pages, playTick])
 
   useEffect(() => {
     startTimeRef.current = Date.now()
@@ -282,32 +310,13 @@ export default function VerticalBlockReader({
         finish()
         return
       }
-      // セット境界: 2分ごとに cpm・beat をリセット。閾値超過の pending モードがあれば切替
+      // セット境界: 2分ごとに予約フラグを立てるのみ（実処理は次tick先頭で実行してレース回避）
       const expectedSetIndex = Math.floor(e / SET_DURATION_SEC)
       if (expectedSetIndex !== setIndexRef.current) {
         setIndexRef.current = expectedSetIndex
         setSetIndex(expectedSetIndex)
-        // cpm を初期値にリセット
-        cpmRef.current = initialCpm
-        setCpm(initialCpm)
-        beatRef.current = 0
         setStartElapsedRef.current = e
-        // マーカーも先頭に戻す
-        blockRef.current = 0
-        lineRef.current = 0
-        pageRef.current = 0
-        setBlockIndex(0)
-        setLineIndex(0)
-        setPageIndex(0)
-        // pending モードがあれば切替
-        setPendingMode(prev => {
-          if (prev) {
-            modeRef.current = prev
-            setMode(prev)
-            return null
-          }
-          return prev
-        })
+        pendingResetRef.current = true
       }
     }, 250)
 
@@ -485,8 +494,10 @@ export default function VerticalBlockReader({
               {Array.from({ length: MAX_ROW * blocksPerRow }).map((_, idx) => {
                 const i = Math.floor(idx / blocksPerRow)
                 const j = idx % blocksPerRow
+                // 初tick前はハイライトしない（初期レンダーで(0,0)が点灯するのを防ぐ）
                 // 2行読みは lineIndex から linesPerStep 行ぶん同時ハイライト
                 const active =
+                  hasStartedRef.current &&
                   j === blockIndex && i >= lineIndex && i < lineIndex + linesPerStep
                 return (
                   <div

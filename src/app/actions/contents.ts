@@ -3,6 +3,17 @@
 import { supabase } from '@/lib/supabase'
 import { getLoggedInAdmin } from '@/lib/adminAuth'
 
+/** RFC4122 UUID 形式検証 */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function isUuid(s: string | null | undefined): s is string {
+  return typeof s === 'string' && UUID_REGEX.test(s)
+}
+
+/** ILIKE のワイルドカード ( % _ \ ) をエスケープ */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, '\\$&')
+}
+
 export interface ContentRow {
   id: string
   title: string
@@ -42,16 +53,18 @@ export async function listContentsForAdmin(
   // 塾管理者: 自塾登録 + 運用管理者登録(owner NULL) のみ。
   // onlyMine=true なら自塾登録のみ。
   if (admin.role === 'school') {
+    if (!isUuid(admin.id)) return [] // 不正なadmin.id は 0 件
     if (filters.onlyMine) {
-      query = query.eq('owner_school_id', admin.id!)
+      query = query.eq('owner_school_id', admin.id)
     } else {
+      // UUID検証済みなので or() 文字列補間でも安全
       query = query.or(`owner_school_id.is.null,owner_school_id.eq.${admin.id}`)
     }
   }
   // platform: 全件
 
   if (filters.search) {
-    query = query.ilike('title', `%${filters.search}%`)
+    query = query.ilike('title', `%${escapeLike(filters.search)}%`)
   }
   if (filters.gradeLevelId) {
     query = query.eq('grade_level_id', filters.gradeLevelId)
@@ -66,13 +79,23 @@ export async function listContentsForAdmin(
 }
 
 export async function getContentById(id: string): Promise<ContentRow | null> {
+  if (!isUuid(id)) return null
+  const admin = await getLoggedInAdmin()
+  if (!admin) return null
+
   const { data, error } = await supabase
     .from('contents')
     .select('id, title, body, char_count, grade_level_id, subject_id, difficulty, is_active, owner_school_id, recognition_in_words, recognition_decoy_words, created_at, updated_at')
     .eq('id', id)
     .maybeSingle()
   if (error || !data) return null
-  return data as ContentRow
+
+  const row = data as ContentRow
+  // 塾管理者は自塾登録分 + 運用管理者登録分 (owner NULL) のみ参照可
+  if (admin.role === 'school') {
+    if (row.owner_school_id && row.owner_school_id !== admin.id) return null
+  }
+  return row
 }
 
 export interface ContentInput {
