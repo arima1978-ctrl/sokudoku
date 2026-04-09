@@ -16,6 +16,8 @@ export interface LoggedInStudent {
   grade_level_id: string | null
   preferred_subject_id: string | null
   onboarding_completed: boolean
+  /** このログインセッションで使うスタイル。ログインごとに反転。 */
+  koe_e_style: 'koe' | 'e'
 }
 
 export interface LoginResult {
@@ -48,7 +50,7 @@ export async function loginStudent(
   // Look up the student (school_id is UUID reference to schools.id)
   const { data: student, error: studentError } = await supabase
     .from('students')
-    .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, preferred_subject_id, onboarding_completed, status')
+    .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, preferred_subject_id, onboarding_completed, status, koe_e_style')
     .eq('school_id', (school as Record<string, string>).id)
     .eq('student_login_id', loginId)
     .single()
@@ -57,7 +59,7 @@ export async function loginStudent(
     return { success: false, error: 'ログインIDが見つかりません' }
   }
 
-  const s = student as Student
+  const s = student as unknown as Student
 
   if (s.status !== 'active') {
     return { success: false, error: 'このアカウントは無効です' }
@@ -66,6 +68,11 @@ export async function loginStudent(
   if (s.student_password !== password) {
     return { success: false, error: 'パスワードが正しくありません' }
   }
+
+  // ログインごとに koe_e_style を反転
+  const prevStyle = (s as unknown as { koe_e_style?: string }).koe_e_style
+  const nextStyle: 'koe' | 'e' = prevStyle === 'koe' ? 'e' : 'koe'
+  await supabase.from('students').update({ koe_e_style: nextStyle }).eq('id', s.id)
 
   // Store student info in cookie
   const studentData: LoggedInStudent = {
@@ -76,6 +83,7 @@ export async function loginStudent(
     grade_level_id: s.grade_level_id,
     preferred_subject_id: s.preferred_subject_id ?? null,
     onboarding_completed: s.onboarding_completed ?? false,
+    koe_e_style: nextStyle,
   }
 
   const cookieStore = await cookies()

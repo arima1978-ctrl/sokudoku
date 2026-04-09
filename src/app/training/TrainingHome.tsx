@@ -32,7 +32,9 @@ interface TrainingHomeProps {
     totalSessions: number
     latestWpm: number | null
   }
-  menus: Array<Record<string, unknown>>
+  basicMenus: Array<Record<string, unknown>>
+  genreMenus: Array<Record<string, unknown>>
+  subjects: Array<{ id: string; name: string; icon: string | null }>
 }
 
 type FlowPhase =
@@ -63,12 +65,20 @@ const DURATION_CONFIG: Record<number, { label: string; desc: string; color: stri
   30: { label: '30分', desc: 'フルコース', color: 'border-purple-400 bg-purple-50 hover:bg-purple-100', icon: '🏆' },
 }
 
-export default function TrainingHome({ student, progress, stats, menus }: TrainingHomeProps) {
+export default function TrainingHome({ student, progress, stats, basicMenus, genreMenus, subjects }: TrainingHomeProps) {
   const router = useRouter()
   const [flowPhase, setFlowPhase] = useState<FlowPhase>('menu_select')
   const [dailySessionId, setDailySessionId] = useState<string | null>(null)
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<number>(0)
+  // コース種別 選択状態(null=未選択, 'basic'|'genre'=選択済み)
+  const [selectedCategory, setSelectedCategory] = useState<'basic' | 'genre' | null>(null)
+  // ジャンル別の場合の選択subject
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
+  // ジャンル別コースは basic メニューを使い回す(現時点では別のメニューは用意していない)
+  const menus = selectedCategory === 'genre' ? (genreMenus.length > 0 ? genreMenus : basicMenus) : basicMenus
+  // 実際にセッションで使う subjectId: ジャンル別選択中は選んだ値、それ以外は既定
+  const effectiveSubjectId = selectedCategory === 'genre' && selectedSubjectId ? selectedSubjectId : student.subjectId
 
   // 速度計測用
   const [speedContent, setSpeedContent] = useState<SpeedContentData | null>(null)
@@ -98,7 +108,7 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
       setDailySessionId(session.id)
 
       // 速度計測用コンテンツを取得
-      const content = await getSpeedContent(student.gradeLevelId, student.subjectId)
+      const content = await getSpeedContent(student.gradeLevelId, effectiveSubjectId)
       if (!content) {
         // コンテンツがない場合は速度計測をスキップしてトレーニングへ
         await updateDailySessionStatus(session.id, 'training')
@@ -158,7 +168,7 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
 
     try {
       await updateDailySessionStatus(dailySessionId, 'post_speed')
-      const content = await getSpeedContent(student.gradeLevelId, student.subjectId)
+      const content = await getSpeedContent(student.gradeLevelId, effectiveSubjectId)
       if (!content) {
         await updateDailySessionStatus(dailySessionId, 'completed')
         setFlowPhase('result')
@@ -182,7 +192,7 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
     } catch {
       setFlowPhase('result')
     }
-  }, [dailySessionId, student.gradeLevelId, student.subjectId])
+  }, [dailySessionId, student.gradeLevelId, effectiveSubjectId])
 
   // 速度計測(後)完了
   const handlePostSpeedComplete = useCallback(async (result: {
@@ -319,38 +329,134 @@ export default function TrainingHome({ student, progress, stats, menus }: Traini
             </div>
           </div>
 
-          {/* メニュー選択 */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
-              トレーニング時間を選択
-            </h3>
-            <div className="space-y-3">
-              {menus.map((menu) => {
-                const duration = menu.duration_min as number
-                const menuId = menu.id as string
-                const config = DURATION_CONFIG[duration]
-                if (!config) return null
-                return (
+          {/* ジャンル別コース選択中 かつ subject 未選択 → ジャンル選択 */}
+          {selectedCategory === 'genre' && selectedSubjectId === null && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-zinc-900">ジャンルを選択</h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  ← 戻る
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {subjects.map((sub) => (
                   <button
-                    key={menuId}
+                    key={sub.id}
                     type="button"
-                    onClick={() => handleMenuSelect(menuId, duration)}
-                    className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${config.color}`}
+                    onClick={() => setSelectedSubjectId(sub.id)}
+                    className="flex flex-col items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white p-4 text-center transition-colors hover:border-orange-400 hover:bg-orange-50"
                   >
-                    <span className="text-3xl">{config.icon}</span>
-                    <div>
-                      <div className="text-lg font-bold text-zinc-900">{config.label}コース</div>
-                      <div className="text-xs text-zinc-500">{config.desc}</div>
-                    </div>
+                    <span className="text-3xl">{sub.icon ?? '📚'}</span>
+                    <span className="text-sm font-bold text-zinc-900">{sub.name}</span>
                   </button>
-                )
-              })}
+                ))}
+              </div>
             </div>
+          )}
 
-            <p className="mt-4 text-center text-xs text-zinc-400">
-              速度計測 → トレーニング → 速度計測 の流れで進みます
-            </p>
-          </div>
+          {/* コース種別 未選択 → カテゴリ選択画面 */}
+          {selectedCategory === null && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
+                コース種別を選択
+              </h3>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('basic')}
+                  className="flex w-full items-center gap-4 rounded-xl border-2 border-blue-400 bg-blue-50 p-5 text-left transition-colors hover:bg-blue-100"
+                >
+                  <span className="text-4xl">📚</span>
+                  <div>
+                    <div className="text-lg font-bold text-zinc-900">速読基本トレーニング</div>
+                    <div className="text-xs text-zinc-500">
+                      瞬間よみ・ブロックよみ・アウトプットの基本トレーニング
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('genre')}
+                  className="flex w-full items-center gap-4 rounded-xl border-2 border-orange-400 bg-orange-50 p-5 text-left transition-colors hover:bg-orange-100"
+                >
+                  <span className="text-4xl">🎯</span>
+                  <div>
+                    <div className="text-lg font-bold text-zinc-900">ジャンル別コース</div>
+                    <div className="text-xs text-zinc-500">
+                      日本史・理科・情報・古文など教科別の速読トレーニング
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 時間選択画面: basic はカテゴリ選択後すぐ、genre は subject 選択後 */}
+          {(selectedCategory === 'basic' || (selectedCategory === 'genre' && selectedSubjectId !== null)) && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-zinc-900">
+                  {selectedCategory === 'basic'
+                    ? '速読基本: 時間を選択'
+                    : `${subjects.find(s => s.id === selectedSubjectId)?.name ?? ''}: 時間を選択`}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedCategory === 'genre' && selectedSubjectId !== null) {
+                      setSelectedSubjectId(null)
+                    } else {
+                      setSelectedCategory(null)
+                    }
+                  }}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  ← 戻る
+                </button>
+              </div>
+
+              {menus.length === 0 ? (
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-center">
+                  <p className="text-sm text-zinc-500">
+                    {selectedCategory === 'genre'
+                      ? 'ジャンル別コースは準備中です'
+                      : 'メニューが登録されていません'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {menus.map((menu) => {
+                    const duration = menu.duration_min as number
+                    const menuId = menu.id as string
+                    const config = DURATION_CONFIG[duration]
+                    if (!config) return null
+                    return (
+                      <button
+                        key={menuId}
+                        type="button"
+                        onClick={() => handleMenuSelect(menuId, duration)}
+                        className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${config.color}`}
+                      >
+                        <span className="text-3xl">{config.icon}</span>
+                        <div>
+                          <div className="text-lg font-bold text-zinc-900">{config.label}コース</div>
+                          <div className="text-xs text-zinc-500">{config.desc}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <p className="mt-4 text-center text-xs text-zinc-400">
+                速度計測 → トレーニング → 速度計測 の流れで進みます
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>

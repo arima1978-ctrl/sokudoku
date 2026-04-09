@@ -66,6 +66,35 @@ export async function getStudentProgress(
   return data as StudentProgress
 }
 
+/**
+ * 次回セッションの高速読み開始速度を返す。
+ * 仕様: 前回の事前速度計測(pre speed measurement)の80%からスタート。
+ * 直近の pre 計測が無い場合は既定値 300 CPM を返す。
+ */
+export async function getStartWpm(studentId: string): Promise<number> {
+  const DEFAULT_START_WPM = 300
+
+  const { data, error } = await supabase
+    .from('speed_measurements')
+    .select('wpm, measured_at')
+    .eq('student_id', studentId)
+    .eq('measurement_type', 'pre')
+    .order('measured_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !data || !data.wpm) {
+    return DEFAULT_START_WPM
+  }
+
+  const prevPreWpm = Number(data.wpm)
+  if (!Number.isFinite(prevPreWpm) || prevPreWpm <= 0) {
+    return DEFAULT_START_WPM
+  }
+
+  return Math.floor(prevPreWpm * 0.8)
+}
+
 export async function getTrainingStep(stepId: string) {
   const { data, error } = await supabase
     .from('training_steps')
@@ -128,11 +157,15 @@ export async function getMenuSegments(
   return results
 }
 
-export async function getAvailableMenus(phaseId: string) {
+export async function getAvailableMenus(
+  phaseId: string,
+  category: 'basic' | 'genre' = 'basic',
+) {
   const { data, error } = await supabase
     .from('training_menus')
     .select('*')
     .eq('phase_id', phaseId)
+    .eq('category', category)
     .order('duration_min', { ascending: true })
 
   if (error) {
@@ -241,13 +274,18 @@ export async function completeTrainingSession(
 
 // ========== コンテンツ取得 ==========
 
-export async function getShunkanContent(gradeLevelId: string, difficulty?: number) {
+export async function getShunkanContent(
+  gradeLevelId: string,
+  difficulty?: number,
+  contentStyle: 'normal' | 'koe' | 'e' = 'normal',
+) {
   // 学年に合った瞬間読みコンテンツを取得
   let query = supabase
     .from('contents')
-    .select('id, title, body, char_count, difficulty')
+    .select('id, title, body, char_count, difficulty, content_style')
     .eq('grade_level_id', gradeLevelId)
-    .lte('char_count', 30) // 短文のみ
+    .eq('content_style', contentStyle)
+    .lte('char_count', 30)
     .eq('is_active', true)
 
   if (difficulty) {
@@ -257,10 +295,11 @@ export async function getShunkanContent(gradeLevelId: string, difficulty?: numbe
   const { data, error } = await query.limit(30)
 
   if (error || !data || data.length === 0) {
-    // フォールバック: 全学年から取得
+    // フォールバック: 全学年から取得(style は維持)
     let fallbackQuery = supabase
       .from('contents')
-      .select('id, title, body, char_count, difficulty')
+      .select('id, title, body, char_count, difficulty, content_style')
+      .eq('content_style', contentStyle)
       .lte('char_count', 30)
       .eq('is_active', true)
 

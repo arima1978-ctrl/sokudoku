@@ -7,6 +7,7 @@ import {
   getTrainingStep,
   getAvailableMenus,
 } from '@/app/actions/training'
+import { getSubjects } from '@/app/actions/onboarding'
 import TrainingHome from './TrainingHome'
 
 export default async function TrainingPage() {
@@ -29,11 +30,13 @@ export default async function TrainingPage() {
     )
   }
 
-  const [phase, step, stats, menus] = await Promise.all([
+  const [phase, step, stats, basicMenus, genreMenus, subjects] = await Promise.all([
     getTrainingPhase(progress.current_phase_id),
     getTrainingStep(progress.current_step_id),
     getStudentStats(student.id),
-    getAvailableMenus(progress.current_phase_id),
+    getAvailableMenus(progress.current_phase_id, 'basic'),
+    getAvailableMenus(progress.current_phase_id, 'genre'),
+    getSubjects(),
   ])
 
   return (
@@ -54,7 +57,9 @@ export default async function TrainingPage() {
         totalSessions: stats.total_sessions,
         latestWpm: stats.latest_wpm,
       }}
-      menus={menus}
+      basicMenus={basicMenus}
+      genreMenus={genreMenus}
+      subjects={subjects}
     />
   )
 }

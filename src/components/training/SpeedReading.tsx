@@ -8,6 +8,8 @@ interface SpeedReadingProps {
   charCount: number
   /** 最低読書時間（秒） */
   minReadingSec: number
+  /** 目標WPM（前回最高速の80%を引き継いだ値） */
+  targetWpm?: number
   onComplete: (readingTimeSec: number, wpm: number) => void
 }
 
@@ -16,11 +18,25 @@ interface SpeedReadingProps {
  * 最低時間が経過するまで「読み終わった」ボタンを押せない。
  * 経過時間とWPMをリアルタイム表示。
  */
+// ============================================================
+// メトロノーム定数
+// 仕様:
+//   - 1行 = 30文字想定 / 2点読み = 1カウントで1行読了
+//   - 従って 1カウント = 30文字 → CPM = 30 × (カウント/分)
+//   - 1カウントの間隔(ms) = 60000 / (CPM / 30) = 1800000 / CPM
+//   - 8カウントごとに1段階(+30 CPM = 1行/分)自動昇速
+// ============================================================
+const BEATS_PER_STEP = 8
+const STEP_CPM = 30
+const CHARS_PER_LINE = 30
+const cpmToIntervalMs = (cpm: number) => Math.max(100, Math.round((CHARS_PER_LINE * 60 * 1000) / cpm))
+
 export default function SpeedReading({
   title,
   body,
   charCount,
   minReadingSec,
+  targetWpm,
   onComplete,
 }: SpeedReadingProps) {
   const [phase, setPhase] = useState<'ready' | 'reading' | 'done'>('ready')
@@ -28,7 +44,35 @@ export default function SpeedReading({
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // メトロノーム状態
+  const initialCpm = targetWpm && targetWpm > 0 ? targetWpm : 300
+  const [beatCount, setBeatCount] = useState(0)        // 0〜7 のサイクル
+  const [currentCpm, setCurrentCpm] = useState(initialCpm)
+  const [totalBeats, setTotalBeats] = useState(0)
+  const [pulse, setPulse] = useState(false)
+  const metronomeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentCpmRef = useRef(initialCpm)
+
   const canFinish = elapsed >= minReadingSec
+
+  // メトロノームtick: カウント+1, 8で1段階昇速, 次回スケジュール
+  const metronomeTick = useCallback(() => {
+    setPulse(true)
+    setTimeout(() => setPulse(false), 120)
+
+    setTotalBeats(t => t + 1)
+    setBeatCount(prev => {
+      const next = prev + 1
+      if (next >= BEATS_PER_STEP) {
+        currentCpmRef.current = currentCpmRef.current + STEP_CPM
+        setCurrentCpm(currentCpmRef.current)
+        return 0
+      }
+      return next
+    })
+
+    metronomeRef.current = setTimeout(metronomeTick, cpmToIntervalMs(currentCpmRef.current))
+  }, [])
 
   const startReading = useCallback(() => {
     startTimeRef.current = Date.now()
@@ -36,11 +80,18 @@ export default function SpeedReading({
     timerRef.current = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
     }, 500)
-  }, [])
+    // メトロノーム開始
+    currentCpmRef.current = initialCpm
+    setCurrentCpm(initialCpm)
+    setBeatCount(0)
+    setTotalBeats(0)
+    metronomeRef.current = setTimeout(metronomeTick, cpmToIntervalMs(initialCpm))
+  }, [initialCpm, metronomeTick])
 
   const finishReading = useCallback(() => {
     if (!canFinish) return
     if (timerRef.current) clearInterval(timerRef.current)
+    if (metronomeRef.current) clearTimeout(metronomeRef.current)
     const timeSec = Math.round((Date.now() - startTimeRef.current) / 100) / 10
     const wpm = timeSec > 0 ? Math.round((charCount / timeSec) * 60) : 0
     setPhase('done')
@@ -50,6 +101,7 @@ export default function SpeedReading({
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      if (metronomeRef.current) clearTimeout(metronomeRef.current)
     }
   }, [])
 
@@ -72,6 +124,12 @@ export default function SpeedReading({
           <p className="mb-2 text-sm text-zinc-500">
             できるだけ速く、内容を理解しながら読んでください
           </p>
+          {targetWpm && targetWpm > 0 && (
+            <p className="mb-2 text-sm font-semibold text-orange-600">
+              今回の目標: <span className="text-lg">{targetWpm}</span> 文字/分
+              <span className="ml-1 text-xs text-zinc-400">(前回の80%)</span>
+            </p>
+          )}
           <p className="mb-8 text-xs text-zinc-400">
             最低{Math.round(minReadingSec / 60)}分間は読書してください（脳の定着のため）
           </p>
@@ -143,6 +201,36 @@ export default function SpeedReading({
             width: `${Math.min(100, (elapsed / minReadingSec) * 100)}%`,
             transition: 'width 0.5s',
           }} />
+        </div>
+      </div>
+
+      {/* メトロノームバー(8カウント + 目標CPM) */}
+      <div style={{
+        padding: '6px 16px 8px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 14, height: 14, borderRadius: '50%',
+            background: pulse ? '#ee5a24' : '#ffd7c9',
+            boxShadow: pulse ? '0 0 12px #ee5a24' : 'none',
+            transition: 'all 0.12s',
+          }} />
+          <span style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>
+            {beatCount + 1} / {BEATS_PER_STEP}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {Array.from({ length: BEATS_PER_STEP }).map((_, i) => (
+            <div key={i} style={{
+              width: 10, height: 10, borderRadius: 2,
+              background: i < beatCount ? '#ee5a24' : '#e5e7eb',
+              transition: 'background 0.12s',
+            }} />
+          ))}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#1478C3' }}>
+          目標 {currentCpm} 文字/分
         </div>
       </div>
 

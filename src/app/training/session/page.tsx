@@ -16,6 +16,7 @@ import {
   getShunkanContent,
   getReadingContent,
   getQuizForContent,
+  getStartWpm,
   type MenuSegment,
   type SegmentTestResult,
   type StepEvaluation,
@@ -31,6 +32,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   shunkan_yoko_1line: 'よこ1行瞬間よみ',
   shunkan_yoko_2line: 'よこ2行瞬間よみ',
   koe_e: '声になる文 / 絵になる文',
+  koe_bun: '声になる文',
+  e_bun: '絵になる文',
   block_tate: 'たてブロックよみ',
   block_yoko: 'よこブロックよみ',
   output_tate: 'たてアウトプット',
@@ -46,6 +49,8 @@ const DISPLAY_TYPE_MAP: Record<string, string> = {
   shunkan_yoko_1line: 'yoko_1line',
   shunkan_yoko_2line: 'yoko_2line',
   koe_e: 'tate_1line',
+  koe_bun: 'tate_1line',
+  e_bun: 'tate_1line',
 }
 
 function isShunkanType(type: string) {
@@ -87,7 +92,12 @@ export default function TrainingSessionPage() {
 
   // コンテンツ
   const [shunkanWords, setShunkanWords] = useState<{ body: string; answer?: string }[]>([])
+  // たて1行/たて2行用: その日の koe or e プール(日替わり)
+  const [todayStylePool, setTodayStylePool] = useState<{ body: string; answer?: string }[]>([])
+  const [todayStyle, setTodayStyle] = useState<'koe' | 'e'>('koe')
+  const [normalShunkan, setNormalShunkan] = useState<{ body: string; answer?: string }[]>([])
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
+  const [startWpm, setStartWpm] = useState<number>(300) // 前回最高速×0.8(80%引き継ぎ)
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
   const [testWord, setTestWord] = useState<{ body: string }>({ body: '' }) // テスト中の正解単語
   const [testPhaseInner, setTestPhaseInner] = useState<'flash' | 'quiz'>('flash') // テスト内部状態
@@ -96,7 +106,24 @@ export default function TrainingSessionPage() {
   const [questionCount, setQuestionCount] = useState(0)
   const [testRound, setTestRound] = useState(0)       // テスト現在の問番号(0-9)
   const [testCorrect, setTestCorrect] = useState(0)   // テスト正解数
-  const TEST_TOTAL = 10                                // テスト全10問
+  const TEST_TOTAL = 5                                 // テスト全5問
+
+  // セグメント切替時: たて1行/たて2行のときその日のスタイル(koe or e)プールを使う
+  useEffect(() => {
+    if (!('segmentIndex' in state)) return
+    const seg = segments[state.segmentIndex]
+    if (!seg) return
+    if (seg.segment_type === 'shunkan_tate_1line' || seg.segment_type === 'shunkan_tate_2line') {
+      if (todayStylePool.length > 0) {
+        setShunkanWords(todayStylePool)
+        return
+      }
+    }
+    if (normalShunkan.length > 0) {
+      setShunkanWords(normalShunkan)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, segments, todayStylePool, normalShunkan])
 
   // 初期化
   useEffect(() => {
@@ -111,11 +138,27 @@ export default function TrainingSessionPage() {
         setStudent(loggedIn)
 
         const grade = loggedIn.grade_level_id || 'g4'
-        const [shunkan, reading] = await Promise.all([
-          getShunkanContent(grade, 1), // レベル1のコンテンツ
+
+        // ログイン単位で koe / e を切替(cookie に保存された値を使用)
+        const loginStyle: 'koe' | 'e' = loggedIn.koe_e_style ?? 'koe'
+        setTodayStyle(loginStyle)
+
+        const [shunkan, styledContent, reading, nextStartWpm] = await Promise.all([
+          getShunkanContent(grade, 1, 'normal'),
+          getShunkanContent(grade, undefined, loginStyle),
           getReadingContent(grade),
+          getStartWpm(loggedIn.id),
         ])
-        setShunkanWords(shunkan.map(c => ({ body: c.body, answer: c.body })))
+        setStartWpm(nextStartWpm)
+
+        const normalPool = shunkan.map(c => ({ body: c.body, answer: c.body }))
+        setNormalShunkan(normalPool)
+
+        const stylePool = styledContent.map(c => ({ body: c.body, answer: c.body }))
+        setTodayStylePool(stylePool)
+
+        // 初期表示用(たて系以外に使う)
+        setShunkanWords(normalPool)
         if (reading.length > 0) {
           const r = reading[Math.floor(Math.random() * reading.length)]
           setReadingText({ id: r.id as string, title: r.title as string, body: r.body as string })
@@ -219,6 +262,43 @@ export default function TrainingSessionPage() {
       setState({ phase: 'segment_test', segmentIndex: segIdx })
     }
   }
+
+  // 開発用キーボードショートカット
+  //   N : 現フェーズを完了して次のフェーズへ順送り
+  //       トレーニング → テスト → 次のトレーニング → 次のテスト → ...
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return
+    function onKey(ev: KeyboardEvent) {
+      if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return
+      if (ev.key !== 'n' && ev.key !== 'N') return
+      if (!('segmentIndex' in state)) return
+
+      const idx = state.segmentIndex
+      const seg = segments[idx]
+      if (!seg) return
+
+      if (state.phase === 'segment_intro') {
+        // 紹介 → トレーニング開始
+        setState({ phase: 'segment_active', segmentIndex: idx })
+      } else if (state.phase === 'segment_active') {
+        // トレーニング中 → テストへ(or 次セグメント)
+        if (seg.has_test) {
+          setState({ phase: 'test_start', segmentIndex: idx })
+        } else {
+          moveToNextSegment(idx)
+        }
+      } else if (state.phase === 'test_start') {
+        // テスト開始合図 → 実テスト画面
+        startTestFromAnnounce(idx)
+      } else if (state.phase === 'test_flash' || state.phase === 'test_answer' || state.phase === 'segment_test') {
+        // テスト中 → スキップして次セグメントへ
+        moveToNextSegment(idx)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, segments])
 
   function moveToNextSegment(currentIndex: number) {
     const nextIndex = currentIndex + 1
@@ -430,6 +510,7 @@ export default function TrainingSessionPage() {
                 question={currentQuiz.question}
                 choices={currentQuiz.choices}
                 correctIndex={currentQuiz.correctIndex}
+                timeLimitSec={5}
                 onAnswer={handleQuizAnswer}
               />
             </div>
@@ -459,6 +540,7 @@ export default function TrainingSessionPage() {
             question={currentQuiz.question}
             choices={currentQuiz.choices}
             correctIndex={currentQuiz.correctIndex}
+            timeLimitSec={5}
             onAnswer={handleQuizAnswer}
           />
         </div>
@@ -474,6 +556,7 @@ export default function TrainingSessionPage() {
         body={readingText.body}
         charCount={readingText.body.length}
         minReadingSec={120}
+        targetWpm={startWpm}
         onComplete={(readingTimeSec, wpm) => {
           if (session && student) {
             submitSegmentTest(session.id, student.id, 'reading_speed', 1, wpm >= 100 ? 1 : 0)
