@@ -6,6 +6,7 @@ import Link from 'next/link'
 export default async function AdminStudentsPage() {
   const school = await getLoggedInSchool()
   if (!school) redirect('/admin/login')
+  if (!school.id) redirect('/admin/schools')
 
   const students = await getStudentProgressList(school.id)
 

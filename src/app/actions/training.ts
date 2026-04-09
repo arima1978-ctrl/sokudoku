@@ -95,6 +95,103 @@ export async function getStartWpm(studentId: string): Promise<number> {
   return Math.floor(prevPreWpm * 0.8)
 }
 
+/**
+ * たてブロックよみ（高速読み）の初期CPMを返す。
+ * 仕様:
+ *   - user_reading_speed にレコードが無い（初回）  → 60
+ *   - 前回セッション終了から 24h 以内              → baseline_cpm * 0.8
+ *   - 前回セッション終了から 24h 超                → baseline_cpm * 0.6
+ */
+export async function getFastReadInitialCpm(studentId: string): Promise<number> {
+  const DEFAULT_CPM = 60
+
+  const { data, error } = await supabase
+    .from('user_reading_speed')
+    .select('baseline_cpm, last_session_ended_at')
+    .eq('student_id', studentId)
+    .maybeSingle()
+
+  if (error || !data || !data.baseline_cpm) {
+    return DEFAULT_CPM
+  }
+
+  const baseline = Number(data.baseline_cpm)
+  if (!Number.isFinite(baseline) || baseline <= 0) {
+    return DEFAULT_CPM
+  }
+
+  const lastEnd = data.last_session_ended_at ? new Date(data.last_session_ended_at) : null
+  if (!lastEnd || Number.isNaN(lastEnd.getTime())) {
+    return Math.max(DEFAULT_CPM, Math.floor(baseline * 0.6))
+  }
+
+  const hoursSince = (Date.now() - lastEnd.getTime()) / (1000 * 60 * 60)
+  const ratio = hoursSince <= 24 ? 0.8 : 0.6
+  return Math.max(DEFAULT_CPM, Math.floor(baseline * ratio))
+}
+
+/**
+ * たてブロックよみセッション結果を保存。
+ * 到達した最大CPM を baseline_cpm として upsert し、last_session_ended_at を更新。
+ * 任意で current_mode（次回デフォルトモード）も保存可能。
+ */
+export async function saveFastReadResult(
+  studentId: string,
+  reachedMaxCpm: number,
+  nextMode?: '3point' | '2point' | '1line' | '2line'
+): Promise<{ success: boolean; error?: string }> {
+  if (!Number.isFinite(reachedMaxCpm) || reachedMaxCpm <= 0) {
+    return { success: false, error: 'invalid cpm' }
+  }
+
+  const payload: Record<string, unknown> = {
+    student_id: studentId,
+    baseline_cpm: Math.round(reachedMaxCpm),
+    last_session_ended_at: new Date().toISOString(),
+  }
+  if (nextMode) {
+    payload.current_mode = nextMode
+  }
+
+  const { error } = await supabase
+    .from('user_reading_speed')
+    .upsert(payload, { onConflict: 'student_id' })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+  return { success: true }
+}
+
+/** 高速読みの現在モードを取得（初回は '3point'） */
+export async function getFastReadCurrentMode(
+  studentId: string
+): Promise<'3point' | '2point' | '1line' | '2line'> {
+  const { data } = await supabase
+    .from('user_reading_speed')
+    .select('current_mode')
+    .eq('student_id', studentId)
+    .maybeSingle()
+  const m = (data?.current_mode ?? '3point') as string
+  if (m === '2point' || m === '1line' || m === '2line') return m
+  return '3point'
+}
+
+/** 認識テスト用の単語リストを取得 */
+export async function getRecognitionWords(
+  contentId: string
+): Promise<{ in_words: string[]; decoy_words: string[] }> {
+  const { data } = await supabase
+    .from('contents')
+    .select('recognition_in_words, recognition_decoy_words')
+    .eq('id', contentId)
+    .maybeSingle()
+  return {
+    in_words: (data?.recognition_in_words as string[] | null) ?? [],
+    decoy_words: (data?.recognition_decoy_words as string[] | null) ?? [],
+  }
+}
+
 export async function getTrainingStep(stepId: string) {
   const { data, error } = await supabase
     .from('training_steps')

@@ -1,11 +1,21 @@
 import Link from 'next/link'
-import { getLoggedInSchool, logoutSchool } from '@/lib/adminAuth'
+import { getLoggedInAdmin, logoutSchool } from '@/lib/adminAuth'
 import { redirect } from 'next/navigation'
 
-const NAV_ITEMS = [
+/** 運用管理者: 全メニュー。塾管理者: 塾向けサブセット */
+const PLATFORM_NAV = [
+  { href: '/admin/dashboard', label: 'ダッシュボード' },
+  { href: '/admin/schools', label: 'スクール一覧' },
+  { href: '/admin/students', label: '生徒一覧' },
+  { href: '/admin/students/new', label: '生徒追加' },
+  { href: '/admin/contents', label: 'コンテンツ管理' },
+] as const
+
+const SCHOOL_NAV = [
   { href: '/admin/dashboard', label: 'ダッシュボード' },
   { href: '/admin/students', label: '生徒一覧' },
   { href: '/admin/students/new', label: '生徒追加' },
+  { href: '/admin/contents', label: 'コンテンツ管理' },
 ] as const
 
 export default async function AdminLayout({
@@ -13,29 +23,31 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const school = await getLoggedInSchool()
+  const admin = await getLoggedInAdmin()
 
-  // ログインページ自体はレイアウトなしで表示
-  // ログインしていない場合はchildrenをそのまま返す（loginページが表示される）
-  if (!school) {
+  if (!admin) {
     return <>{children}</>
   }
+
+  const navItems = admin.role === 'platform' ? PLATFORM_NAV : SCHOOL_NAV
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
       {/* Sidebar */}
       <aside className="w-56 shrink-0 border-r border-zinc-200 bg-white">
         <div className="p-4">
-          {/* 塾名 */}
+          {/* ログイン中ユーザー */}
           <div className="mb-4 rounded-lg bg-zinc-900 px-3 py-3">
-            <div className="text-xs text-zinc-400">ログイン中</div>
-            <div className="mt-0.5 text-sm font-bold text-white truncate">{school.school_name}</div>
-            <div className="text-xs text-zinc-500">{school.school_id}</div>
+            <div className="text-xs text-zinc-400">
+              {admin.role === 'platform' ? '運用管理者' : 'ログイン中'}
+            </div>
+            <div className="mt-0.5 text-sm font-bold text-white truncate">{admin.school_name}</div>
+            {admin.school_id && <div className="text-xs text-zinc-500">{admin.school_id}</div>}
           </div>
 
           <nav>
             <ul className="space-y-1">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}

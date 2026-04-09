@@ -57,6 +57,35 @@ export async function getSpeedContent(gradeLevelId: string, subjectId: string) {
   return null
 }
 
+/** 生徒が選択できる速度計測用コンテンツリスト */
+export async function getSpeedContentList(
+  gradeLevelId: string,
+  subjectId: string
+): Promise<Array<{ id: string; title: string; body: string; char_count: number }>> {
+  // ジャンル+学年で探す
+  const { data } = await supabase
+    .from('contents')
+    .select('id, title, body, char_count')
+    .eq('grade_level_id', gradeLevelId)
+    .eq('subject_id', subjectId)
+    .gt('char_count', 200)
+    .eq('is_active', true)
+    .order('title')
+    .limit(30)
+  if (data && data.length > 0) return data as Array<{ id: string; title: string; body: string; char_count: number }>
+
+  // フォールバック: 学年のみ
+  const { data: fallback } = await supabase
+    .from('contents')
+    .select('id, title, body, char_count')
+    .eq('grade_level_id', gradeLevelId)
+    .gt('char_count', 200)
+    .eq('is_active', true)
+    .order('title')
+    .limit(30)
+  return (fallback ?? []) as Array<{ id: string; title: string; body: string; char_count: number }>
+}
+
 /** 速度計測結果を保存 */
 export async function saveSpeedMeasurement(
   dailySessionId: string,

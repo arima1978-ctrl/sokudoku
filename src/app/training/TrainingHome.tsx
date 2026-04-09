@@ -1,8 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import SpeedMeasurement from '@/components/training/SpeedMeasurement'
+import SpeedResultScreen from '@/components/training/SpeedResultScreen'
+import WordRecognitionTest from '@/components/training/WordRecognitionTest'
+import ContentPicker from '@/components/training/ContentPicker'
+import { getRecognitionWords } from '@/app/actions/training'
+import { getSpeedContentList } from '@/app/actions/speed'
 import DailyResult from '@/components/training/DailyResult'
 import GrowthChart from '@/components/training/GrowthChart'
 import { getStudentDashboard } from '@/app/actions/history'
@@ -40,10 +45,16 @@ interface TrainingHomeProps {
 type FlowPhase =
   | 'menu_select'
   | 'pre_speed_loading'
+  | 'pre_content_select'  // 生徒がコンテンツ選択(前)
   | 'pre_speed'
+  | 'pre_speed_test'      // 単語認識テスト(前)
+  | 'pre_speed_result'    // 計測結果表示 → ボタンでトレーニングへ
   | 'training'
   | 'post_speed_loading'
+  | 'post_content_select' // 生徒がコンテンツ選択(後)
   | 'post_speed'
+  | 'post_speed_test'     // 単語認識テスト(後)
+  | 'post_speed_result'   // 計測結果表示 → ボタンで最終サマリーへ
   | 'result'
 
 interface SpeedContentData {
@@ -85,6 +96,15 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
   const [speedQuiz, setSpeedQuiz] = useState<QuizData | null>(null)
   const [preWpm, setPreWpm] = useState<number | null>(null)
   const [postWpm, setPostWpm] = useState<number | null>(null)
+  // 単語認識テスト用
+  const [recognitionWords, setRecognitionWords] = useState<{ in_words: string[]; decoy_words: string[] }>({ in_words: [], decoy_words: [] })
+  const [pendingSpeedResult, setPendingSpeedResult] = useState<{
+    charCount: number
+    readingTimeSec: number
+  } | null>(null)
+  // コンテンツ選択用
+  const [contentList, setContentList] = useState<Array<{ id: string; title: string; body: string; char_count: number }>>([])
+  const mountedRef = useRef(true)
   const [trainingResults, setTrainingResults] = useState<Array<{ segment: string; accuracy: number }>>([])
   const [activeTab, setActiveTab] = useState<'training' | 'growth'>('training')
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getStudentDashboard>> | null>(null)
@@ -107,37 +127,40 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
       const session = await startDailySession(student.id, durationMin)
       setDailySessionId(session.id)
 
-      // 速度計測用コンテンツを取得
-      const content = await getSpeedContent(student.gradeLevelId, effectiveSubjectId)
-      if (!content) {
+      // 速度計測用コンテンツのリストを取得して選択画面へ
+      const list = await getSpeedContentList(student.gradeLevelId, effectiveSubjectId)
+      if (!list || list.length === 0) {
         // コンテンツがない場合は速度計測をスキップしてトレーニングへ
         await updateDailySessionStatus(session.id, 'training')
         setFlowPhase('training')
         router.push(`/training/session?menu=${menuId}&step=${progress.stepId}&daily=${session.id}`)
         return
       }
-      setSpeedContent(content)
-
-      // クイズ取得
-      const quizData = await getQuizForContent(content.id)
-      if (quizData && quizData.questions.length > 0) {
-        const q = quizData.questions[0]
-        setSpeedQuiz({
-          question: q.question_text,
-          choices: [q.choice_a, q.choice_b, q.choice_c, q.choice_d],
-          correctIndex: Math.max(0, ['A', 'B', 'C', 'D'].indexOf(q.correct)),
-        })
-      } else {
-        setSpeedQuiz(null)
-      }
-
-      setFlowPhase('pre_speed')
+      setContentList(list)
+      setSpeedQuiz(null)
+      setFlowPhase('pre_content_select')
     } catch {
       setFlowPhase('menu_select')
     }
   }
 
-  // 速度計測(前)完了
+  // コンテンツ選択(前) → speedContent セットして pre_speed へ
+  const handlePreContentPick = useCallback((contentId: string) => {
+    const picked = contentList.find(c => c.id === contentId)
+    if (!picked) return
+    setSpeedContent(picked)
+    setFlowPhase('pre_speed')
+  }, [contentList])
+
+  // コンテンツ選択(後) → speedContent セットして post_speed へ
+  const handlePostContentPick = useCallback((contentId: string) => {
+    const picked = contentList.find(c => c.id === contentId)
+    if (!picked) return
+    setSpeedContent(picked)
+    setFlowPhase('post_speed')
+  }, [contentList])
+
+  // 速度計測(前)完了 → 単語認識テストへ
   const handlePreSpeedComplete = useCallback(async (result: {
     charCount: number
     readingTimeSec: number
@@ -145,20 +168,40 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     quizTotal?: number
   }) => {
     if (!dailySessionId || !speedContent) return
+    setPendingSpeedResult({ charCount: result.charCount, readingTimeSec: result.readingTimeSec })
+    try {
+      const words = await getRecognitionWords(speedContent.id)
+      if (!mountedRef.current) return
+      setRecognitionWords(words)
+    } catch {
+      if (!mountedRef.current) return
+      setRecognitionWords({ in_words: [], decoy_words: [] })
+    }
+    if (!mountedRef.current) return
+    setFlowPhase('pre_speed_test')
+  }, [dailySessionId, speedContent])
 
+  // 単語認識テスト(前)完了 → 保存 → 結果画面
+  const handlePreRecognitionComplete = useCallback(async (correct: number, total: number) => {
+    if (!dailySessionId || !speedContent || !pendingSpeedResult) return
     const saved = await saveSpeedMeasurement(
       dailySessionId, student.id, speedContent.id, 'pre',
-      result.charCount, result.readingTimeSec,
-      result.quizTotal, result.quizCorrect,
+      pendingSpeedResult.charCount, pendingSpeedResult.readingTimeSec,
+      total, correct,
     )
     setPreWpm(saved.wpm)
     await recordSpeedHistory(student.id, saved.wpm, saved.quiz_accuracy, speedContent.id)
+    setPendingSpeedResult(null)
+    setFlowPhase('pre_speed_result')
+  }, [dailySessionId, speedContent, student.id, pendingSpeedResult])
 
-    // トレーニングへ遷移
+  // pre_speed_result → トレーニング開始
+  const proceedToTraining = useCallback(async () => {
+    if (!dailySessionId) return
     await updateDailySessionStatus(dailySessionId, 'training')
     setFlowPhase('training')
     router.push(`/training/session?menu=${selectedMenuId}&step=${progress.stepId}&daily=${dailySessionId}`)
-  }, [dailySessionId, speedContent, student.id, selectedMenuId, progress.stepId, router])
+  }, [dailySessionId, selectedMenuId, progress.stepId, router])
 
   // トレーニング完了後（sessionページから戻ってきた場合）の処理は
   // searchParamsで制御するので、ここでは post_speed を開始する関数を用意
@@ -168,33 +211,21 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
 
     try {
       await updateDailySessionStatus(dailySessionId, 'post_speed')
-      const content = await getSpeedContent(student.gradeLevelId, effectiveSubjectId)
-      if (!content) {
+      const list = await getSpeedContentList(student.gradeLevelId, effectiveSubjectId)
+      if (!list || list.length === 0) {
         await updateDailySessionStatus(dailySessionId, 'completed')
         setFlowPhase('result')
         return
       }
-      setSpeedContent(content)
-
-      const quizData = await getQuizForContent(content.id)
-      if (quizData && quizData.questions.length > 0) {
-        const q = quizData.questions[0]
-        setSpeedQuiz({
-          question: q.question_text,
-          choices: [q.choice_a, q.choice_b, q.choice_c, q.choice_d],
-          correctIndex: Math.max(0, ['A', 'B', 'C', 'D'].indexOf(q.correct)),
-        })
-      } else {
-        setSpeedQuiz(null)
-      }
-
-      setFlowPhase('post_speed')
+      setContentList(list)
+      setSpeedQuiz(null)
+      setFlowPhase('post_content_select')
     } catch {
       setFlowPhase('result')
     }
   }, [dailySessionId, student.gradeLevelId, effectiveSubjectId])
 
-  // 速度計測(後)完了
+  // 速度計測(後)完了 → 単語認識テストへ
   const handlePostSpeedComplete = useCallback(async (result: {
     charCount: number
     readingTimeSec: number
@@ -202,17 +233,54 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     quizTotal?: number
   }) => {
     if (!dailySessionId || !speedContent) return
+    setPendingSpeedResult({ charCount: result.charCount, readingTimeSec: result.readingTimeSec })
+    try {
+      const words = await getRecognitionWords(speedContent.id)
+      if (!mountedRef.current) return
+      setRecognitionWords(words)
+    } catch {
+      if (!mountedRef.current) return
+      setRecognitionWords({ in_words: [], decoy_words: [] })
+    }
+    if (!mountedRef.current) return
+    setFlowPhase('post_speed_test')
+  }, [dailySessionId, speedContent])
 
+  // 単語認識テスト(後)完了 → 保存 → 最終結果へ
+  const handlePostRecognitionComplete = useCallback(async (correct: number, total: number) => {
+    if (!dailySessionId || !speedContent || !pendingSpeedResult) return
     const saved = await saveSpeedMeasurement(
       dailySessionId, student.id, speedContent.id, 'post',
-      result.charCount, result.readingTimeSec,
-      result.quizTotal, result.quizCorrect,
+      pendingSpeedResult.charCount, pendingSpeedResult.readingTimeSec,
+      total, correct,
     )
     setPostWpm(saved.wpm)
     await recordSpeedHistory(student.id, saved.wpm, saved.quiz_accuracy, speedContent.id)
     await updateDailySessionStatus(dailySessionId, 'completed')
-    setFlowPhase('result')
-  }, [dailySessionId, speedContent, student.id])
+    setPendingSpeedResult(null)
+    setFlowPhase('post_speed_result')
+  }, [dailySessionId, speedContent, student.id, pendingSpeedResult])
+
+  // unmount フラグ
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  // 認識単語が未登録のテスト画面に入った場合、副作用で自動スキップ（レンダー中setter呼び出しを回避）
+  useEffect(() => {
+    if (flowPhase !== 'pre_speed_test' && flowPhase !== 'post_speed_test') return
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (!wordsMissing) return
+    if (flowPhase === 'pre_speed_test') {
+      handlePreRecognitionComplete(0, 0)
+    } else {
+      handlePostRecognitionComplete(0, 0)
+    }
+  }, [flowPhase, recognitionWords, handlePreRecognitionComplete, handlePostRecognitionComplete])
 
   // ========== Render ==========
 
@@ -233,7 +301,7 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     return (
       <SpeedMeasurement
         content={speedContent}
-        quiz={speedQuiz}
+        quiz={null}
         type="pre"
         onComplete={handlePreSpeedComplete}
       />
@@ -245,9 +313,97 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     return (
       <SpeedMeasurement
         content={speedContent}
-        quiz={speedQuiz}
+        quiz={null}
         type="post"
         onComplete={handlePostSpeedComplete}
+      />
+    )
+  }
+
+  // コンテンツ選択(前)
+  if (flowPhase === 'pre_content_select') {
+    return (
+      <ContentPicker
+        label="速度計測(トレーニング前)"
+        items={contentList}
+        onPick={handlePreContentPick}
+      />
+    )
+  }
+
+  // コンテンツ選択(後)
+  if (flowPhase === 'post_content_select') {
+    return (
+      <ContentPicker
+        label="速度計測(トレーニング後)"
+        items={contentList}
+        onPick={handlePostContentPick}
+      />
+    )
+  }
+
+  // 単語認識テスト(前)
+  if (flowPhase === 'pre_speed_test') {
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (wordsMissing) {
+      return (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <p className="text-zinc-500">認識単語が未登録のためスキップします...</p>
+        </div>
+      )
+    }
+    return (
+      <WordRecognitionTest
+        inWords={recognitionWords.in_words}
+        decoyWords={recognitionWords.decoy_words}
+        onComplete={handlePreRecognitionComplete}
+      />
+    )
+  }
+
+  // 単語認識テスト(後)
+  if (flowPhase === 'post_speed_test') {
+    const wordsMissing =
+      recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5
+    if (wordsMissing) {
+      return (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <p className="text-zinc-500">認識単語が未登録のためスキップします...</p>
+        </div>
+      )
+    }
+    return (
+      <WordRecognitionTest
+        inWords={recognitionWords.in_words}
+        decoyWords={recognitionWords.decoy_words}
+        onComplete={handlePostRecognitionComplete}
+      />
+    )
+  }
+
+  // 速度計測(前) 結果画面
+  if (flowPhase === 'pre_speed_result' && preWpm !== null) {
+    return (
+      <SpeedResultScreen
+        label="計測結果（トレーニング前）"
+        wpm={preWpm}
+        buttonLabel="トレーニングを始める"
+        onNext={proceedToTraining}
+      />
+    )
+  }
+
+  // 速度計測(後) 結果画面
+  if (flowPhase === 'post_speed_result' && postWpm !== null) {
+    const diff = preWpm !== null ? postWpm - preWpm : null
+    return (
+      <SpeedResultScreen
+        label="計測結果（トレーニング後）"
+        wpm={postWpm}
+        diffFromPre={diff}
+        buttonLabel="結果サマリーへ"
+        onNext={() => setFlowPhase('result')}
       />
     )
   }

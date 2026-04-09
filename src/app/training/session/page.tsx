@@ -3,8 +3,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ShunkanDisplay from '@/components/training/ShunkanDisplay'
-import SpeedReading from '@/components/training/SpeedReading'
-import { FLASH_TIMING } from '@/lib/trainingConfig'
+import VerticalBlockReader from '@/components/training/VerticalBlockReader'
+import WordRecognitionTest from '@/components/training/WordRecognitionTest'
+import ContentPicker from '@/components/training/ContentPicker'
+import type { ReadingMode } from '@/components/training/VerticalBlockReader'
+import { FLASH_TIMING, BLOCK_CONFIG } from '@/lib/trainingConfig'
 import TrainingTimer from '@/components/training/TrainingTimer'
 import QuizCard from '@/components/training/QuizCard'
 import SessionSummary from '@/components/training/SessionSummary'
@@ -16,13 +19,37 @@ import {
   getShunkanContent,
   getReadingContent,
   getQuizForContent,
-  getStartWpm,
+  getFastReadInitialCpm,
+  getFastReadCurrentMode,
+  getRecognitionWords,
+  saveFastReadResult,
   type MenuSegment,
   type SegmentTestResult,
   type StepEvaluation,
   type TrainingSession,
 } from '@/app/actions/training'
 import { getLoggedInStudent, type LoggedInStudent } from '@/lib/auth'
+
+// ========== たてブロックよみ モード昇格マップ ==========
+const MODE_UPGRADE: Record<ReadingMode, ReadingMode> = {
+  '3point': '2point',
+  '2point': '1line',
+  '1line': '2line',
+  '2line': '2line', // 最上位
+}
+
+// 現在モードの C_line 値（1カウントあたりの行消化数）
+const C_LINE_BY_MODE: Record<ReadingMode, number> = {
+  '3point': 3,
+  '2point': 2,
+  '1line': 1,
+  '2line': 0.5,
+}
+
+/** cpm × (1行文字数 / C_line) で字/分換算 */
+function calcWpmFor(cpm: number, mode: ReadingMode): number {
+  return Math.round((cpm / C_LINE_BY_MODE[mode]) * BLOCK_CONFIG.verticalSplitWord)
+}
 
 // ========== 種目ラベル ==========
 const SEGMENT_LABELS: Record<string, string> = {
@@ -97,16 +124,34 @@ export default function TrainingSessionPage() {
   const [todayStyle, setTodayStyle] = useState<'koe' | 'e'>('koe')
   const [normalShunkan, setNormalShunkan] = useState<{ body: string; answer?: string }[]>([])
   const [readingText, setReadingText] = useState<{ id: string; title: string; body: string } | null>(null)
-  const [startWpm, setStartWpm] = useState<number>(300) // 前回最高速×0.8(80%引き継ぎ)
+  const [fastReadInitialCpm, setFastReadInitialCpm] = useState<number>(60) // たてブロックよみ初期CPM
+  const [fastReadInitialMode, setFastReadInitialMode] = useState<ReadingMode>('3point')
+  // 高速読みのステージ: picker → reading → test → done
+  const [fastReadStage, setFastReadStage] = useState<'picker' | 'reading' | 'test' | 'done'>('picker')
+  const [fastReadContentList, setFastReadContentList] = useState<Array<{ id: string; title: string; body: string; char_count: number }>>([])
+  const [fastReadResult, setFastReadResult] = useState<{
+    maxCpm: number
+    finalCpm: number
+    finalMode: ReadingMode
+    maxWpm: number
+  } | null>(null)
+  const [recognitionWords, setRecognitionWords] = useState<{ in_words: string[]; decoy_words: string[] }>({ in_words: [], decoy_words: [] })
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null)
   const [testWord, setTestWord] = useState<{ body: string }>({ body: '' }) // テスト中の正解単語
   const [testPhaseInner, setTestPhaseInner] = useState<'flash' | 'quiz'>('flash') // テスト内部状態
   const lastFlashedWord = useRef<string>('')
   const flashedWords = useRef<string[]>([])
+  const mountedRef = useRef(true)
   const [questionCount, setQuestionCount] = useState(0)
   const [testRound, setTestRound] = useState(0)       // テスト現在の問番号(0-9)
   const [testCorrect, setTestCorrect] = useState(0)   // テスト正解数
   const TEST_TOTAL = 5                                 // テスト全5問
+
+  // unmount フラグ管理
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   // セグメント切替時: たて1行/たて2行のときその日のスタイル(koe or e)プールを使う
   useEffect(() => {
@@ -143,13 +188,15 @@ export default function TrainingSessionPage() {
         const loginStyle: 'koe' | 'e' = loggedIn.koe_e_style ?? 'koe'
         setTodayStyle(loginStyle)
 
-        const [shunkan, styledContent, reading, nextStartWpm] = await Promise.all([
+        const [shunkan, styledContent, reading, fastCpm, fastMode] = await Promise.all([
           getShunkanContent(grade, 1, 'normal'),
           getShunkanContent(grade, undefined, loginStyle),
           getReadingContent(grade),
-          getStartWpm(loggedIn.id),
+          getFastReadInitialCpm(loggedIn.id),
+          getFastReadCurrentMode(loggedIn.id),
         ])
-        setStartWpm(nextStartWpm)
+        setFastReadInitialCpm(fastCpm)
+        setFastReadInitialMode(fastMode)
 
         const normalPool = shunkan.map(c => ({ body: c.body, answer: c.body }))
         setNormalShunkan(normalPool)
@@ -160,8 +207,16 @@ export default function TrainingSessionPage() {
         // 初期表示用(たて系以外に使う)
         setShunkanWords(normalPool)
         if (reading.length > 0) {
-          const r = reading[Math.floor(Math.random() * reading.length)]
-          setReadingText({ id: r.id as string, title: r.title as string, body: r.body as string })
+          // 高速読み用のコンテンツリスト（生徒が選択）
+          setFastReadContentList(
+            reading.map(r => ({
+              id: r.id as string,
+              title: r.title as string,
+              body: r.body as string,
+              char_count: (r.char_count as number) ?? (r.body as string).length,
+            }))
+          )
+          // 初期 readingText は未選択状態(null)のまま - 選択画面で決定
         }
 
         const menuSegments = await getMenuSegments(menuId, loggedIn.id)
@@ -307,6 +362,10 @@ export default function TrainingSessionPage() {
     } else {
       setCurrentQuiz(null)
       setQuestionCount(prev => prev + 1)
+      // 次セグメントへ進む前に reading_speed 用ステージをリセット
+      setFastReadStage('picker')
+      setFastReadResult(null)
+      setRecognitionWords({ in_words: [], decoy_words: [] })
       // 次の種目名を表示してから開始
       setState({ phase: 'segment_intro', segmentIndex: nextIndex })
     }
@@ -548,24 +607,118 @@ export default function TrainingSessionPage() {
     )
   }
 
-  // ========== 高速読み（reading_speed）は専用全画面コンポーネント ==========
-  if (currentSegment.segment_type === 'reading_speed' && readingText) {
+  // ========== 高速読み（reading_speed = たてブロックよみ）専用全画面 ==========
+  // 仕様: 元サイト「たてブロックよみ」準拠。11行 × cond2ブロック/行 の縦書きグリッドを
+  //       ピンク帯で順次ハイライト。8カウントごとに +1 CPM（青天井）。
+  //       初期CPMは 24h以内=前回×0.8 / 24h超=前回×0.6 / 初回=60。
+  if (currentSegment.segment_type === 'reading_speed') {
+    // Stage 0: コンテンツ選択
+    if (fastReadStage === 'picker') {
+      return (
+        <ContentPicker
+          label="高速読みトレーニング"
+          items={fastReadContentList}
+          onPick={(contentId) => {
+            const picked = fastReadContentList.find(c => c.id === contentId)
+            if (!picked) return
+            setReadingText({ id: picked.id, title: picked.title, body: picked.body })
+            setFastReadStage('reading')
+          }}
+        />
+      )
+    }
+
+    if (!readingText) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+        </div>
+      )
+    }
+
+    // Stage 1: トレーニング実行
+    if (fastReadStage === 'reading') {
+      return (
+        <VerticalBlockReader
+          title={readingText.title}
+          body={readingText.body}
+          durationSec={currentSegment.duration_sec}
+          initialCpm={fastReadInitialCpm}
+          initialMode={fastReadInitialMode}
+          onComplete={(result) => {
+            setFastReadResult(result)
+            // 認識単語を取得してテスト画面へ（unmount 後は state 反映しない）
+            getRecognitionWords(readingText.id)
+              .then(words => {
+                if (!mountedRef.current) return
+                setRecognitionWords(words)
+                setFastReadStage('test')
+              })
+              .catch(() => {
+                if (!mountedRef.current) return
+                // 取得失敗時はテストをスキップして結果保存+次セグメント
+                if (student) saveFastReadResult(student.id, result.maxCpm, result.finalMode).catch(() => {})
+                moveToNextSegment(state.segmentIndex)
+              })
+          }}
+        />
+      )
+    }
+
+    // Stage 2: 単語認識テスト
+    if (fastReadStage === 'test' && fastReadResult) {
+      // 単語未登録なら即スキップ
+      if (recognitionWords.in_words.length < 5 || recognitionWords.decoy_words.length < 5) {
+        if (student) {
+          saveFastReadResult(student.id, fastReadResult.maxCpm, fastReadResult.finalMode).catch(() => {})
+        }
+        setFastReadStage('done')
+        setTimeout(() => moveToNextSegment(state.segmentIndex), 0)
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <p className="text-zinc-500">認識テスト単語が未登録のためスキップします...</p>
+          </div>
+        )
+      }
+      return (
+        <WordRecognitionTest
+          inWords={recognitionWords.in_words}
+          decoyWords={recognitionWords.decoy_words}
+          onComplete={(correct, total) => {
+            const accuracy = correct / total
+            const passed = accuracy >= 0.9
+            // 初期モードでの開始WPMを計算し、到達WPMが上回れば「速度向上」と判定
+            const startWpm = calcWpmFor(fastReadInitialCpm, fastReadInitialMode)
+            const wpmImproved = fastReadResult.maxWpm > startWpm
+            // 合格 AND 速度向上 で次モードに昇格
+            const nextMode: ReadingMode = passed && wpmImproved
+              ? MODE_UPGRADE[fastReadResult.finalMode]
+              : fastReadResult.finalMode
+
+            if (session && student) {
+              saveFastReadResult(student.id, fastReadResult.maxCpm, nextMode).catch(() => {})
+              submitSegmentTest(
+                session.id,
+                student.id,
+                'reading_speed',
+                total,
+                correct
+              )
+                .then(r => setResults(prev => [...prev, r]))
+                .catch(() => {})
+            }
+            setFastReadStage('done')
+            moveToNextSegment(state.segmentIndex)
+          }}
+        />
+      )
+    }
+
+    // done → 次セグメントに進む間の空白
     return (
-      <SpeedReading
-        title={readingText.title}
-        body={readingText.body}
-        charCount={readingText.body.length}
-        minReadingSec={120}
-        targetWpm={startWpm}
-        onComplete={(readingTimeSec, wpm) => {
-          if (session && student) {
-            submitSegmentTest(session.id, student.id, 'reading_speed', 1, wpm >= 100 ? 1 : 0)
-              .then(result => setResults(prev => [...prev, result]))
-              .catch(() => {})
-          }
-          moveToNextSegment(state.segmentIndex)
-        }}
-      />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+      </div>
     )
   }
 
@@ -586,6 +739,30 @@ export default function TrainingSessionPage() {
 
       {/* ===== メインコンテンツ ===== */}
       <div style={{ padding: '12px 16px' }}>
+        {/* たて系セグメントでは「声になる文」「絵になる文」のいずれかをバッジ表示 */}
+        {(currentSegment.segment_type === 'shunkan_tate_1line' ||
+          currentSegment.segment_type === 'shunkan_tate_2line' ||
+          currentSegment.segment_type === 'shunkan_yoko_1line' ||
+          currentSegment.segment_type === 'shunkan_yoko_2line') && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '16px 48px',
+                borderRadius: 40,
+                background: todayStyle === 'koe' ? '#1478C3' : '#dd4b39',
+                color: '#fff',
+                fontSize: 36,
+                fontWeight: 'bold',
+                letterSpacing: '0.1em',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                border: '3px solid #fff',
+              }}
+            >
+              {todayStyle === 'koe' ? '声になる文' : '絵になる文'}
+            </span>
+          </div>
+        )}
         {isShunkanType(currentSegment.segment_type) && shunkanWords.length > 0 && (
           <ShunkanDisplay
             words={shunkanWords}
