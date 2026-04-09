@@ -1,11 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Supabase の環境変数が設定されていません')
-}
-
-// サーバー側専用クライアント（Server Actions / Route Handlers でのみ使用）
-export const supabase = createClient(supabaseUrl, supabaseServiceKey)
+/**
+ * 後方互換エイリアス: 既存コードが `@/lib/supabase` から `supabase` を
+ * import している箇所を壊さないため、admin クライアントをエクスポート。
+ *
+ * 新規コードは用途に応じて下記を直接 import してください:
+ *   - サーバー専用(service_role, RLS バイパス): '@/lib/supabaseAdmin'
+ *   - 公開読み取り(anon, RLS 適用): '@/lib/supabasePublic'
+ */
+export { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'
