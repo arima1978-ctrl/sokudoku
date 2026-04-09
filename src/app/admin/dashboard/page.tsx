@@ -5,6 +5,8 @@ import { getSchoolDashboard } from '@/app/actions/adminDashboard'
 export default async function AdminDashboardPage() {
   const school = await getLoggedInSchool()
   if (!school) redirect('/admin/login')
+  // 運用管理者は塾単位のダッシュボードではなくコンテンツ管理画面へ
+  if (!school.id) redirect('/admin/contents')
 
   const dashboard = await getSchoolDashboard(school.id)
 
