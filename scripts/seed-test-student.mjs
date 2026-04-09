@@ -1,5 +1,6 @@
 // Seed a test school + student: 999999 / TEST01 / TEST01
 import { createClient } from '@supabase/supabase-js'
+import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import path from 'path'
 
@@ -23,11 +24,13 @@ async function main() {
   // 1. Find or create school
   let { data: school } = await supabase.from('schools').select('id, school_id, status').eq('school_id', SCHOOL_ID).maybeSingle()
   if (!school) {
+    const schoolPwHash = await bcrypt.hash('TEST01', 10)
     const { data, error } = await supabase.from('schools').insert({
       school_id: SCHOOL_ID,
       school_name: 'テストスクール',
       family_code: 'TEST',
       password: 'TEST01',
+      password_hash: schoolPwHash,
       status: 'active',
     }).select('id, school_id, status').single()
     if (error) throw error
@@ -49,19 +52,27 @@ async function main() {
     .eq('student_login_id', LOGIN_ID)
     .maybeSingle()
 
+  const studentPwHash = await bcrypt.hash(PASSWORD, 10)
+
   if (existing) {
     console.log('student exists', existing)
     const { error } = await supabase
       .from('students')
-      .update({ student_password: PASSWORD, status: 'active', onboarding_completed: true })
+      .update({
+        student_password: PASSWORD,
+        student_password_hash: studentPwHash,
+        status: 'active',
+        onboarding_completed: true,
+      })
       .eq('id', existing.id)
     if (error) throw error
-    console.log('reset password, activated, onboarding skipped')
+    console.log('reset password (+hash), activated, onboarding skipped')
   } else {
     const { data, error } = await supabase.from('students').insert({
       school_id: school.id,
       student_login_id: LOGIN_ID,
       student_password: PASSWORD,
+      student_password_hash: studentPwHash,
       student_name: 'テスト生徒',
       status: 'active',
       onboarding_completed: true,

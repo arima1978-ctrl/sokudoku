@@ -2,7 +2,9 @@
 
 import { cookies } from 'next/headers'
 import { timingSafeEqual } from 'crypto'
+import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
+import { signSession, verifySession } from '@/lib/sessionCookie'
 
 /** タイミング攻撃を避けるための定時比較 */
 function safeEqual(a: string, b: string): boolean {
@@ -56,6 +58,8 @@ export async function loginAdmin(
     return { success: false, error: 'IDとパスワードを入力してください' }
   }
 
+  const GENERIC_ERR = 'IDまたはパスワードが正しくありません'
+
   const platformId = process.env.SOKUDOKU_MANAGER_ID
   const platformPw = process.env.SOKUDOKU_MANAGER_PW
   if (platformId && platformPw && safeEqual(id, platformId) && safeEqual(password, platformPw)) {
@@ -66,11 +70,11 @@ export async function loginAdmin(
       school_name: '運用管理者',
     }
     const cookieStore = await cookies()
-    cookieStore.set(COOKIE_NAME, JSON.stringify(data), {
+    cookieStore.set(COOKIE_NAME, signSession(data), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: COOKIE_MAX_AGE,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
     })
     return { success: true }
@@ -78,18 +82,36 @@ export async function loginAdmin(
 
   const { data: school, error } = await supabase
     .from('schools')
-    .select('id, school_id, school_name, password, status')
+    .select('id, school_id, school_name, password, password_hash, status')
     .eq('school_id', id)
     .in('status', ['active', 'trial'])
     .single()
 
   if (error || !school) {
-    return { success: false, error: 'IDが見つかりません' }
+    return { success: false, error: GENERIC_ERR }
   }
 
-  const s = school as { id: string; school_id: string; school_name: string; password: string }
-  if (!safeEqual(s.password ?? '', password)) {
-    return { success: false, error: 'パスワードが正しくありません' }
+  const s = school as {
+    id: string
+    school_id: string
+    school_name: string
+    password: string | null
+    password_hash: string | null
+  }
+
+  // ハッシュがあればハッシュ検証。無ければ平文比較+自動ハッシュ化(移行期)
+  let passwordOk = false
+  if (s.password_hash) {
+    passwordOk = await bcrypt.compare(password, s.password_hash)
+  } else if (s.password) {
+    passwordOk = safeEqual(s.password, password)
+    if (passwordOk) {
+      const hash = await bcrypt.hash(password, 10)
+      await supabase.from('schools').update({ password_hash: hash }).eq('id', s.id)
+    }
+  }
+  if (!passwordOk) {
+    return { success: false, error: GENERIC_ERR }
   }
 
   const data: LoggedInAdmin = {
@@ -99,11 +121,11 @@ export async function loginAdmin(
     school_name: s.school_name,
   }
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_NAME, JSON.stringify(data), {
+  cookieStore.set(COOKIE_NAME, signSession(data), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: COOKIE_MAX_AGE,
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
   })
   return { success: true }
@@ -121,14 +143,10 @@ export async function getLoggedInAdmin(): Promise<LoggedInAdmin | null> {
   const cookieStore = await cookies()
   const cookie = cookieStore.get(COOKIE_NAME)
   if (!cookie?.value) return null
-  try {
-    const parsed = JSON.parse(cookie.value) as Partial<LoggedInAdmin>
-    // role を持たない / 不正な role の cookie は拒否（権限昇格回避）
-    if (parsed.role !== 'platform' && parsed.role !== 'school') return null
-    return parsed as LoggedInAdmin
-  } catch {
-    return null
-  }
+  const parsed = verifySession<Partial<LoggedInAdmin>>(cookie.value)
+  if (!parsed) return null
+  if (parsed.role !== 'platform' && parsed.role !== 'school') return null
+  return parsed as LoggedInAdmin
 }
 
 /** 後方互換 */
