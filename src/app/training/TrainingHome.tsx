@@ -13,7 +13,14 @@ import {
   recordSpeedHistory,
   getSpeedContent,
 } from '@/app/actions/speed'
-import { getQuizForContent } from '@/app/actions/training'
+import {
+  getQuizForContent,
+  getCoachSessionConfig,
+  reportFluency,
+  type CoachSessionConfig,
+} from '@/app/actions/training'
+import { getNextDirection, type Direction } from '@/lib/coach'
+import StageInfo from '@/components/training/StageInfo'
 
 interface TrainingHomeProps {
   student: {
@@ -27,6 +34,14 @@ interface TrainingHomeProps {
     phaseName: string
     stepId: string
     stepName: string
+    // コーチ用
+    coachStageId: string | null
+    stageName: string | null
+    stageNumber: number | null
+    stageSessionCount: number
+    stageDirectionLast: Direction | null
+    fluencyReported: boolean
+    minSessions: number
   }
   stats: {
     totalSessions: number
@@ -88,6 +103,11 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
   const [trainingResults, setTrainingResults] = useState<Array<{ segment: string; accuracy: number }>>([])
   const [activeTab, setActiveTab] = useState<'training' | 'growth'>('training')
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getStudentDashboard>> | null>(null)
+  const [fluencyState, setFluencyState] = useState(progress.fluencyReported)
+
+  // コーチモードかどうか（coach_stage_id が設定されていれば有効）
+  const isCoachMode = progress.coachStageId !== null
+  const nextDirection = getNextDirection(progress.stageDirectionLast ?? 'yoko')
 
   // 成長記録タブ切り替え時にデータ取得
   async function loadDashboard() {
@@ -97,7 +117,56 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     setActiveTab('growth')
   }
 
-  // メニュー選択 → daily_session 開始 → 速度計測(前)
+  // コーチモード: 時間選択 → コーチ設定取得 → daily_session 開始 → 速度計測(前)
+  async function handleCoachSelect(durationMin: 10 | 20 | 30) {
+    setSelectedDuration(durationMin)
+    setFlowPhase('pre_speed_loading')
+
+    try {
+      // コーチセッション設定を取得
+      const config = await getCoachSessionConfig(student.id, durationMin)
+
+      // 動的セグメントを sessionStorage に保存（session ページで読み取る）
+      sessionStorage.setItem('coach_segments', JSON.stringify(config.segments))
+      sessionStorage.setItem('coach_direction', config.direction)
+      sessionStorage.setItem('coach_start_wpm', String(config.startWpm))
+      sessionStorage.setItem('coach_stage_name', config.stageName)
+
+      const session = await startDailySession(student.id, durationMin)
+      setDailySessionId(session.id)
+
+      // 速度計測(前)のコンテンツ取得
+      const content = await getSpeedContent(student.gradeLevelId, effectiveSubjectId)
+      if (!content) {
+        await updateDailySessionStatus(session.id, 'training')
+        setFlowPhase('training')
+        router.push(
+          `/training/session?coach=true&step=${progress.stepId}&daily=${session.id}`
+        )
+        return
+      }
+      setSpeedContent(content)
+      setSelectedMenuId(`coach_${durationMin}min`)
+
+      const quizData = await getQuizForContent(content.id)
+      if (quizData && quizData.questions.length > 0) {
+        const q = quizData.questions[0]
+        setSpeedQuiz({
+          question: q.question_text,
+          choices: [q.choice_a, q.choice_b, q.choice_c, q.choice_d],
+          correctIndex: Math.max(0, ['A', 'B', 'C', 'D'].indexOf(q.correct)),
+        })
+      } else {
+        setSpeedQuiz(null)
+      }
+
+      setFlowPhase('pre_speed')
+    } catch {
+      setFlowPhase('menu_select')
+    }
+  }
+
+  // 従来モード: メニュー選択 → daily_session 開始 → 速度計測(前)
   async function handleMenuSelect(menuId: string, durationMin: number) {
     setSelectedMenuId(menuId)
     setSelectedDuration(durationMin)
@@ -137,6 +206,12 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     }
   }
 
+  // 流暢性報告
+  async function handleReportFluency() {
+    await reportFluency(student.id)
+    setFluencyState(true)
+  }
+
   // 速度計測(前)完了
   const handlePreSpeedComplete = useCallback(async (result: {
     charCount: number
@@ -157,7 +232,14 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     // トレーニングへ遷移
     await updateDailySessionStatus(dailySessionId, 'training')
     setFlowPhase('training')
-    router.push(`/training/session?menu=${selectedMenuId}&step=${progress.stepId}&daily=${dailySessionId}`)
+
+    // コーチモードか従来モードかでURLを分ける
+    const isCoachSession = selectedMenuId?.startsWith('coach_')
+    if (isCoachSession) {
+      router.push(`/training/session?coach=true&step=${progress.stepId}&daily=${dailySessionId}`)
+    } else {
+      router.push(`/training/session?menu=${selectedMenuId}&step=${progress.stepId}&daily=${dailySessionId}`)
+    }
   }, [dailySessionId, speedContent, student.id, selectedMenuId, progress.stepId, router])
 
   // トレーニング完了後（sessionページから戻ってきた場合）の処理は
@@ -279,9 +361,26 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
           {student.name}さん、こんにちは
         </h2>
         <p className="mt-1 text-sm text-zinc-500">
-          {progress.phaseName} - {progress.stepName}
+          {isCoachMode
+            ? `Stage ${progress.stageNumber}: ${progress.stageName}`
+            : `${progress.phaseName} - ${progress.stepName}`}
         </p>
       </div>
+
+      {/* コーチモード: ステージ情報 */}
+      {isCoachMode && progress.stageNumber !== null && progress.stageName !== null && (
+        <div className="mb-6">
+          <StageInfo
+            stageNumber={progress.stageNumber}
+            stageName={progress.stageName}
+            sessionCount={progress.stageSessionCount}
+            minSessions={progress.minSessions}
+            nextDirection={nextDirection}
+            fluencyReported={fluencyState}
+            onReportFluency={handleReportFluency}
+          />
+        </div>
+      )}
 
       {/* タブ切り替え */}
       <div className="mb-6 flex rounded-lg bg-zinc-100 p-1">
@@ -329,8 +428,41 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
             </div>
           </div>
 
+          {/* コーチモード: 時間選択のみ */}
+          {isCoachMode && selectedCategory === null && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
+                トレーニング時間を選択
+              </h3>
+              <div className="space-y-3">
+                {([10, 20, 30] as const).map((dur) => {
+                  const config = DURATION_CONFIG[dur]
+                  return (
+                    <button
+                      key={dur}
+                      type="button"
+                      onClick={() => handleCoachSelect(dur)}
+                      className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${config.color}`}
+                    >
+                      <span className="text-3xl">{config.icon}</span>
+                      <div>
+                        <div className="text-lg font-bold text-zinc-900">{config.label}コース</div>
+                        <div className="text-xs text-zinc-500">{config.desc}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-4 text-center text-xs text-zinc-400">
+                速度計測(前) → トレーニング → 速度計測(後) の流れで進みます
+              </p>
+            </div>
+          )}
+
+          {/* === 以下は従来モード(非コーチ)のUI === */}
+
           {/* ジャンル別コース選択中 かつ subject 未選択 → ジャンル選択 */}
-          {selectedCategory === 'genre' && selectedSubjectId === null && (
+          {!isCoachMode && selectedCategory === 'genre' && selectedSubjectId === null && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-zinc-900">ジャンルを選択</h3>
@@ -359,7 +491,7 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
           )}
 
           {/* コース種別 未選択 → カテゴリ選択画面 */}
-          {selectedCategory === null && (
+          {!isCoachMode && selectedCategory === null && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-center text-lg font-semibold text-zinc-900">
                 コース種別を選択
@@ -396,7 +528,7 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
           )}
 
           {/* 時間選択画面: basic はカテゴリ選択後すぐ、genre は subject 選択後 */}
-          {(selectedCategory === 'basic' || (selectedCategory === 'genre' && selectedSubjectId !== null)) && (
+          {!isCoachMode && (selectedCategory === 'basic' || (selectedCategory === 'genre' && selectedSubjectId !== null)) && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-zinc-900">

@@ -8,6 +8,7 @@ import {
   getAvailableMenus,
 } from '@/app/actions/training'
 import { getSubjects } from '@/app/actions/onboarding'
+import { supabase } from '@/lib/supabase'
 import TrainingHome from './TrainingHome'
 
 export default async function TrainingPage() {
@@ -28,6 +29,24 @@ export default async function TrainingPage() {
         </div>
       </div>
     )
+  }
+
+  // コーチステージ情報を取得
+  let coachStageName: string | null = null
+  let coachStageNumber: number | null = null
+  let coachMinSessions = 5
+  if (progress.coach_stage_id) {
+    const { data: stageRow } = await supabase
+      .from('coach_stages')
+      .select('name, stage_number, min_sessions')
+      .eq('id', progress.coach_stage_id)
+      .single()
+    if (stageRow) {
+      const row = stageRow as Record<string, unknown>
+      coachStageName = row.name as string
+      coachStageNumber = row.stage_number as number
+      coachMinSessions = (row.min_sessions as number) ?? 5
+    }
   }
 
   const [phase, step, stats, basicMenus, genreMenus, subjects] = await Promise.all([
@@ -52,6 +71,13 @@ export default async function TrainingPage() {
         phaseName: (phase?.name as string) ?? progress.current_phase_id,
         stepId: progress.current_step_id,
         stepName: (step?.name as string) ?? progress.current_step_id,
+        coachStageId: progress.coach_stage_id ?? null,
+        stageName: coachStageName,
+        stageNumber: coachStageNumber,
+        stageSessionCount: progress.stage_session_count ?? 0,
+        stageDirectionLast: (progress.stage_direction_last as 'tate' | 'yoko' | null) ?? null,
+        fluencyReported: progress.fluency_reported ?? false,
+        minSessions: coachMinSessions,
       }}
       stats={{
         totalSessions: stats.total_sessions,

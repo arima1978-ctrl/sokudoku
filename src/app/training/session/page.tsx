@@ -21,7 +21,10 @@ import {
   type SegmentTestResult,
   type StepEvaluation,
   type TrainingSession,
+  type CoachStageEvaluation,
+  type DynamicSegment,
 } from '@/app/actions/training'
+import type { Direction } from '@/lib/coach'
 import { getLoggedInStudent, type LoggedInStudent } from '@/lib/auth'
 
 // ========== 種目ラベル ==========
@@ -39,6 +42,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   output_tate: 'たてアウトプット',
   output_yoko: 'よこアウトプット',
   reading_speed: '読書速度計測',
+  shiten_ido: '視点移動トレーニング',
+  hon_yomi: '本読み',
+  mekuri_yomi: 'めくりよみ',
 }
 
 // segment_type → ShunkanDisplay の displayType
@@ -81,6 +87,7 @@ export default function TrainingSessionPage() {
   const menuId = searchParams.get('menu')
   const stepId = searchParams.get('step')
   const dailySessionId = searchParams.get('daily')
+  const isCoachMode = searchParams.get('coach') === 'true'
 
   const [state, setState] = useState<SessionState>({ phase: 'loading' })
   const [student, setStudent] = useState<LoggedInStudent | null>(null)
@@ -88,6 +95,8 @@ export default function TrainingSessionPage() {
   const [session, setSession] = useState<TrainingSession | null>(null)
   const [results, setResults] = useState<SegmentTestResult[]>([])
   const [evaluation, setEvaluation] = useState<StepEvaluation | null>(null)
+  const [coachEvaluation, setCoachEvaluation] = useState<CoachStageEvaluation | null>(null)
+  const [coachDirection, setCoachDirection] = useState<Direction | null>(null)
   const [paused, setPaused] = useState(false)
 
   // コンテンツ
@@ -128,8 +137,12 @@ export default function TrainingSessionPage() {
   // 初期化
   useEffect(() => {
     async function init() {
-      if (!menuId || !stepId) {
+      if (!isCoachMode && !menuId) {
         setState({ phase: 'error', message: 'メニューが指定されていません' })
+        return
+      }
+      if (!stepId) {
+        setState({ phase: 'error', message: 'ステップが指定されていません' })
         return
       }
       try {
@@ -149,7 +162,6 @@ export default function TrainingSessionPage() {
           getReadingContent(grade),
           getStartWpm(loggedIn.id),
         ])
-        setStartWpm(nextStartWpm)
 
         const normalPool = shunkan.map(c => ({ body: c.body, answer: c.body }))
         setNormalShunkan(normalPool)
@@ -164,15 +176,57 @@ export default function TrainingSessionPage() {
           setReadingText({ id: r.id as string, title: r.title as string, body: r.body as string })
         }
 
-        const menuSegments = await getMenuSegments(menuId, loggedIn.id)
-        const activeSegments = menuSegments.filter(s => !s.should_skip)
+        let activeSegments: MenuSegment[]
+
+        if (isCoachMode) {
+          // コーチモード: sessionStorage から動的セグメントを読み取り
+          const storedSegments = sessionStorage.getItem('coach_segments')
+          const storedDirection = sessionStorage.getItem('coach_direction') as Direction | null
+          const storedStartWpm = sessionStorage.getItem('coach_start_wpm')
+
+          if (!storedSegments) {
+            setState({ phase: 'error', message: 'コーチセッション情報が見つかりません' })
+            return
+          }
+
+          const dynamicSegments: DynamicSegment[] = JSON.parse(storedSegments)
+          // DynamicSegment → MenuSegment 互換に変換
+          activeSegments = dynamicSegments.map((ds) => ({
+            id: `coach_${ds.segment_order}`,
+            menu_id: 'coach_dynamic',
+            segment_order: ds.segment_order,
+            segment_type: ds.segment_type,
+            duration_sec: ds.duration_sec,
+            has_test: ds.has_test,
+            test_duration_sec: ds.test_duration_sec,
+            test_type: ds.test_type,
+            skippable: ds.skippable,
+            should_skip: false,
+          }))
+
+          if (storedDirection) setCoachDirection(storedDirection)
+          setStartWpm(storedStartWpm ? Number(storedStartWpm) : nextStartWpm)
+
+          // sessionStorage をクリア
+          sessionStorage.removeItem('coach_segments')
+          sessionStorage.removeItem('coach_direction')
+          sessionStorage.removeItem('coach_start_wpm')
+          sessionStorage.removeItem('coach_stage_name')
+        } else {
+          // 従来モード: DBからセグメントを取得
+          setStartWpm(nextStartWpm)
+          const menuSegments = await getMenuSegments(menuId!, loggedIn.id)
+          activeSegments = menuSegments.filter(s => !s.should_skip)
+        }
+
         if (activeSegments.length === 0) {
           setState({ phase: 'error', message: '実行するセグメントがありません' })
           return
         }
         setSegments(activeSegments)
 
-        const newSession = await startTrainingSession(loggedIn.id, menuId, stepId)
+        const effectiveMenuId = isCoachMode ? 'coach_dynamic' : menuId!
+        const newSession = await startTrainingSession(loggedIn.id, effectiveMenuId, stepId)
         setSession(newSession)
         // 最初の種目名を表示してから開始
         setState({ phase: 'segment_intro', segmentIndex: 0 })
@@ -181,7 +235,7 @@ export default function TrainingSessionPage() {
       }
     }
     init()
-  }, [menuId, stepId, router])
+  }, [menuId, stepId, isCoachMode, router])
 
   // 瞬間読みテスト: ShunkanDisplayと同じフラッシュ→消えたら4択表示
   function prepareShunkanTest(segIdx: number) {
@@ -354,8 +408,14 @@ export default function TrainingSessionPage() {
     const totalQ = results.reduce((s, r) => s + r.total_questions, 0)
     const avgAccuracy = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 100
     try {
-      const evalResult = await completeTrainingSession(session.id, student.id, avgAccuracy)
-      setEvaluation(evalResult)
+      const evalResult = await completeTrainingSession(
+        session.id, student.id, avgAccuracy,
+        coachDirection ?? undefined,
+      )
+      setEvaluation(evalResult.step)
+      if (evalResult.coach) {
+        setCoachEvaluation(evalResult.coach)
+      }
     } catch { /* show summary */ }
     setState({ phase: 'summary' })
   }
@@ -458,6 +518,7 @@ export default function TrainingSessionPage() {
       <SessionSummary
         results={results}
         evaluation={evaluation}
+        coachEvaluation={coachEvaluation}
         onFinish={() => {
           if (dailySessionId) {
             // dailyフローの場合: 速度計測(後)へ遷移
@@ -543,6 +604,124 @@ export default function TrainingSessionPage() {
             timeLimitSec={5}
             onAnswer={handleQuizAnswer}
           />
+        </div>
+      </div>
+    )
+  }
+
+  // ========== 新セグメント: 視点移動/本読み/めくりよみ ==========
+  if (currentSegment.segment_type === 'shiten_ido') {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div style={{ padding: '8px 16px 0' }}>
+          <TrainingTimer
+            key={`timer-${state.segmentIndex}`}
+            durationSec={currentSegment.duration_sec}
+            onComplete={handleTimerComplete}
+            paused={paused}
+            onPauseToggle={() => setPaused(p => !p)}
+          />
+        </div>
+        <div className="mx-auto max-w-3xl px-4 py-8">
+          <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+            <div className="mb-4 text-5xl">👁</div>
+            <h2 className="mb-2 text-xl font-bold text-zinc-900">視点移動トレーニング</h2>
+            <p className="mb-6 text-sm text-zinc-500">画面の指示に従って視点を素早く動かしましょう</p>
+            <div className="mx-auto aspect-square max-w-xs rounded-lg border-2 border-blue-200 bg-blue-50 p-8">
+              <div className="flex h-full items-center justify-center">
+                <div className="animate-bounce text-4xl font-bold text-blue-600">
+                  ← → ↑ ↓
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-center">
+            <button type="button" onClick={() => moveToNextSegment(state.segmentIndex)}
+              style={{ padding: '12px 48px', borderRadius: 28, border: '2px solid #E6C200', background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)', color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+              {'次へ \u2192'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentSegment.segment_type === 'hon_yomi' && readingText) {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div style={{ padding: '8px 16px 0' }}>
+          <TrainingTimer
+            key={`timer-${state.segmentIndex}`}
+            durationSec={currentSegment.duration_sec}
+            onComplete={handleTimerComplete}
+            paused={paused}
+            onPauseToggle={() => setPaused(p => !p)}
+          />
+        </div>
+        <div className="mx-auto max-w-3xl px-4 py-4">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2">
+              <span className="text-lg">📖</span>
+              <span className="font-bold text-green-800">本読み</span>
+              <span className="ml-2 text-sm text-green-600">{readingText.title}</span>
+            </div>
+            <div style={{
+              fontFamily: '"Noto Sans JP", sans-serif', fontSize: 18, lineHeight: 2.2,
+              minHeight: 400, overflowY: 'auto',
+            }}>
+              {readingText.body.slice(0, 5000)}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <button type="button" onClick={() => {
+              const seg = segments[state.segmentIndex]
+              if (seg.has_test) {
+                setState({ phase: 'test_start', segmentIndex: state.segmentIndex })
+              } else {
+                moveToNextSegment(state.segmentIndex)
+              }
+            }}
+              style={{ padding: '12px 48px', borderRadius: 28, border: '2px solid #E6C200', background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)', color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+              {'次へ \u2192'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentSegment.segment_type === 'mekuri_yomi' && readingText) {
+    return (
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div style={{ padding: '8px 16px 0' }}>
+          <TrainingTimer
+            key={`timer-${state.segmentIndex}`}
+            durationSec={currentSegment.duration_sec}
+            onComplete={handleTimerComplete}
+            paused={paused}
+            onPauseToggle={() => setPaused(p => !p)}
+          />
+        </div>
+        <div className="mx-auto max-w-3xl px-4 py-4">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2">
+              <span className="text-lg">📄</span>
+              <span className="font-bold text-orange-800">めくりよみ</span>
+              <span className="ml-2 text-sm text-orange-600">素早くページを送りながら読みましょう</span>
+            </div>
+            <div style={{
+              fontFamily: '"Noto Sans JP", sans-serif', fontSize: 20, lineHeight: 2,
+              minHeight: 400, overflowY: 'auto',
+            }}>
+              {readingText.body.slice(0, 3000)}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <button type="button" onClick={() => moveToNextSegment(state.segmentIndex)}
+              style={{ padding: '12px 48px', borderRadius: 28, border: '2px solid #E6C200', background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)', color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>
+              {'次へ \u2192'}
+            </button>
+          </div>
         </div>
       </div>
     )

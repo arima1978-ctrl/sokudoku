@@ -1,6 +1,17 @@
 'use server'
 
 import { supabase } from '@/lib/supabase'
+import {
+  calculateStartSpeed,
+  getNextDirection,
+  generateMenuSegments,
+  type TrainingFrequency,
+  type Direction,
+  type DurationMin,
+  type CoachStageNumber,
+  type CoachSessionConfig,
+  type DynamicSegment,
+} from '@/lib/coach'
 
 // ========== Types ==========
 
@@ -9,7 +20,14 @@ export interface StudentProgress {
   current_phase_id: string
   current_step_id: string
   consecutive_pass_count: number
+  // コーチ用
+  coach_stage_id: string | null
+  stage_session_count: number
+  stage_direction_last: Direction | null
+  fluency_reported: boolean
 }
+
+export type { CoachSessionConfig, DynamicSegment }
 
 export interface MenuSegment {
   id: string
@@ -68,12 +86,21 @@ export async function getStudentProgress(
 
 /**
  * 次回セッションの高速読み開始速度を返す。
- * 仕様: 前回の事前速度計測(pre speed measurement)の80%からスタート。
+ * コーチ仕様: 前回の事前速度計測(pre) × 頻度倍率
+ *   週1回: ×60% / 週2回: ×70% / 週3回: ×80%
  * 直近の pre 計測が無い場合は既定値 300 CPM を返す。
  */
 export async function getStartWpm(studentId: string): Promise<number> {
-  const DEFAULT_START_WPM = 300
+  // 生徒の頻度設定を取得
+  const { data: student } = await supabase
+    .from('students')
+    .select('training_frequency')
+    .eq('id', studentId)
+    .single()
 
+  const frequency = (student?.training_frequency ?? 2) as TrainingFrequency
+
+  // 直近の pre 計測を取得
   const { data, error } = await supabase
     .from('speed_measurements')
     .select('wpm, measured_at')
@@ -84,15 +111,15 @@ export async function getStartWpm(studentId: string): Promise<number> {
     .maybeSingle()
 
   if (error || !data || !data.wpm) {
-    return DEFAULT_START_WPM
+    return calculateStartSpeed(null, frequency)
   }
 
   const prevPreWpm = Number(data.wpm)
   if (!Number.isFinite(prevPreWpm) || prevPreWpm <= 0) {
-    return DEFAULT_START_WPM
+    return calculateStartSpeed(null, frequency)
   }
 
-  return Math.floor(prevPreWpm * 0.8)
+  return calculateStartSpeed(prevPreWpm, frequency)
 }
 
 export async function getTrainingStep(stepId: string) {
@@ -238,11 +265,22 @@ export async function submitSegmentTest(
   }
 }
 
+export interface CoachStageEvaluation {
+  action: 'stage_up' | 'max_stage' | 'maintain' | 'not_found'
+  previous_stage: string
+  new_stage: string
+  stage_name: string
+  session_count: number
+  min_sessions: number
+  fluency_reported: boolean
+}
+
 export async function completeTrainingSession(
   sessionId: string,
   studentId: string,
-  avgAccuracy: number
-): Promise<StepEvaluation> {
+  avgAccuracy: number,
+  coachDirection?: Direction,
+): Promise<{ step: StepEvaluation; coach: CoachStageEvaluation | null }> {
   // Mark session as completed
   const { error: updateError } = await supabase
     .from('training_sessions')
@@ -256,7 +294,7 @@ export async function completeTrainingSession(
     throw new Error(`セッション完了に失敗しました: ${updateError.message}`)
   }
 
-  // Evaluate step progression
+  // Evaluate step progression (既存ロジック)
   const { data: evalResult, error: evalError } = await supabase.rpc(
     'evaluate_step_up',
     {
@@ -269,7 +307,115 @@ export async function completeTrainingSession(
     throw new Error(`ステップ評価に失敗しました: ${evalError.message}`)
   }
 
-  return (evalResult as StepEvaluation) ?? { action: 'maintain' }
+  const stepEval = (evalResult as StepEvaluation) ?? { action: 'maintain' }
+
+  // Evaluate coach stage progression (新ロジック)
+  let coachEval: CoachStageEvaluation | null = null
+  if (coachDirection) {
+    const { data: coachResult, error: coachError } = await supabase.rpc(
+      'evaluate_coach_stage_up',
+      {
+        p_student_id: studentId,
+        p_direction: coachDirection,
+      }
+    )
+
+    if (!coachError && coachResult) {
+      coachEval = coachResult as CoachStageEvaluation
+    }
+  }
+
+  return { step: stepEval, coach: coachEval }
+}
+
+// ========== コーチ用アクション ==========
+
+/**
+ * コーチセッション設定を取得する。
+ * 生徒の現在ステージ、頻度、方向履歴からセッション構成を自動生成。
+ */
+export async function getCoachSessionConfig(
+  studentId: string,
+  durationMin: DurationMin,
+): Promise<CoachSessionConfig> {
+  // 生徒の進行状況を取得
+  const { data: progress, error: progressError } = await supabase
+    .from('student_progress')
+    .select('coach_stage_id, stage_session_count, stage_direction_last, fluency_reported')
+    .eq('student_id', studentId)
+    .single()
+
+  if (progressError || !progress) {
+    throw new Error('生徒の進行状況が見つかりません')
+  }
+
+  // コーチステージ情報を取得
+  const stageId = progress.coach_stage_id ?? 'stage_1'
+  const { data: stage, error: stageError } = await supabase
+    .from('coach_stages')
+    .select('*')
+    .eq('id', stageId)
+    .single()
+
+  if (stageError || !stage) {
+    throw new Error('ステージ情報が見つかりません')
+  }
+
+  const stageNumber = (stage as Record<string, unknown>).stage_number as CoachStageNumber
+  const lastDirection = (progress.stage_direction_last ?? 'yoko') as Direction
+  const direction = getNextDirection(lastDirection)
+  const stageSessionCount = progress.stage_session_count as number
+
+  // スタート速度を計算
+  const startWpm = await getStartWpm(studentId)
+
+  // 動的メニュー生成
+  const segments = generateMenuSegments({
+    durationMin,
+    stageNumber,
+    direction,
+    stageSessionCount,
+  })
+
+  return {
+    segments,
+    direction,
+    stageName: (stage as Record<string, unknown>).name as string,
+    stageNumber,
+    startWpm,
+    sessionNumber: stageSessionCount + 1,
+  }
+}
+
+/**
+ * 流暢性を報告する（「240カウントまでスムーズに読めた」）
+ */
+export async function reportFluency(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('student_progress')
+    .update({ fluency_reported: true } as Record<string, unknown>)
+    .eq('student_id', studentId)
+
+  if (error) {
+    throw new Error(`流暢性報告に失敗しました: ${error.message}`)
+  }
+}
+
+/**
+ * 生徒のトレーニング頻度を更新する
+ */
+export async function updateTrainingFrequency(
+  studentId: string,
+  frequency: TrainingFrequency,
+): Promise<void> {
+  const { error } = await supabase
+    .from('students')
+    .update({ training_frequency: frequency } as Record<string, unknown>)
+    .eq('id', studentId)
+
+  if (error) {
+    throw new Error(`頻度の更新に失敗しました: ${error.message}`)
+  }
 }
 
 // ========== コンテンツ取得 ==========

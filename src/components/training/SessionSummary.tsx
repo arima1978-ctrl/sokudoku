@@ -1,10 +1,11 @@
 'use client'
 
-import type { SegmentTestResult, StepEvaluation } from '@/app/actions/training'
+import type { SegmentTestResult, StepEvaluation, CoachStageEvaluation } from '@/app/actions/training'
 
 interface SessionSummaryProps {
   results: SegmentTestResult[]
   evaluation: StepEvaluation | null
+  coachEvaluation?: CoachStageEvaluation | null
   onFinish: () => void
   finishLabel?: string
 }
@@ -26,6 +27,7 @@ const EVAL_MESSAGES: Record<string, { label: string; color: string }> = {
 export default function SessionSummary({
   results,
   evaluation,
+  coachEvaluation,
   onFinish,
   finishLabel = 'メニューに戻る',
 }: SessionSummaryProps) {
@@ -91,7 +93,7 @@ export default function SessionSummary({
         )}
 
         {/* Step evaluation */}
-        <div className="mb-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-center dark:border-zinc-700 dark:bg-zinc-800">
           <p className={`text-lg font-bold ${evalInfo.color}`}>
             {evalInfo.label}
           </p>
@@ -99,6 +101,41 @@ export default function SessionSummary({
             <p className="mt-1 text-sm text-zinc-500">{evaluation.message}</p>
           )}
         </div>
+
+        {/* Coach stage evaluation */}
+        {coachEvaluation && (
+          <div className="mb-6 rounded-lg border-2 p-4 text-center"
+            style={{
+              borderColor: coachEvaluation.action === 'stage_up' ? '#22c55e' : '#e4e4e7',
+              backgroundColor: coachEvaluation.action === 'stage_up' ? '#f0fdf4' : '#fafafa',
+            }}
+          >
+            {coachEvaluation.action === 'stage_up' ? (
+              <>
+                <p className="text-lg font-bold text-green-600">
+                  ステージアップ!
+                </p>
+                <p className="mt-1 text-sm text-green-700">
+                  {coachEvaluation.stage_name} に進みました
+                </p>
+              </>
+            ) : coachEvaluation.action === 'max_stage' ? (
+              <p className="text-lg font-bold text-blue-600">
+                最高ステージ達成!
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Stage: {coachEvaluation.stage_name}
+                {' '}({coachEvaluation.session_count}/{coachEvaluation.min_sessions}回)
+                {!coachEvaluation.fluency_reported && coachEvaluation.session_count >= coachEvaluation.min_sessions && (
+                  <span className="ml-1 text-orange-500">
+                    (流暢性報告でステージアップ可能)
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
