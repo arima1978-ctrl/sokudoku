@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'ダッシュボード' },
   { href: '/admin/students', label: '生徒一覧' },
   { href: '/admin/students/new', label: '生徒追加' },
+  { href: '/admin/reports', label: 'レポート印刷' },
 ] as const
 
 export default async function AdminLayout({

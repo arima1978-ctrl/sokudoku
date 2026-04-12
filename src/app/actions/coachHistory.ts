@@ -286,3 +286,99 @@ export async function getStudentByParentToken(token: string): Promise<{
     schoolName,
   }
 }
+
+// ========== 一括レポート用 ==========
+
+export interface BulkReportStudent {
+  id: string
+  studentName: string | null
+  studentLoginId: string
+  gradeName: string | null
+  coach: CoachProgressSummary | null
+  speedTrend: Array<{ date: string; preWpm: number; postWpm: number | null }>
+  sessionHistory: SessionHistoryItem[]
+  dashboard: {
+    latestWpm: number | null
+    growthRate: number | null
+    avgAccuracy: number | null
+  }
+}
+
+/** フィルタ付きで複数生徒のレポートデータを一括取得 */
+export async function getBulkReportData(
+  schoolId: string,
+  studentIds: string[],
+): Promise<BulkReportStudent[]> {
+  if (studentIds.length === 0) return []
+
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, student_name, student_login_id, grade_level_id')
+    .eq('school_id', schoolId)
+    .in('id', studentIds)
+    .eq('status', 'active')
+    .order('student_login_id', { ascending: true })
+
+  if (!students) return []
+
+  const result: BulkReportStudent[] = []
+
+  for (const stu of students as Array<Record<string, unknown>>) {
+    const sid = stu.id as string
+
+    // 学年名
+    let gradeName: string | null = null
+    if (stu.grade_level_id) {
+      const { data: grade } = await supabase
+        .from('grade_levels').select('name').eq('id', stu.grade_level_id).single()
+      gradeName = (grade as { name: string } | null)?.name ?? null
+    }
+
+    const [coach, trend, sessions] = await Promise.all([
+      getCoachProgressSummary(sid),
+      getSpeedTrend(sid, 10),
+      getSessionHistory(sid, 10),
+    ])
+
+    // ダッシュボードは軽量に
+    const { data: speedHistory } = await supabase
+      .from('speed_history')
+      .select('wpm')
+      .eq('student_id', sid)
+      .order('measured_at', { ascending: true })
+      .limit(30)
+
+    const wpmList = (speedHistory ?? []).map((s: Record<string, unknown>) => s.wpm as number)
+    const firstWpm = wpmList.length > 0 ? wpmList[0] : null
+    const latestWpm = wpmList.length > 0 ? wpmList[wpmList.length - 1] : null
+    const growthRate = firstWpm && latestWpm && firstWpm > 0
+      ? Math.round(((latestWpm - firstWpm) / firstWpm) * 100)
+      : null
+
+    result.push({
+      id: sid,
+      studentName: stu.student_name as string | null,
+      studentLoginId: stu.student_login_id as string,
+      gradeName,
+      coach,
+      speedTrend: trend,
+      sessionHistory: sessions,
+      dashboard: {
+        latestWpm: coach?.latestWpm ?? latestWpm,
+        growthRate,
+        avgAccuracy: coach?.avgAccuracy ?? null,
+      },
+    })
+  }
+
+  return result
+}
+
+/** 学年リストを取得 */
+export async function getGradeLevels(): Promise<Array<{ id: string; name: string }>> {
+  const { data } = await supabase
+    .from('grade_levels')
+    .select('id, name')
+    .order('display_order', { ascending: true })
+  return (data ?? []) as Array<{ id: string; name: string }>
+}
