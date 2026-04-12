@@ -1,10 +1,15 @@
 /**
- * コーチロジック（純粋関数）
+ * コーチロジック v2（純粋関数）
  *
- * - スタート速度の計算（頻度ベース）
- * - 方向の自動切替（たて↔よこ）
- * - ステージアップ判定（回数 + 流暢性報告）
- * - 動的メニュー生成（10/20/30分）
+ * ステージ別のセグメント構成・進級ルールを厳格に管理。
+ * - Stage 1: ばらばら → 1行 → 2行 → ブロック (最低6回)
+ * - Stage 2: ばらばら → 1行or2行(交互) → ブロック (最低8回)
+ * - Stage 3: 1行 → 2行 → ブロック (最低8回)
+ * - Stage 4: ばらばら → ブロック → 視点移動 (最低8回)
+ * - Stage 5: ブロック → 視点移動 (最低8回)
+ *
+ * 方向: 奇数回=たて、偶数回=よこ
+ * ステージアップ: 最低回数 + ブロック読み240カウント突破 + 正答率90%
  */
 
 // ========== Types ==========
@@ -53,31 +58,27 @@ const FREQUENCY_MULTIPLIER: Record<TrainingFrequency, number> = {
 
 const DEFAULT_START_WPM = 300
 
-// ステージごとのメインセグメントタイプ
-const STAGE_MAIN_SEGMENTS: Record<CoachStageNumber, { tate: string; yoko: string }> = {
-  1: { tate: 'barabara', yoko: 'barabara' },
-  2: { tate: 'shunkan_tate_1line', yoko: 'shunkan_yoko_1line' },
-  3: { tate: 'shunkan_tate_2line', yoko: 'shunkan_yoko_2line' },
-  4: { tate: 'block_tate', yoko: 'block_yoko' },
-  5: { tate: 'output_tate', yoko: 'output_yoko' },
-}
-
-// ステージごとのテストタイプ
-const STAGE_TEST_TYPE: Record<CoachStageNumber, string> = {
-  1: 'shunkan_recall',
-  2: 'shunkan_recall',
-  3: 'shunkan_recall',
-  4: 'content_comprehension',
-  5: 'vocab_check',
-}
-
-// ステージ名
 const STAGE_NAMES: Record<CoachStageNumber, string> = {
   1: '3点読み',
   2: '2点読み',
   3: '1行読み',
   4: '2行読み',
   5: 'ブロック読み',
+}
+
+/** ステージごとのセグメント構成キー */
+interface StageConfig {
+  minSessions: number
+  /** セグメントキー: 'barabara', '1line', '2line', 'block', 'viewpoint', '1line_or_2line' */
+  segments: string[]
+}
+
+const STAGE_CONFIGS: Record<CoachStageNumber, StageConfig> = {
+  1: { minSessions: 6, segments: ['barabara', '1line', '2line', 'block'] },
+  2: { minSessions: 8, segments: ['barabara', '1line_or_2line', 'block'] },
+  3: { minSessions: 8, segments: ['1line', '2line', 'block'] },
+  4: { minSessions: 8, segments: ['barabara', 'block', 'viewpoint'] },
+  5: { minSessions: 8, segments: ['block', 'viewpoint'] },
 }
 
 // ========== 純粋関数 ==========
@@ -101,7 +102,16 @@ export function calculateStartSpeed(
   return Math.floor(previousPreWpm * FREQUENCY_MULTIPLIER[frequency])
 }
 
-/** 前回と反対の方向を返す */
+/**
+ * セッション回数から方向を決定する。
+ * 奇数回(1,3,5...)=たて、偶数回(2,4,6...)=よこ
+ * sessionNumber は 1-indexed（次に実施するセッション番号）
+ */
+export function getDirectionBySession(sessionNumber: number): Direction {
+  return sessionNumber % 2 === 1 ? 'tate' : 'yoko'
+}
+
+/** 後方互換: 前回と反対の方向を返す */
 export function getNextDirection(lastDirection: Direction): Direction {
   return lastDirection === 'tate' ? 'yoko' : 'tate'
 }
@@ -109,19 +119,115 @@ export function getNextDirection(lastDirection: Direction): Direction {
 /**
  * ステージアップ可能か判定
  * 条件1: 最低セッション数以上
- * 条件2: 「240カウントまでスムーズに読めた」を報告済み
+ * 条件2: ブロック読みで240カウント突破
+ * 条件3: ブロック読みで正答率90%以上
  */
 export function canStageUp(
   stageSessionCount: number,
-  fluencyReported: boolean,
+  block240Cleared: boolean,
+  blockAccuracy90: boolean,
   minSessions: number,
 ): boolean {
-  return stageSessionCount >= minSessions && fluencyReported
+  return stageSessionCount >= minSessions && block240Cleared && blockAccuracy90
 }
 
 /** ステージ名を取得 */
 export function getStageName(stageNumber: CoachStageNumber): string {
   return STAGE_NAMES[stageNumber]
+}
+
+/** ステージの最低セッション数を取得 */
+export function getMinSessions(stageNumber: CoachStageNumber): number {
+  return STAGE_CONFIGS[stageNumber].minSessions
+}
+
+// ========== セグメントキー → 実際のセグメントタイプ変換 ==========
+
+/**
+ * セグメントキーを方向付きの実セグメントタイプに変換する
+ */
+function resolveSegmentType(
+  segKey: string,
+  direction: Direction,
+  stageSessionCount: number,
+): string {
+  switch (segKey) {
+    case 'barabara':
+      return 'barabara'
+    case '1line':
+      return direction === 'tate' ? 'shunkan_tate_1line' : 'shunkan_yoko_1line'
+    case '2line':
+      return direction === 'tate' ? 'shunkan_tate_2line' : 'shunkan_yoko_2line'
+    case 'block':
+      return direction === 'tate' ? 'block_tate' : 'block_yoko'
+    case 'viewpoint':
+      return 'shiten_ido'
+    case '1line_or_2line': {
+      // Stage 2 特有: 1,2回目→1行、3,4回目→2行、5,6回目→1行...
+      const subType = (stageSessionCount % 4 < 2) ? '1line' : '2line'
+      return resolveSegmentType(subType, direction, stageSessionCount)
+    }
+    default:
+      return segKey
+  }
+}
+
+/** セグメントタイプからテストタイプを決定 */
+function getTestType(segType: string): string {
+  if (segType === 'barabara' || segType.startsWith('shunkan_')) return 'shunkan_recall'
+  if (segType.startsWith('block_')) return 'content_comprehension'
+  if (segType.startsWith('output_')) return 'vocab_check'
+  return 'content_comprehension'
+}
+
+/** セグメントタイプから表示名を取得 */
+function getSegmentLabel(segType: string): string {
+  const labels: Record<string, string> = {
+    barabara: 'ばらばら読み',
+    shunkan_tate_1line: 'たて1行読み',
+    shunkan_yoko_1line: 'よこ1行読み',
+    shunkan_tate_2line: 'たて2行読み',
+    shunkan_yoko_2line: 'よこ2行読み',
+    block_tate: 'たてブロック読み',
+    block_yoko: 'よこブロック読み',
+    shiten_ido: '視点移動',
+    hon_yomi: '本読み',
+    reading_speed: '高速読み',
+  }
+  return labels[segType] ?? segType
+}
+
+// ========== 時間配分計算 ==========
+
+/** 10分コースのセグメントごとの秒数 */
+function getBaseDuration10(segKey: string): number {
+  switch (segKey) {
+    case 'barabara': return 90       // 1.5分
+    case '1line': return 120         // 2分
+    case '2line': return 120         // 2分
+    case '1line_or_2line': return 120 // 2分
+    case 'block': return 150         // 2.5分
+    case 'viewpoint': return 90      // 1.5分
+    default: return 90
+  }
+}
+
+/** 20分コースの追加秒数 */
+function getExtraDuration20(segKey: string): number {
+  switch (segKey) {
+    case 'block': return 180     // +3分
+    case 'viewpoint': return 120 // +2分
+    default: return 60           // +1分
+  }
+}
+
+/** 30分コースの追加秒数 */
+function getExtraDuration30(segKey: string): number {
+  switch (segKey) {
+    case 'block': return 300     // +5分
+    case 'viewpoint': return 180 // +3分
+    default: return 120          // +2分
+  }
 }
 
 // ========== 動的メニュー生成 ==========
@@ -131,61 +237,6 @@ interface MenuGenerationParams {
   stageNumber: CoachStageNumber
   direction: Direction
   stageSessionCount: number
-}
-
-/**
- * 時間・ステージ・方向に基づいてトレーニングメニューを動的生成する。
- *
- * 構成（コーチ仕様）:
- * - 共通: 読書スピード測定(前) → 高速読みトレーニング → 読書スピード測定(後)
- *   ※ 測定(前/後)は daily_session フローで処理するため、ここではセグメントに含めない
- * - 20/30分: 高速読みと測定(後)の間に 視点移動 → 本読み → めくりよみ を挿入
- * - ステージ実施3回超: 本読みの比重を増やす
- */
-export function generateMenuSegments(params: MenuGenerationParams): DynamicSegment[] {
-  const { durationMin, stageNumber, direction, stageSessionCount } = params
-  const segments: DynamicSegment[] = []
-  let order = 1
-
-  const mainType = STAGE_MAIN_SEGMENTS[stageNumber][direction]
-  const testType = STAGE_TEST_TYPE[stageNumber]
-  const stageName = STAGE_NAMES[stageNumber]
-
-  // ヘルパー: セグメント追加
-  const addSegment = (
-    type: string,
-    durationSec: number,
-    hasTest: boolean,
-    testDurationSec: number,
-    testT: string | null,
-    skippable: boolean,
-    desc: string,
-  ) => {
-    segments.push({
-      segment_order: order++,
-      segment_type: type,
-      duration_sec: durationSec,
-      has_test: hasTest,
-      test_duration_sec: testDurationSec,
-      test_type: testT,
-      skippable,
-      description: desc,
-    })
-  }
-
-  switch (durationMin) {
-    case 10:
-      generateMenu10min(addSegment, mainType, testType, stageName)
-      break
-    case 20:
-      generateMenu20min(addSegment, mainType, testType, stageName, direction, stageSessionCount)
-      break
-    case 30:
-      generateMenu30min(addSegment, mainType, testType, stageName, direction, stageSessionCount)
-      break
-  }
-
-  return segments
 }
 
 type AddSegmentFn = (
@@ -199,109 +250,91 @@ type AddSegmentFn = (
 ) => void
 
 /**
- * 10分メニュー（合計 600秒）
- * ばらばら(スキップ可) → ステージメイン → 高速読み
+ * ステージ構成に基づいてトレーニングメニューを動的生成する。
+ *
+ * 測定(前/後)は daily_session フローで処理するため、
+ * ここではトレーニングセグメントのみ生成する。
+ *
+ * 各ステージの構成:
+ * - Stage 1: ばらばら → 1行 → 2行 → ブロック
+ * - Stage 2: ばらばら → 1行or2行(交互) → ブロック
+ * - Stage 3: 1行 → 2行 → ブロック
+ * - Stage 4: ばらばら → ブロック → 視点移動
+ * - Stage 5: ブロック → 視点移動
+ *
+ * 時間別調整:
+ * - 10分: 基本構成をタイトに
+ * - 20分: ブロック+3分、視点移動+2分
+ * - 30分: ブロック+5分、視点移動+3分、本読み追加
  */
-function generateMenu10min(
-  add: AddSegmentFn,
-  mainType: string,
-  testType: string,
-  stageName: string,
-) {
-  // 1. ばらばら読み（ウォームアップ、スキップ可能）
-  add('barabara', 90, true, 30, 'shunkan_recall', true,
-    'ばらばら読み 1.5分 + テスト')
+export function generateMenuSegments(params: MenuGenerationParams): DynamicSegment[] {
+  const { durationMin, stageNumber, direction, stageSessionCount } = params
+  const segments: DynamicSegment[] = []
+  let order = 1
 
-  // 2. ステージメイン高速読みトレーニング（中核）
-  add(mainType, 300, true, 30, testType, false,
-    `${stageName} 高速読みトレーニング 5分 + テスト`)
+  const config = STAGE_CONFIGS[stageNumber]
 
-  // 3. 高速読み仕上げ
-  add('reading_speed', 120, false, 0, null, false,
-    '高速読みトレーニング 2分')
+  const add: AddSegmentFn = (type, durationSec, hasTest, testDurationSec, testType, skippable, desc) => {
+    segments.push({
+      segment_order: order++,
+      segment_type: type,
+      duration_sec: durationSec,
+      has_test: hasTest,
+      test_duration_sec: testDurationSec,
+      test_type: testType,
+      skippable,
+      description: desc,
+    })
+  }
+
+  // ステージ定義のセグメントを順番に生成
+  for (const segKey of config.segments) {
+    const segType = resolveSegmentType(segKey, direction, stageSessionCount)
+    const label = getSegmentLabel(segType)
+    const testType = getTestType(segType)
+    const hasTest = segKey !== 'viewpoint' // 視点移動はテストなし
+
+    // 基本秒数
+    let durationSec = getBaseDuration10(segKey)
+
+    // 20分/30分の追加
+    if (durationMin === 20) {
+      durationSec += getExtraDuration20(segKey)
+    } else if (durationMin === 30) {
+      durationSec += getExtraDuration30(segKey)
+    }
+
+    const isBarabara = segKey === 'barabara'
+    const testDurationSec = hasTest ? 30 : 0
+
+    add(
+      segType,
+      durationSec,
+      hasTest,
+      testDurationSec,
+      hasTest ? testType : null,
+      isBarabara, // ばらばらのみスキップ可能
+      `${label} ${formatMin(durationSec)}${hasTest ? ' + テスト' : ''}`,
+    )
+  }
+
+  // 30分コースのみ: 本読みを追加（Stage 4以降、または全ステージ）
+  if (durationMin === 30) {
+    add('hon_yomi', 300, true, 60, 'content_comprehension', false,
+      '本読み 5分 + テスト')
+  }
+
+  // 最後に高速読み仕上げ（全コース共通）
+  const readingSpeedSec = durationMin === 30 ? 180 : 120
+  add('reading_speed', readingSpeedSec, false, 0, null, false,
+    `高速読み ${formatMin(readingSpeedSec)}`)
+
+  return segments
 }
 
-/**
- * 20分メニュー（合計 1200秒）
- * ばらばら → ステージメイン → 視点移動 → 本読み → めくりよみ → 高速読み仕上げ
- */
-function generateMenu20min(
-  add: AddSegmentFn,
-  mainType: string,
-  testType: string,
-  stageName: string,
-  direction: Direction,
-  stageSessionCount: number,
-) {
-  // 本読みの比重を調整（3回超なら増やす）
-  const honYomiSec = stageSessionCount > 3 ? 300 : 180
-  const mekuriSec = stageSessionCount > 3 ? 90 : 150
-
-  // 1. ばらばら読み（ウォームアップ）
-  add('barabara', 90, true, 30, 'shunkan_recall', true,
-    'ばらばら読み 1.5分 + テスト')
-
-  // 2. ステージメイン高速読みトレーニング
-  add(mainType, 300, true, 30, testType, false,
-    `${stageName} 高速読みトレーニング 5分 + テスト`)
-
-  // 3. 視点移動トレーニング
-  add('shiten_ido', 120, false, 0, null, false,
-    '視点移動トレーニング 2分')
-
-  // 4. 本読み（ステージ3回超で比重増）
-  add('hon_yomi', honYomiSec, true, 60, 'content_comprehension', false,
-    `本読み ${Math.round(honYomiSec / 60)}分 + テスト`)
-
-  // 5. めくりよみ
-  add('mekuri_yomi', mekuriSec, false, 0, null, false,
-    `めくりよみ ${Math.round(mekuriSec / 60 * 10) / 10}分`)
-
-  // 6. 高速読み仕上げ
-  add('reading_speed', 120, false, 0, null, false,
-    '高速読みトレーニング 2分')
-}
-
-/**
- * 30分メニュー（合計 1800秒）
- * ばらばら → ステージメイン(前半) → 視点移動 → 本読み → めくりよみ → ステージメイン(後半) → 高速読み仕上げ
- */
-function generateMenu30min(
-  add: AddSegmentFn,
-  mainType: string,
-  testType: string,
-  stageName: string,
-  direction: Direction,
-  stageSessionCount: number,
-) {
-  const honYomiSec = stageSessionCount > 3 ? 360 : 240
-  const mekuriSec = stageSessionCount > 3 ? 120 : 180
-
-  // 1. ばらばら読み（ウォームアップ）
-  add('barabara', 120, true, 30, 'shunkan_recall', true,
-    'ばらばら読み 2分 + テスト')
-
-  // 2. ステージメイン前半
-  add(mainType, 300, true, 30, testType, false,
-    `${stageName} 高速読みトレーニング(前半) 5分 + テスト`)
-
-  // 3. 視点移動トレーニング
-  add('shiten_ido', 150, false, 0, null, false,
-    '視点移動トレーニング 2.5分')
-
-  // 4. 本読み
-  add('hon_yomi', honYomiSec, true, 60, 'content_comprehension', false,
-    `本読み ${Math.round(honYomiSec / 60)}分 + テスト`)
-
-  // 5. めくりよみ
-  add('mekuri_yomi', mekuriSec, false, 0, null, false,
-    `めくりよみ ${Math.round(mekuriSec / 60)}分`)
-
-  // 6. ステージメイン後半
-  add(mainType, 300, true, 30, testType, false,
-    `${stageName} 高速読みトレーニング(後半) 5分 + テスト`)
-
-  // 7. 高速読み仕上げ
-  add('reading_speed', 180, false, 0, null, false,
-    '高速読みトレーニング 3分')
+/** 秒数を「○分」「○.○分」に変換 */
+function formatMin(sec: number): string {
+  const min = sec / 60
+  if (Number.isInteger(min)) return `${min}分`
+  return `${Math.round(min * 10) / 10}分`
 }

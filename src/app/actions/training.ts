@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import {
   calculateStartSpeed,
   getNextDirection,
+  getDirectionBySession,
   generateMenuSegments,
   type TrainingFrequency,
   type Direction,
@@ -25,6 +26,8 @@ export interface StudentProgress {
   stage_session_count: number
   stage_direction_last: Direction | null
   fluency_reported: boolean
+  block_240_cleared: boolean
+  block_accuracy_90: boolean
 }
 
 export type { CoachSessionConfig, DynamicSegment }
@@ -272,7 +275,8 @@ export interface CoachStageEvaluation {
   stage_name: string
   session_count: number
   min_sessions: number
-  fluency_reported: boolean
+  block_240_cleared: boolean
+  block_accuracy_90: boolean
 }
 
 export async function completeTrainingSession(
@@ -341,7 +345,7 @@ export async function getCoachSessionConfig(
   // 生徒の進行状況を取得
   const { data: progress, error: progressError } = await supabase
     .from('student_progress')
-    .select('coach_stage_id, stage_session_count, stage_direction_last, fluency_reported')
+    .select('coach_stage_id, stage_session_count, stage_direction_last, block_240_cleared, block_accuracy_90')
     .eq('student_id', studentId)
     .single()
 
@@ -362,9 +366,11 @@ export async function getCoachSessionConfig(
   }
 
   const stageNumber = (stage as Record<string, unknown>).stage_number as CoachStageNumber
-  const lastDirection = (progress.stage_direction_last ?? 'yoko') as Direction
-  const direction = getNextDirection(lastDirection)
   const stageSessionCount = progress.stage_session_count as number
+  // 次回のセッション番号（1-indexed）= 現在のカウント + 1
+  const nextSessionNumber = stageSessionCount + 1
+  // 方向: 奇数回=たて、偶数回=よこ
+  const direction = getDirectionBySession(nextSessionNumber)
 
   // スタート速度を計算
   const startWpm = await getStartWpm(studentId)
@@ -388,17 +394,38 @@ export async function getCoachSessionConfig(
 }
 
 /**
- * 流暢性を報告する（「240カウントまでスムーズに読めた」）
+ * ブロック読み240カウント突破を記録する。
+ * セッション完了時にブロック読みで240カウント以上到達した場合に呼ばれる。
  */
-export async function reportFluency(studentId: string): Promise<void> {
+export async function reportBlock240Cleared(studentId: string): Promise<void> {
   const { error } = await supabase
     .from('student_progress')
-    .update({ fluency_reported: true } as Record<string, unknown>)
+    .update({ block_240_cleared: true } as Record<string, unknown>)
     .eq('student_id', studentId)
 
   if (error) {
-    throw new Error(`流暢性報告に失敗しました: ${error.message}`)
+    throw new Error(`240カウント達成記録に失敗しました: ${error.message}`)
   }
+}
+
+/**
+ * ブロック読み正答率90%以上を記録する。
+ * ブロック読みのテストで90%以上を達成した場合に呼ばれる。
+ */
+export async function reportBlockAccuracy90(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('student_progress')
+    .update({ block_accuracy_90: true } as Record<string, unknown>)
+    .eq('student_id', studentId)
+
+  if (error) {
+    throw new Error(`正答率90%達成記録に失敗しました: ${error.message}`)
+  }
+}
+
+/** @deprecated Use reportBlock240Cleared instead */
+export async function reportFluency(studentId: string): Promise<void> {
+  await reportBlock240Cleared(studentId)
 }
 
 /**

@@ -77,6 +77,8 @@ export default async function TrainingPage() {
         stageSessionCount: progress.stage_session_count ?? 0,
         stageDirectionLast: (progress.stage_direction_last as 'tate' | 'yoko' | null) ?? null,
         fluencyReported: progress.fluency_reported ?? false,
+        block240Cleared: progress.block_240_cleared ?? false,
+        blockAccuracy90: progress.block_accuracy_90 ?? false,
         minSessions: coachMinSessions,
       }}
       stats={{

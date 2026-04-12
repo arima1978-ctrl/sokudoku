@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import type { Direction } from '@/lib/coach'
 
 interface StageInfoProps {
@@ -9,8 +8,8 @@ interface StageInfoProps {
   sessionCount: number
   minSessions: number
   nextDirection: Direction
-  fluencyReported: boolean
-  onReportFluency: () => Promise<void>
+  block240Cleared: boolean
+  blockAccuracy90: boolean
 }
 
 export default function StageInfo({
@@ -19,22 +18,12 @@ export default function StageInfo({
   sessionCount,
   minSessions,
   nextDirection,
-  fluencyReported,
-  onReportFluency,
+  block240Cleared,
+  blockAccuracy90,
 }: StageInfoProps) {
-  const [reporting, setReporting] = useState(false)
-
-  const canReport = sessionCount >= minSessions && !fluencyReported
   const progressPct = Math.min(100, Math.round((sessionCount / minSessions) * 100))
-
-  async function handleReport() {
-    setReporting(true)
-    try {
-      await onReportFluency()
-    } finally {
-      setReporting(false)
-    }
-  }
+  const sessionsReached = sessionCount >= minSessions
+  const allConditionsMet = sessionsReached && block240Cleared && blockAccuracy90
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -71,20 +60,37 @@ export default function StageInfo({
         </div>
       </div>
 
-      {/* 流暢性報告ボタン */}
-      {canReport && (
-        <button
-          type="button"
-          onClick={handleReport}
-          disabled={reporting}
-          className="mt-3 w-full rounded-lg border-2 border-green-400 bg-green-50 px-4 py-2 text-sm font-bold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
-        >
-          {reporting
-            ? '報告中...'
-            : '240カウントまでスムーズに読めた'}
-        </button>
-      )}
-      {fluencyReported && sessionCount >= minSessions && (
+      {/* ステージアップ条件チェックリスト */}
+      <div className="mt-3 space-y-1">
+        <div className="text-xs font-medium text-zinc-500">ステージアップ条件</div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={sessionsReached ? 'text-green-600' : 'text-zinc-400'}>
+            {sessionsReached ? '\u2713' : '\u25CB'}
+          </span>
+          <span className={sessionsReached ? 'text-zinc-700' : 'text-zinc-400'}>
+            最低{minSessions}回実施 ({sessionCount}/{minSessions})
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={block240Cleared ? 'text-green-600' : 'text-zinc-400'}>
+            {block240Cleared ? '\u2713' : '\u25CB'}
+          </span>
+          <span className={block240Cleared ? 'text-zinc-700' : 'text-zinc-400'}>
+            ブロック読み 240カウント突破
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={blockAccuracy90 ? 'text-green-600' : 'text-zinc-400'}>
+            {blockAccuracy90 ? '\u2713' : '\u25CB'}
+          </span>
+          <span className={blockAccuracy90 ? 'text-zinc-700' : 'text-zinc-400'}>
+            ブロック読み 正答率90%以上
+          </span>
+        </div>
+      </div>
+
+      {/* 全条件達成メッセージ */}
+      {allConditionsMet && (
         <div className="mt-3 rounded-lg bg-green-50 px-4 py-2 text-center text-sm text-green-700">
           次回のトレーニングでステージアップします
         </div>

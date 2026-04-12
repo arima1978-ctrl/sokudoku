@@ -16,10 +16,9 @@ import {
 import {
   getQuizForContent,
   getCoachSessionConfig,
-  reportFluency,
   type CoachSessionConfig,
 } from '@/app/actions/training'
-import { getNextDirection, type Direction } from '@/lib/coach'
+import { getDirectionBySession, type Direction } from '@/lib/coach'
 import StageInfo from '@/components/training/StageInfo'
 
 interface TrainingHomeProps {
@@ -41,6 +40,8 @@ interface TrainingHomeProps {
     stageSessionCount: number
     stageDirectionLast: Direction | null
     fluencyReported: boolean
+    block240Cleared: boolean
+    blockAccuracy90: boolean
     minSessions: number
   }
   stats: {
@@ -103,11 +104,11 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
   const [trainingResults, setTrainingResults] = useState<Array<{ segment: string; accuracy: number }>>([])
   const [activeTab, setActiveTab] = useState<'training' | 'growth'>('training')
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getStudentDashboard>> | null>(null)
-  const [fluencyState, setFluencyState] = useState(progress.fluencyReported)
-
   // コーチモードかどうか（coach_stage_id が設定されていれば有効）
   const isCoachMode = progress.coachStageId !== null
-  const nextDirection = getNextDirection(progress.stageDirectionLast ?? 'yoko')
+  // 方向: 奇数回=たて、偶数回=よこ (次回のセッション番号)
+  const nextSessionNumber = progress.stageSessionCount + 1
+  const nextDirection = getDirectionBySession(nextSessionNumber)
 
   // 成長記録タブ切り替え時にデータ取得
   async function loadDashboard() {
@@ -206,11 +207,6 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
     }
   }
 
-  // 流暢性報告
-  async function handleReportFluency() {
-    await reportFluency(student.id)
-    setFluencyState(true)
-  }
 
   // 速度計測(前)完了
   const handlePreSpeedComplete = useCallback(async (result: {
@@ -376,8 +372,8 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
             sessionCount={progress.stageSessionCount}
             minSessions={progress.minSessions}
             nextDirection={nextDirection}
-            fluencyReported={fluencyState}
-            onReportFluency={handleReportFluency}
+            block240Cleared={progress.block240Cleared}
+            blockAccuracy90={progress.blockAccuracy90}
           />
         </div>
       )}

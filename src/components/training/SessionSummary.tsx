@@ -124,15 +124,21 @@ export default function SessionSummary({
                 最高ステージ達成!
               </p>
             ) : (
-              <p className="text-sm text-zinc-500">
-                Stage: {coachEvaluation.stage_name}
-                {' '}({coachEvaluation.session_count}/{coachEvaluation.min_sessions}回)
-                {!coachEvaluation.fluency_reported && coachEvaluation.session_count >= coachEvaluation.min_sessions && (
-                  <span className="ml-1 text-orange-500">
-                    (流暢性報告でステージアップ可能)
-                  </span>
+              <div className="text-sm text-zinc-500">
+                <p>Stage: {coachEvaluation.stage_name}
+                  {' '}({coachEvaluation.session_count}/{coachEvaluation.min_sessions}回)
+                </p>
+                {coachEvaluation.session_count >= coachEvaluation.min_sessions && (
+                  <div className="mt-2 space-y-1 text-left text-xs">
+                    <div className={coachEvaluation.block_240_cleared ? 'text-green-600' : 'text-zinc-400'}>
+                      {coachEvaluation.block_240_cleared ? '\u2713' : '\u25CB'} 240カウント突破
+                    </div>
+                    <div className={coachEvaluation.block_accuracy_90 ? 'text-green-600' : 'text-zinc-400'}>
+                      {coachEvaluation.block_accuracy_90 ? '\u2713' : '\u25CB'} 正答率90%以上
+                    </div>
+                  </div>
                 )}
-              </p>
+              </div>
             )}
           </div>
         )}
