@@ -1,13 +1,20 @@
 import { getLoggedInSchool } from '@/lib/adminAuth'
 import { redirect } from 'next/navigation'
 import { getStudentProgressList } from '@/app/actions/admin'
+import { getSchoolCoachOverview } from '@/app/actions/coachHistory'
 import Link from 'next/link'
 
 export default async function AdminStudentsPage() {
   const school = await getLoggedInSchool()
   if (!school) redirect('/admin/login')
 
-  const students = await getStudentProgressList(school.id)
+  const [students, coachOverview] = await Promise.all([
+    getStudentProgressList(school.id),
+    getSchoolCoachOverview(school.id),
+  ])
+
+  // コーチデータをIDでマップ化
+  const coachMap = new Map(coachOverview.map(c => [c.id, c]))
 
   return (
     <div>
@@ -39,8 +46,7 @@ export default async function AdminStudentsPage() {
                 <th className="px-3 py-3 text-left font-medium text-zinc-600">生徒名</th>
                 <th className="px-3 py-3 text-left font-medium text-zinc-600">ログインID</th>
                 <th className="px-3 py-3 text-left font-medium text-zinc-600">学年</th>
-                <th className="px-3 py-3 text-left font-medium text-zinc-600">フェーズ</th>
-                <th className="px-3 py-3 text-left font-medium text-zinc-600">ステップ</th>
+                <th className="px-3 py-3 text-center font-medium text-zinc-600">ステージ</th>
                 <th className="px-3 py-3 text-center font-medium text-zinc-600">回数</th>
                 <th className="px-3 py-3 text-center font-medium text-zinc-600">速度</th>
                 <th className="px-3 py-3 text-center font-medium text-zinc-600">正答率</th>
@@ -59,8 +65,22 @@ export default async function AdminStudentsPage() {
                   </td>
                   <td className="px-3 py-2.5 text-zinc-600 font-mono text-xs">{s.student_login_id}</td>
                   <td className="px-3 py-2.5 text-zinc-600">{s.grade_level_name ?? '-'}</td>
-                  <td className="px-3 py-2.5 text-zinc-600">{s.phase_name ?? '-'}</td>
-                  <td className="px-3 py-2.5 text-zinc-600 text-xs">{s.step_name ?? '-'}</td>
+                  <td className="px-3 py-2.5 text-center">
+                    {(() => {
+                      const coach = coachMap.get(s.id)
+                      if (!coach) return '-'
+                      return (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                            {coach.stageNumber}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {coach.stageSessionCount}/{coach.minSessions}
+                          </span>
+                        </span>
+                      )
+                    })()}
+                  </td>
                   <td className="px-3 py-2.5 text-center font-medium text-zinc-900">{s.total_training_count}</td>
                   <td className="px-3 py-2.5 text-center">
                     {s.latest_wpm ? (

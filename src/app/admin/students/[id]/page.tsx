@@ -2,7 +2,9 @@ import { getLoggedInSchool } from '@/lib/adminAuth'
 import { redirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getStudentDashboard } from '@/app/actions/history'
+import { getCoachProgressSummary, getSessionHistory, getSpeedTrend } from '@/app/actions/coachHistory'
 import GrowthChart from '@/components/training/GrowthChart'
+import ParentReportLink from '@/components/admin/ParentReportLink'
 import Link from 'next/link'
 
 interface PageProps {
@@ -64,8 +66,13 @@ export default async function StudentDetailPage({ params }: PageProps) {
     stepName = (step as { name: string } | null)?.name ?? '-'
   }
 
-  // 成長データ
-  const dashboard = await getStudentDashboard(id)
+  // 成長データ + コーチデータ
+  const [dashboard, coachProgress, sessionHistory, speedTrend] = await Promise.all([
+    getStudentDashboard(id),
+    getCoachProgressSummary(id),
+    getSessionHistory(id, 20),
+    getSpeedTrend(id, 20),
+  ])
 
   // トレーニング履歴
   const { data: sessions } = await supabase
@@ -97,6 +104,10 @@ export default async function StudentDetailPage({ params }: PageProps) {
         >
           編集
         </Link>
+        <ParentReportLink
+          studentId={id}
+          existingToken={(s as Record<string, unknown>).parent_report_token as string | null}
+        />
       </div>
 
       {/* 基本情報 */}
@@ -119,6 +130,103 @@ export default async function StudentDetailPage({ params }: PageProps) {
         } />
       </div>
 
+      {/* コーチ進行状況 */}
+      {coachProgress && (
+        <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-5">
+          <h3 className="mb-4 text-lg font-semibold text-zinc-900">コーチ進行状況</h3>
+
+          {/* ステージ情報 */}
+          <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+            <div className="rounded-lg bg-blue-50 p-3 text-center">
+              <div className="text-xs text-blue-600">現在のステージ</div>
+              <div className="mt-1 text-xl font-bold text-blue-700">
+                Stage {coachProgress.stageNumber}
+              </div>
+              <div className="text-xs text-blue-500">{coachProgress.stageName}</div>
+            </div>
+            <div className="rounded-lg bg-zinc-50 p-3 text-center">
+              <div className="text-xs text-zinc-500">セッション回数</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">
+                {coachProgress.stageSessionCount}/{coachProgress.minSessions}
+              </div>
+            </div>
+            <div className="rounded-lg bg-zinc-50 p-3 text-center">
+              <div className="text-xs text-zinc-500">最新速度</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">
+                {coachProgress.latestWpm ?? '-'} <span className="text-xs font-normal">文字/分</span>
+              </div>
+            </div>
+            <div className="rounded-lg bg-zinc-50 p-3 text-center">
+              <div className="text-xs text-zinc-500">最高速度</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">
+                {coachProgress.bestWpm ?? '-'} <span className="text-xs font-normal">文字/分</span>
+              </div>
+            </div>
+            <div className="rounded-lg bg-zinc-50 p-3 text-center">
+              <div className="text-xs text-zinc-500">平均正答率</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">
+                {coachProgress.avgAccuracy !== null ? `${Math.round(coachProgress.avgAccuracy)}%` : '-'}
+              </div>
+            </div>
+          </div>
+
+          {/* ステージアップ条件 */}
+          <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+            <div className="mb-2 text-xs font-medium text-zinc-600">ステージアップ条件</div>
+            <div className="flex gap-4 text-xs">
+              <span className={coachProgress.stageSessionCount >= coachProgress.minSessions ? 'text-green-600 font-medium' : 'text-zinc-400'}>
+                {coachProgress.stageSessionCount >= coachProgress.minSessions ? '\u2713' : '\u25CB'}
+                {' '}最低{coachProgress.minSessions}回 ({coachProgress.stageSessionCount}/{coachProgress.minSessions})
+              </span>
+              <span className={coachProgress.block240Cleared ? 'text-green-600 font-medium' : 'text-zinc-400'}>
+                {coachProgress.block240Cleared ? '\u2713' : '\u25CB'} 240カウント突破
+              </span>
+              <span className={coachProgress.blockAccuracy90 ? 'text-green-600 font-medium' : 'text-zinc-400'}>
+                {coachProgress.blockAccuracy90 ? '\u2713' : '\u25CB'} 正答率90%以上
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 速度推移（前後比較） */}
+      {speedTrend.length > 0 && (
+        <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-5">
+          <h3 className="mb-3 text-lg font-semibold text-zinc-900">速度推移（前後比較）</h3>
+          <table className="min-w-full text-sm">
+            <thead className="bg-zinc-50">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium text-zinc-600">日付</th>
+                <th className="px-3 py-2 text-center font-medium text-zinc-600">測定(前)</th>
+                <th className="px-3 py-2 text-center font-medium text-zinc-600">測定(後)</th>
+                <th className="px-3 py-2 text-center font-medium text-zinc-600">伸び</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {speedTrend.map((item, i) => {
+                const diff = item.postWpm !== null ? item.postWpm - item.preWpm : null
+                return (
+                  <tr key={i} className="hover:bg-zinc-50">
+                    <td className="px-3 py-2 text-zinc-700">{item.date}</td>
+                    <td className="px-3 py-2 text-center text-zinc-600">{item.preWpm} 文字/分</td>
+                    <td className="px-3 py-2 text-center text-zinc-600">
+                      {item.postWpm !== null ? `${item.postWpm} 文字/分` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {diff !== null ? (
+                        <span className={diff >= 0 ? 'text-green-600 font-medium' : 'text-red-500'}>
+                          {diff >= 0 ? '+' : ''}{diff}
+                        </span>
+                      ) : '-'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* 成長グラフ */}
       <div className="mb-6">
         <h3 className="mb-3 text-lg font-semibold text-zinc-900">成長記録</h3>
@@ -131,10 +239,10 @@ export default async function StudentDetailPage({ params }: PageProps) {
         />
       </div>
 
-      {/* トレーニング履歴 */}
+      {/* トレーニング履歴（速度計測付き） */}
       <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-5">
         <h3 className="mb-3 text-lg font-semibold text-zinc-900">トレーニング履歴</h3>
-        {(!sessions || sessions.length === 0) ? (
+        {sessionHistory.length === 0 ? (
           <p className="text-sm text-zinc-500">まだ記録がありません</p>
         ) : (
           <table className="min-w-full text-sm">
@@ -142,14 +250,22 @@ export default async function StudentDetailPage({ params }: PageProps) {
               <tr>
                 <th className="px-3 py-2 text-left font-medium text-zinc-600">日付</th>
                 <th className="px-3 py-2 text-center font-medium text-zinc-600">コース</th>
+                <th className="px-3 py-2 text-center font-medium text-zinc-600">前</th>
+                <th className="px-3 py-2 text-center font-medium text-zinc-600">後</th>
                 <th className="px-3 py-2 text-center font-medium text-zinc-600">状態</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {(sessions as Array<Record<string, unknown>>).map((sess, i) => (
-                <tr key={i} className="hover:bg-zinc-50">
-                  <td className="px-3 py-2 text-zinc-700">{sess.date as string}</td>
-                  <td className="px-3 py-2 text-center text-zinc-600">{sess.duration_min as number}分</td>
+              {sessionHistory.map((sess) => (
+                <tr key={sess.id} className="hover:bg-zinc-50">
+                  <td className="px-3 py-2 text-zinc-700">{sess.date}</td>
+                  <td className="px-3 py-2 text-center text-zinc-600">{sess.durationMin}分</td>
+                  <td className="px-3 py-2 text-center text-zinc-600">
+                    {sess.preWpm !== null ? `${sess.preWpm}` : '-'}
+                  </td>
+                  <td className="px-3 py-2 text-center text-zinc-600">
+                    {sess.postWpm !== null ? `${sess.postWpm}` : '-'}
+                  </td>
                   <td className="px-3 py-2 text-center">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       sess.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
