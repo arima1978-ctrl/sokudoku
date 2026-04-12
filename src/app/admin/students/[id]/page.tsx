@@ -104,6 +104,12 @@ export default async function StudentDetailPage({ params }: PageProps) {
         >
           編集
         </Link>
+        <Link
+          href={`/admin/students/${id}/print`}
+          className="rounded bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200"
+        >
+          レポート印刷
+        </Link>
         <ParentReportLink
           studentId={id}
           existingToken={(s as Record<string, unknown>).parent_report_token as string | null}
