@@ -1,6 +1,7 @@
 'use server'
 
 import { supabase } from '@/lib/supabase'
+import { reportBlock240Cleared, reportBlockAccuracy90 } from '@/app/actions/training'
 
 export interface SpeedMeasurementResult {
   id: string
@@ -101,6 +102,16 @@ export async function saveSpeedMeasurement(
     .from('daily_sessions')
     .update({ [updateField]: (data as Record<string, unknown>).id } as Record<string, unknown>)
     .eq('id', dailySessionId)
+
+  // 測定(前)で240文字/分以上 → ブロック読み240カウント達成を記録(+1)
+  if (measurementType === 'pre' && wpm >= 240) {
+    await reportBlock240Cleared(studentId)
+  }
+
+  // 測定(前)のテストで正答率90%以上 → 正答率90%達成を記録(+1)
+  if (measurementType === 'pre' && quizAccuracy !== null && quizAccuracy >= 90) {
+    await reportBlockAccuracy90(studentId)
+  }
 
   return data as SpeedMeasurementResult
 }
