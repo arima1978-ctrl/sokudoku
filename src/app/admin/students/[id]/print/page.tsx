@@ -148,8 +148,8 @@ export default async function PrintReportPage({ params }: PageProps) {
                   met={coachProgress.stageSessionCount >= coachProgress.minSessions}
                   label={`${coachProgress.minSessions}回実施`}
                 />
-                <ConditionBadge met={coachProgress.block240Cleared} label="240カウント突破" />
-                <ConditionBadge met={coachProgress.blockAccuracy90} label="正答率90%以上" />
+                <ConditionBadge met={coachProgress.block240Count >= 5} label={`240カウント(${coachProgress.block240Count}/5)`} />
+                <ConditionBadge met={coachProgress.block90Count >= 5} label={`90%正答率(${coachProgress.block90Count}/5)`} />
               </div>
             </div>
           </section>

@@ -184,11 +184,11 @@ export default async function StudentDetailPage({ params }: PageProps) {
                 {coachProgress.stageSessionCount >= coachProgress.minSessions ? '\u2713' : '\u25CB'}
                 {' '}最低{coachProgress.minSessions}回 ({coachProgress.stageSessionCount}/{coachProgress.minSessions})
               </span>
-              <span className={coachProgress.block240Cleared ? 'text-green-600 font-medium' : 'text-zinc-400'}>
-                {coachProgress.block240Cleared ? '\u2713' : '\u25CB'} 240カウント突破
+              <span className={coachProgress.block240Count >= 5 ? 'text-green-600 font-medium' : 'text-zinc-400'}>
+                {coachProgress.block240Count >= 5 ? '\u2713' : '\u25CB'} 240カウント突破 ({coachProgress.block240Count}/5回)
               </span>
-              <span className={coachProgress.blockAccuracy90 ? 'text-green-600 font-medium' : 'text-zinc-400'}>
-                {coachProgress.blockAccuracy90 ? '\u2713' : '\u25CB'} 正答率90%以上
+              <span className={coachProgress.block90Count >= 5 ? 'text-green-600 font-medium' : 'text-zinc-400'}>
+                {coachProgress.block90Count >= 5 ? '\u2713' : '\u25CB'} 正答率90%以上 ({coachProgress.block90Count}/5回)
               </span>
             </div>
           </div>

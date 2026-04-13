@@ -106,8 +106,12 @@ export default function SessionSummary({
         {coachEvaluation && (
           <div className="mb-6 rounded-lg border-2 p-4 text-center"
             style={{
-              borderColor: coachEvaluation.action === 'stage_up' ? '#22c55e' : '#e4e4e7',
-              backgroundColor: coachEvaluation.action === 'stage_up' ? '#f0fdf4' : '#fafafa',
+              borderColor: coachEvaluation.action === 'stage_up' ? '#22c55e'
+                : coachEvaluation.action === 'speed_mode_start' ? '#f97316'
+                : '#e4e4e7',
+              backgroundColor: coachEvaluation.action === 'stage_up' ? '#f0fdf4'
+                : coachEvaluation.action === 'speed_mode_start' ? '#fff7ed'
+                : '#fafafa',
             }}
           >
             {coachEvaluation.action === 'stage_up' ? (
@@ -119,25 +123,34 @@ export default function SessionSummary({
                   {coachEvaluation.stage_name} に進みました
                 </p>
               </>
-            ) : coachEvaluation.action === 'max_stage' ? (
-              <p className="text-lg font-bold text-blue-600">
-                最高ステージ達成!
+            ) : coachEvaluation.action === 'speed_mode_start' ? (
+              <>
+                <p className="text-lg font-bold text-orange-600">
+                  全ステージ完了!
+                </p>
+                <p className="mt-1 text-sm text-orange-700">
+                  スピードモードに移行します。カウントを上げ続けるトレーニングです。
+                </p>
+              </>
+            ) : coachEvaluation.action === 'speed_mode' ? (
+              <p className="text-sm font-bold text-orange-600">
+                スピードモード継続中
               </p>
             ) : (
               <div className="text-sm text-zinc-500">
                 <p>Stage: {coachEvaluation.stage_name}
                   {' '}({coachEvaluation.session_count}/{coachEvaluation.min_sessions}回)
                 </p>
-                {coachEvaluation.session_count >= coachEvaluation.min_sessions && (
-                  <div className="mt-2 space-y-1 text-left text-xs">
-                    <div className={coachEvaluation.block_240_cleared ? 'text-green-600' : 'text-zinc-400'}>
-                      {coachEvaluation.block_240_cleared ? '\u2713' : '\u25CB'} 240カウント突破
-                    </div>
-                    <div className={coachEvaluation.block_accuracy_90 ? 'text-green-600' : 'text-zinc-400'}>
-                      {coachEvaluation.block_accuracy_90 ? '\u2713' : '\u25CB'} 正答率90%以上
-                    </div>
+                <div className="mt-2 space-y-1 text-left text-xs">
+                  <div className={(coachEvaluation.block_240_count ?? 0) >= (coachEvaluation.required_clears ?? 5) ? 'text-green-600' : 'text-zinc-400'}>
+                    {(coachEvaluation.block_240_count ?? 0) >= (coachEvaluation.required_clears ?? 5) ? '\u2713' : '\u25CB'}
+                    {' '}240カウント突破 ({coachEvaluation.block_240_count ?? 0}/{coachEvaluation.required_clears ?? 5}回)
                   </div>
-                )}
+                  <div className={(coachEvaluation.block_90_count ?? 0) >= (coachEvaluation.required_clears ?? 5) ? 'text-green-600' : 'text-zinc-400'}>
+                    {(coachEvaluation.block_90_count ?? 0) >= (coachEvaluation.required_clears ?? 5) ? '\u2713' : '\u25CB'}
+                    {' '}正答率90%以上 ({coachEvaluation.block_90_count ?? 0}/{coachEvaluation.required_clears ?? 5}回)
+                  </div>
+                </div>
               </div>
             )}
           </div>

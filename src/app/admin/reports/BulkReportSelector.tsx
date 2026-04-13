@@ -146,13 +146,13 @@ export default function BulkReportSelector({ students, gradeLevels }: Props) {
                   {s.latestWpm ? <span className="font-medium text-blue-600">{s.latestWpm}</span> : '-'}
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span className={s.block240Cleared ? 'text-green-600' : 'text-zinc-300'}>
-                    {s.block240Cleared ? '\u2713' : '\u2013'}
+                  <span className={s.block240Count >= 5 ? 'text-green-600' : 'text-zinc-400'}>
+                    {s.block240Count}/{5}
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span className={s.blockAccuracy90 ? 'text-green-600' : 'text-zinc-300'}>
-                    {s.blockAccuracy90 ? '\u2713' : '\u2013'}
+                  <span className={s.block90Count >= 5 ? 'text-green-600' : 'text-zinc-400'}>
+                    {s.block90Count}/{5}
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-xs text-zinc-500">

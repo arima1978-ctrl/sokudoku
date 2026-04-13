@@ -124,14 +124,14 @@ export default async function ParentReportPage({ params }: PageProps) {
                 detail={`${coachProgress.stageSessionCount}/${coachProgress.minSessions}回完了`}
               />
               <ConditionRow
-                met={coachProgress.block240Cleared}
+                met={coachProgress.block240Count >= 5}
                 label="ブロック読み 240カウント突破"
-                detail={coachProgress.block240Cleared ? '達成済み' : '未達成'}
+                detail={`${coachProgress.block240Count}/5回`}
               />
               <ConditionRow
-                met={coachProgress.blockAccuracy90}
+                met={coachProgress.block90Count >= 5}
                 label="ブロック読み 正答率90%以上"
-                detail={coachProgress.blockAccuracy90 ? '達成済み' : '未達成'}
+                detail={`${coachProgress.block90Count}/5回`}
               />
             </div>
           </section>

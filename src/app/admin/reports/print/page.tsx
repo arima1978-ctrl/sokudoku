@@ -134,8 +134,8 @@ function StudentReport({ student, schoolName, date, pageNum, totalPages }: {
             {/* 条件 */}
             <div className="mt-2 flex gap-2 text-[10px]">
               <CondTag met={coach.stageSessionCount >= coach.minSessions} label={`${coach.minSessions}回実施`} />
-              <CondTag met={coach.block240Cleared} label="240カウント" />
-              <CondTag met={coach.blockAccuracy90} label="90%正答率" />
+              <CondTag met={coach.block240Count >= 5} label={`240カウント(${coach.block240Count}/5)`} />
+              <CondTag met={coach.block90Count >= 5} label={`90%正答率(${coach.block90Count}/5)`} />
             </div>
           </div>
 

@@ -10,8 +10,9 @@ export interface CoachProgressSummary {
   stageSessionCount: number
   minSessions: number
   directionLast: string | null
-  block240Cleared: boolean
-  blockAccuracy90: boolean
+  block240Count: number
+  block90Count: number
+  speedMode: boolean
   totalTrainingCount: number
   latestWpm: number | null
   bestWpm: number | null
@@ -66,8 +67,9 @@ export async function getCoachProgressSummary(studentId: string): Promise<CoachP
     stageSessionCount: (p.stage_session_count as number) ?? 0,
     minSessions: (s.min_sessions as number) ?? 6,
     directionLast: p.stage_direction_last as string | null,
-    block240Cleared: (p.block_240_cleared as boolean) ?? false,
-    blockAccuracy90: (p.block_accuracy_90 as boolean) ?? false,
+    block240Count: (p.block_240_cleared as number) ?? 0,
+    block90Count: (p.block_accuracy_90 as number) ?? 0,
+    speedMode: (p.speed_mode as boolean) ?? false,
     totalTrainingCount: (p.total_training_count as number) ?? 0,
     latestWpm: p.latest_wpm as number | null,
     bestWpm: p.best_wpm as number | null,
@@ -188,8 +190,9 @@ export interface StudentCoachOverview {
   stageName: string
   stageSessionCount: number
   minSessions: number
-  block240Cleared: boolean
-  blockAccuracy90: boolean
+  block240Count: number
+  block90Count: number
+  speedMode: boolean
   latestWpm: number | null
   lastTrainingAt: string | null
 }
@@ -235,8 +238,9 @@ export async function getSchoolCoachOverview(schoolId: string): Promise<StudentC
       stageName: (s.name as string) ?? '3点読み',
       stageSessionCount: (p.stage_session_count as number) ?? 0,
       minSessions: (s.min_sessions as number) ?? 6,
-      block240Cleared: (p.block_240_cleared as boolean) ?? false,
-      blockAccuracy90: (p.block_accuracy_90 as boolean) ?? false,
+      block240Count: (p.block_240_cleared as number) ?? 0,
+      block90Count: (p.block_accuracy_90 as number) ?? 0,
+      speedMode: (p.speed_mode as boolean) ?? false,
       latestWpm: p.latest_wpm as number | null,
       lastTrainingAt: p.last_training_at as string | null,
     })

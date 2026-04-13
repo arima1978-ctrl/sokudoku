@@ -40,8 +40,9 @@ interface TrainingHomeProps {
     stageSessionCount: number
     stageDirectionLast: Direction | null
     fluencyReported: boolean
-    block240Cleared: boolean
-    blockAccuracy90: boolean
+    block240Count: number
+    block90Count: number
+    speedMode: boolean
     minSessions: number
   }
   stats: {
@@ -372,8 +373,9 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
             sessionCount={progress.stageSessionCount}
             minSessions={progress.minSessions}
             nextDirection={nextDirection}
-            block240Cleared={progress.block240Cleared}
-            blockAccuracy90={progress.blockAccuracy90}
+            block240Count={progress.block240Count}
+            block90Count={progress.block90Count}
+            speedMode={progress.speedMode}
           />
         </div>
       )}

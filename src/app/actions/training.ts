@@ -6,6 +6,7 @@ import {
   getNextDirection,
   getDirectionBySession,
   generateMenuSegments,
+  generateSpeedModeSegments,
   type TrainingFrequency,
   type Direction,
   type DurationMin,
@@ -26,8 +27,9 @@ export interface StudentProgress {
   stage_session_count: number
   stage_direction_last: Direction | null
   fluency_reported: boolean
-  block_240_cleared: boolean
-  block_accuracy_90: boolean
+  block_240_cleared: number  // 240カウント突破回数（5回で条件クリア）
+  block_accuracy_90: number  // 正答率90%達成回数（5回で条件クリア）
+  speed_mode: boolean         // Stage5完了後のスピードモード
 }
 
 export type { CoachSessionConfig, DynamicSegment }
@@ -269,14 +271,15 @@ export async function submitSegmentTest(
 }
 
 export interface CoachStageEvaluation {
-  action: 'stage_up' | 'max_stage' | 'maintain' | 'not_found'
+  action: 'stage_up' | 'speed_mode_start' | 'speed_mode' | 'maintain' | 'not_found'
   previous_stage: string
   new_stage: string
   stage_name: string
   session_count: number
   min_sessions: number
-  block_240_cleared: boolean
-  block_accuracy_90: boolean
+  block_240_count: number   // 240カウント突破回数
+  block_90_count: number    // 正答率90%達成回数
+  required_clears: number   // 必要回数 (5)
 }
 
 export async function completeTrainingSession(
@@ -345,7 +348,7 @@ export async function getCoachSessionConfig(
   // 生徒の進行状況を取得
   const { data: progress, error: progressError } = await supabase
     .from('student_progress')
-    .select('coach_stage_id, stage_session_count, stage_direction_last, block_240_cleared, block_accuracy_90')
+    .select('coach_stage_id, stage_session_count, stage_direction_last, block_240_cleared, block_accuracy_90, speed_mode')
     .eq('student_id', studentId)
     .single()
 
@@ -367,21 +370,17 @@ export async function getCoachSessionConfig(
 
   const stageNumber = (stage as Record<string, unknown>).stage_number as CoachStageNumber
   const stageSessionCount = progress.stage_session_count as number
-  // 次回のセッション番号（1-indexed）= 現在のカウント + 1
   const nextSessionNumber = stageSessionCount + 1
-  // 方向: 奇数回=たて、偶数回=よこ
   const direction = getDirectionBySession(nextSessionNumber)
+  const isSpeedMode = (progress.speed_mode as boolean) ?? false
 
   // スタート速度を計算
   const startWpm = await getStartWpm(studentId)
 
-  // 動的メニュー生成
-  const segments = generateMenuSegments({
-    durationMin,
-    stageNumber,
-    direction,
-    stageSessionCount,
-  })
+  // スピードモード or 通常メニュー生成
+  const segments = isSpeedMode
+    ? generateSpeedModeSegments({ durationMin, direction })
+    : generateMenuSegments({ durationMin, stageNumber, direction, stageSessionCount })
 
   return {
     segments,
@@ -394,13 +393,22 @@ export async function getCoachSessionConfig(
 }
 
 /**
- * ブロック読み240カウント突破を記録する。
- * セッション完了時にブロック読みで240カウント以上到達した場合に呼ばれる。
+ * ブロック読み240カウント突破を記録する（+1回）。
+ * 5回達成でステージアップ条件クリア。
  */
 export async function reportBlock240Cleared(studentId: string): Promise<void> {
+  // 現在の値を取得して+1
+  const { data } = await supabase
+    .from('student_progress')
+    .select('block_240_cleared')
+    .eq('student_id', studentId)
+    .single()
+
+  const current = (data as Record<string, unknown> | null)?.block_240_cleared as number ?? 0
+
   const { error } = await supabase
     .from('student_progress')
-    .update({ block_240_cleared: true } as Record<string, unknown>)
+    .update({ block_240_cleared: current + 1 } as Record<string, unknown>)
     .eq('student_id', studentId)
 
   if (error) {
@@ -409,13 +417,21 @@ export async function reportBlock240Cleared(studentId: string): Promise<void> {
 }
 
 /**
- * ブロック読み正答率90%以上を記録する。
- * ブロック読みのテストで90%以上を達成した場合に呼ばれる。
+ * ブロック読み正答率90%以上を記録する（+1回）。
+ * 5回達成でステージアップ条件クリア。
  */
 export async function reportBlockAccuracy90(studentId: string): Promise<void> {
+  const { data } = await supabase
+    .from('student_progress')
+    .select('block_accuracy_90')
+    .eq('student_id', studentId)
+    .single()
+
+  const current = (data as Record<string, unknown> | null)?.block_accuracy_90 as number ?? 0
+
   const { error } = await supabase
     .from('student_progress')
-    .update({ block_accuracy_90: true } as Record<string, unknown>)
+    .update({ block_accuracy_90: current + 1 } as Record<string, unknown>)
     .eq('student_id', studentId)
 
   if (error) {

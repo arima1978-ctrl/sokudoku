@@ -44,3 +44,4 @@ tmp_pptx/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+docs/original-reference/

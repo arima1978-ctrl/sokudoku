@@ -116,19 +116,24 @@ export function getNextDirection(lastDirection: Direction): Direction {
   return lastDirection === 'tate' ? 'yoko' : 'tate'
 }
 
+/** ステージアップに必要な達成回数 */
+export const REQUIRED_CLEARS = 5
+
 /**
  * ステージアップ可能か判定
  * 条件1: 最低セッション数以上
- * 条件2: ブロック読みで240カウント突破
- * 条件3: ブロック読みで正答率90%以上
+ * 条件2: ブロック読みで240カウント突破が5回以上
+ * 条件3: ブロック読みで正答率90%以上が5回以上
  */
 export function canStageUp(
   stageSessionCount: number,
-  block240Cleared: boolean,
-  blockAccuracy90: boolean,
+  block240Count: number,
+  blockAccuracy90Count: number,
   minSessions: number,
 ): boolean {
-  return stageSessionCount >= minSessions && block240Cleared && blockAccuracy90
+  return stageSessionCount >= minSessions
+    && block240Count >= REQUIRED_CLEARS
+    && blockAccuracy90Count >= REQUIRED_CLEARS
 }
 
 /** ステージ名を取得 */
@@ -199,7 +204,35 @@ function getSegmentLabel(segType: string): string {
 
 // ========== 時間配分計算 ==========
 
-/** 10分コースのセグメントごとの秒数 */
+/**
+ * セグメントごとの秒数を計算。
+ * Stage 4-5 では視点移動がトレーニング時間の約半分を占めるよう調整。
+ */
+function getSegmentDuration(
+  segKey: string,
+  durationMin: DurationMin,
+  stageNumber: CoachStageNumber,
+): number {
+  // Stage 4-5: 視点移動をトレーニング時間の約半分に
+  const isViewpointHeavy = stageNumber >= 4 && segKey === 'viewpoint'
+
+  if (isViewpointHeavy) {
+    // 高速読み仕上げ(2-3分)を除いた残りの約半分を視点移動に
+    switch (durationMin) {
+      case 10: return 240  // 4分（全体10分のうち高速読み2分を除いた8分の半分）
+      case 20: return 480  // 8分（全体20分のうち高速読み2分を除いた18分の半分）
+      case 30: return 720  // 12分（全体30分のうち高速読み3分+本読み5分を除いた22分の半分）
+    }
+  }
+
+  // 通常のセグメント
+  const base = getBaseDuration10(segKey)
+  if (durationMin === 20) return base + getExtraDuration20(segKey)
+  if (durationMin === 30) return base + getExtraDuration30(segKey)
+  return base
+}
+
+/** 10分コースの基本秒数 */
 function getBaseDuration10(segKey: string): number {
   switch (segKey) {
     case 'barabara': return 90       // 1.5分
@@ -207,7 +240,7 @@ function getBaseDuration10(segKey: string): number {
     case '2line': return 120         // 2分
     case '1line_or_2line': return 120 // 2分
     case 'block': return 150         // 2.5分
-    case 'viewpoint': return 90      // 1.5分
+    case 'viewpoint': return 90      // 1.5分 (Stage 1-3 用、4-5は上で上書き)
     default: return 90
   }
 }
@@ -216,7 +249,7 @@ function getBaseDuration10(segKey: string): number {
 function getExtraDuration20(segKey: string): number {
   switch (segKey) {
     case 'block': return 180     // +3分
-    case 'viewpoint': return 120 // +2分
+    case 'viewpoint': return 120 // +2分 (Stage 1-3 用)
     default: return 60           // +1分
   }
 }
@@ -225,7 +258,7 @@ function getExtraDuration20(segKey: string): number {
 function getExtraDuration30(segKey: string): number {
   switch (segKey) {
     case 'block': return 300     // +5分
-    case 'viewpoint': return 180 // +3分
+    case 'viewpoint': return 180 // +3分 (Stage 1-3 用)
     default: return 120          // +2分
   }
 }
@@ -294,16 +327,7 @@ export function generateMenuSegments(params: MenuGenerationParams): DynamicSegme
     const testType = getTestType(segType)
     const hasTest = segKey !== 'viewpoint' // 視点移動はテストなし
 
-    // 基本秒数
-    let durationSec = getBaseDuration10(segKey)
-
-    // 20分/30分の追加
-    if (durationMin === 20) {
-      durationSec += getExtraDuration20(segKey)
-    } else if (durationMin === 30) {
-      durationSec += getExtraDuration30(segKey)
-    }
-
+    const durationSec = getSegmentDuration(segKey, durationMin, stageNumber)
     const isBarabara = segKey === 'barabara'
     const testDurationSec = hasTest ? 30 : 0
 
@@ -326,6 +350,51 @@ export function generateMenuSegments(params: MenuGenerationParams): DynamicSegme
 
   // 最後に高速読み仕上げ（全コース共通）
   const readingSpeedSec = durationMin === 30 ? 180 : 120
+  add('reading_speed', readingSpeedSec, false, 0, null, false,
+    `高速読み ${formatMin(readingSpeedSec)}`)
+
+  return segments
+}
+
+/**
+ * スピードモード用メニュー生成（Stage 5 完了後）
+ * ブロック読みと視点移動を半々でカウントを上げ続ける
+ */
+export function generateSpeedModeSegments(params: {
+  durationMin: DurationMin
+  direction: Direction
+}): DynamicSegment[] {
+  const { durationMin, direction } = params
+  const segments: DynamicSegment[] = []
+  let order = 1
+
+  const add: AddSegmentFn = (type, durationSec, hasTest, testDurationSec, testType, skippable, desc) => {
+    segments.push({
+      segment_order: order++,
+      segment_type: type,
+      duration_sec: durationSec,
+      has_test: hasTest,
+      test_duration_sec: testDurationSec,
+      test_type: testType,
+      skippable,
+      description: desc,
+    })
+  }
+
+  const blockType = direction === 'tate' ? 'block_tate' : 'block_yoko'
+  const blockLabel = direction === 'tate' ? 'たてブロック読み' : 'よこブロック読み'
+
+  // 高速読み仕上げの時間を除いた残りを ブロック:視点移動 = 1:1 で配分
+  const readingSpeedSec = durationMin === 30 ? 180 : 120
+  const trainingTime = durationMin * 60 - readingSpeedSec
+  const halfTime = Math.floor(trainingTime / 2)
+
+  add(blockType, halfTime, true, 30, 'content_comprehension', false,
+    `${blockLabel} ${formatMin(halfTime)} + テスト`)
+
+  add('shiten_ido', halfTime, false, 0, null, false,
+    `視点移動 ${formatMin(halfTime)}`)
+
   add('reading_speed', readingSpeedSec, false, 0, null, false,
     `高速読み ${formatMin(readingSpeedSec)}`)
 
