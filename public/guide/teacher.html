@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>先生用ダッシュボード（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+/* ヘッダー */
+.header { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 28px 32px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 22px; font-weight: 900; }
+.header .sub { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+.header .school { background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 10px; font-size: 13px; }
+
+/* サマリーカード */
+.summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.summary-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.summary-card .icon { font-size: 28px; margin-bottom: 8px; }
+.summary-card .num { font-size: 32px; font-weight: 900; }
+.summary-card .label { font-size: 12px; color: #888; margin-top: 2px; }
+.summary-card.blue { border-top: 4px solid #0984e3; }
+.summary-card.blue .num { color: #0984e3; }
+.summary-card.green { border-top: 4px solid #00b894; }
+.summary-card.green .num { color: #00b894; }
+.summary-card.purple { border-top: 4px solid #6c5ce7; }
+.summary-card.purple .num { color: #6c5ce7; }
+.summary-card.orange { border-top: 4px solid #e17055; }
+.summary-card.orange .num { color: #e17055; }
+
+/* カード */
+.card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-left: 12px; border-left: 4px solid #0984e3; display: flex; align-items: center; justify-content: space-between; }
+.card-title .action { font-size: 12px; font-weight: 500; color: #0984e3; cursor: pointer; border: 1px solid #0984e3; padding: 4px 12px; border-radius: 8px; }
+
+/* 2カラム */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* テーブル */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { padding: 10px 12px; text-align: left; background: #f8f9fa; font-weight: 700; font-size: 12px; color: #888; position: sticky; top: 0; }
+td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+tr:hover { background: #fafbfc; }
+
+/* バッジ */
+.stage-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.stage-1 { background: #e3f2fd; color: #1565c0; }
+.stage-2 { background: #e8f5e9; color: #2e7d32; }
+.stage-3 { background: #fff3e0; color: #e65100; }
+.stage-4 { background: #fce4ec; color: #c62828; }
+.stage-5 { background: #f3e5f5; color: #6a1b9a; }
+.stage-speed { background: linear-gradient(90deg, #fce4ec, #fff3e0); color: #e84393; }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status-dot.active { background: #00b894; }
+.status-dot.inactive { background: #dfe6e9; }
+
+.accuracy { font-weight: 700; }
+.accuracy.high { color: #2e7d32; }
+.accuracy.mid { color: #e65100; }
+.accuracy.low { color: #c62828; }
+
+.delta { font-weight: 700; }
+.delta.up { color: #2e7d32; }
+.delta.down { color: #c62828; }
+
+/* 進捗バー（ミニ） */
+.mini-bar { width: 60px; height: 6px; background: #e8ecf0; border-radius: 6px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+.mini-bar .fill { height: 100%; border-radius: 6px; background: #0984e3; }
+
+/* フィルター */
+.filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #e8ecf0; background: #fff; font-size: 12px; cursor: pointer; font-family: inherit; }
+.filter-btn.active { background: #0984e3; color: #fff; border-color: #0984e3; }
+
+/* ステージ分布 */
+.distribution { display: flex; height: 40px; border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+.distribution > div { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+
+/* 最近のアクティビティ */
+.activity { display: flex; flex-direction: column; gap: 10px; }
+.activity-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: #f8f9fa; font-size: 13px; }
+.activity-item .time { font-size: 11px; color: #888; white-space: nowrap; }
+.activity-item .name { font-weight: 700; min-width: 80px; }
+
+/* フッター */
+.footer { text-align: center; padding: 24px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+
+@media (max-width: 768px) {
+  .summary { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .header { flex-direction: column; gap: 12px; text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+<div class="page">
+
+<!-- ヘッダー -->
+<div class="header">
+  <div>
+    <h1>📋 速読トレーニング管理</h1>
+    <div class="sub">先生用ダッシュボード</div>
+  </div>
+  <div class="school">🏫 名大SKY 本校</div>
+</div>
+
+<!-- サマリー -->
+<div class="summary">
+  <div class="summary-card blue">
+    <div class="icon">👥</div>
+    <div class="num">24</div>
+    <div class="label">受講中の生徒</div>
+  </div>
+  <div class="summary-card green">
+    <div class="icon">📊</div>
+    <div class="num">156</div>
+    <div class="label">今月のトレーニング数</div>
+  </div>
+  <div class="summary-card purple">
+    <div class="icon">⚡</div>
+    <div class="num">342</div>
+    <div class="label">平均読書速度 (字/分)</div>
+  </div>
+  <div class="summary-card orange">
+    <div class="icon">🎯</div>
+    <div class="num">86%</div>
+    <div class="label">平均正答率</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- ステージ分布 -->
+  <div class="card">
+    <div class="card-title">ステージ分布</div>
+    <div class="distribution">
+      <div style="flex:5;background:#1565c0">S1: 5人</div>
+      <div style="flex:8;background:#2e7d32">S2: 8人</div>
+      <div style="flex:6;background:#e65100">S3: 6人</div>
+      <div style="flex:3;background:#c62828">S4: 3人</div>
+      <div style="flex:1;background:#6a1b9a">S5: 1人</div>
+      <div style="flex:1;background:#e84393">∞: 1人</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px">
+      <div style="padding:8px;background:#e3f2fd;border-radius:8px;text-align:center"><strong>5人</strong><br><span style="color:#888">Stage 1</span></div>
+      <div style="padding:8px;background:#e8f5e9;border-radius:8px;text-align:center"><strong>8人</strong><br><span style="color:#888">Stage 2</span></div>
+      <div style="padding:8px;background:#fff3e0;border-radius:8px;text-align:center"><strong>6人</strong><br><span style="color:#888">Stage 3</span></div>
+      <div style="padding:8px;background:#fce4ec;border-radius:8px;text-align:center"><strong>3人</strong><br><span style="color:#888">Stage 4</span></div>
+      <div style="padding:8px;background:#f3e5f5;border-radius:8px;text-align:center"><strong>1人</strong><br><span style="color:#888">Stage 5</span></div>
+      <div style="padding:8px;background:#fce4ec;border-radius:8px;text-align:center"><strong>1人</strong><br><span style="color:#888">Speed∞</span></div>
+    </div>
+  </div>
+
+  <!-- 最近のアクティビティ -->
+  <div class="card">
+    <div class="card-title">最近のアクティビティ</div>
+    <div class="activity">
+      <div class="activity-item">
+        <div class="time">14:30</div>
+        <div class="name">山田 太郎</div>
+        <div>20分コース完了 → <strong>380字/分</strong></div>
+      </div>
+      <div class="activity-item">
+        <div class="time">14:10</div>
+        <div class="name">佐藤 花子</div>
+        <div>10分コース完了 → <strong>520字/分</strong></div>
+      </div>
+      <div class="activity-item">
+        <div class="time">13:45</div>
+        <div class="name">鈴木 一郎</div>
+        <div style="color:#00b894;font-weight:700">🎉 Stage 3 にステージアップ！</div>
+      </div>
+      <div class="activity-item">
+        <div class="time">13:20</div>
+        <div class="name">田中 美咲</div>
+        <div>30分コース完了 → <strong>290字/分</strong></div>
+      </div>
+      <div class="activity-item">
+        <div class="time">11:50</div>
+        <div class="name">高橋 健太</div>
+        <div>20分コース完了 → <strong>410字/分</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 生徒一覧 -->
+<div class="card">
+  <div class="card-title">
+    生徒一覧
+    <span class="action">📄 一括印刷</span>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active">全員 (24)</button>
+    <button class="filter-btn">Stage 1 (5)</button>
+    <button class="filter-btn">Stage 2 (8)</button>
+    <button class="filter-btn">Stage 3 (6)</button>
+    <button class="filter-btn">Stage 4+ (5)</button>
+    <button class="filter-btn">小1-3</button>
+    <button class="filter-btn">小4-6</button>
+    <button class="filter-btn">中学+</button>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>生徒名</th>
+        <th>学年</th>
+        <th>ステージ</th>
+        <th>進捗</th>
+        <th>読書速度</th>
+        <th>成長</th>
+        <th>正答率</th>
+        <th>最終</th>
+        <th>回数</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>佐藤 花子</strong></td>
+        <td>小6</td>
+        <td><span class="stage-pill stage-speed">∞ Speed</span></td>
+        <td>-</td>
+        <td>520字/分</td>
+        <td class="delta up">+180</td>
+        <td class="accuracy high">95%</td>
+        <td>4/13</td>
+        <td>42</td>
+      </tr>
+      <tr>
+        <td><strong>高橋 健太</strong></td>
+        <td>中1</td>
+        <td><span class="stage-pill stage-5">5 ブロック</span></td>
+        <td>6/8 <div class="mini-bar"><div class="fill" style="width:75%"></div></div></td>
+        <td>410字/分</td>
+        <td class="delta up">+150</td>
+        <td class="accuracy high">91%</td>
+        <td>4/13</td>
+        <td>38</td>
+      </tr>
+      <tr>
+        <td><strong>鈴木 一郎</strong></td>
+        <td>小5</td>
+        <td><span class="stage-pill stage-3">3 1行高速</span></td>
+        <td>1/8 <div class="mini-bar"><div class="fill" style="width:12%"></div></div></td>
+        <td>380字/分</td>
+        <td class="delta up">+120</td>
+        <td class="accuracy high">88%</td>
+        <td>4/13</td>
+        <td>26</td>
+      </tr>
+      <tr>
+        <td><strong>山田 太郎</strong></td>
+        <td>小4</td>
+        <td><span class="stage-pill stage-2">2 2点高速</span></td>
+        <td>5/8 <div class="mini-bar"><div class="fill" style="width:62%"></div></div></td>
+        <td>380字/分</td>
+        <td class="delta up">+120</td>
+        <td class="accuracy high">88%</td>
+        <td>4/13</td>
+        <td>12</td>
+      </tr>
+      <tr>
+        <td><strong>田中 美咲</strong></td>
+        <td>小3</td>
+        <td><span class="stage-pill stage-2">2 2点高速</span></td>
+        <td>3/8 <div class="mini-bar"><div class="fill" style="width:37%"></div></div></td>
+        <td>290字/分</td>
+        <td class="delta up">+80</td>
+        <td class="accuracy mid">78%</td>
+        <td>4/13</td>
+        <td>10</td>
+      </tr>
+      <tr>
+        <td><strong>渡辺 優斗</strong></td>
+        <td>小4</td>
+        <td><span class="stage-pill stage-2">2 2点高速</span></td>
+        <td>7/8 <div class="mini-bar"><div class="fill" style="width:87%"></div></div></td>
+        <td>350字/分</td>
+        <td class="delta up">+110</td>
+        <td class="accuracy high">92%</td>
+        <td>4/12</td>
+        <td>15</td>
+      </tr>
+      <tr>
+        <td><strong>中村 さくら</strong></td>
+        <td>小2</td>
+        <td><span class="stage-pill stage-1">1 3点高速</span></td>
+        <td>4/6 <div class="mini-bar"><div class="fill" style="width:66%"></div></div></td>
+        <td>220字/分</td>
+        <td class="delta up">+60</td>
+        <td class="accuracy mid">75%</td>
+        <td>4/12</td>
+        <td>4</td>
+      </tr>
+      <tr>
+        <td><strong>伊藤 大翔</strong></td>
+        <td>小3</td>
+        <td><span class="stage-pill stage-1">1 3点高速</span></td>
+        <td>2/6 <div class="mini-bar"><div class="fill" style="width:33%"></div></div></td>
+        <td>190字/分</td>
+        <td class="delta up">+30</td>
+        <td class="accuracy mid">72%</td>
+        <td>4/11</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td><strong>小林 結衣</strong></td>
+        <td>小5</td>
+        <td><span class="stage-pill stage-3">3 1行高速</span></td>
+        <td>5/8 <div class="mini-bar"><div class="fill" style="width:62%"></div></div></td>
+        <td>360字/分</td>
+        <td class="delta up">+100</td>
+        <td class="accuracy high">85%</td>
+        <td>4/11</td>
+        <td>22</td>
+      </tr>
+      <tr>
+        <td><strong>松本 陽菜</strong></td>
+        <td>小1</td>
+        <td><span class="stage-pill stage-1">1 3点高速</span></td>
+        <td>1/6 <div class="mini-bar"><div class="fill" style="width:16%"></div></div></td>
+        <td>160字/分</td>
+        <td class="delta up">+10</td>
+        <td class="accuracy low">65%</td>
+        <td>4/10</td>
+        <td>1</td>
+      </tr>
+      <tr style="color:#b2bec3">
+        <td>木村 蓮</td>
+        <td>小4</td>
+        <td><span class="stage-pill stage-2" style="opacity:0.5">2 2点高速</span></td>
+        <td>2/8</td>
+        <td>250字/分</td>
+        <td>-</td>
+        <td>80%</td>
+        <td style="color:#e17055;font-weight:700">3/28</td>
+        <td>8</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div style="margin-top:12px;padding:10px;background:#fff5f0;border-radius:8px;font-size:12px;color:#e17055">
+    ⚠️ 木村 蓮 さんは2週間以上トレーニングがありません
+  </div>
+</div>
+
+<!-- 月間サマリー -->
+<div class="card">
+  <div class="card-title">今月のハイライト</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+    <div style="padding:20px;background:linear-gradient(135deg,#e8f5e9,#fff);border-radius:12px;text-align:center">
+      <div style="font-size:24px;margin-bottom:8px">🏆</div>
+      <div style="font-size:14px;font-weight:700">ステージアップ</div>
+      <div style="font-size:28px;font-weight:900;color:#2e7d32;margin:8px 0">3人</div>
+      <div style="font-size:11px;color:#888">鈴木、渡辺、佐藤</div>
+    </div>
+    <div style="padding:20px;background:linear-gradient(135deg,#e3f2fd,#fff);border-radius:12px;text-align:center">
+      <div style="font-size:24px;margin-bottom:8px">📈</div>
+      <div style="font-size:14px;font-weight:700">最大速度UP</div>
+      <div style="font-size:28px;font-weight:900;color:#1565c0;margin:8px 0">+180</div>
+      <div style="font-size:11px;color:#888">佐藤 花子 (字/分)</div>
+    </div>
+    <div style="padding:20px;background:linear-gradient(135deg,#f3e5f5,#fff);border-radius:12px;text-align:center">
+      <div style="font-size:24px;margin-bottom:8px">🎯</div>
+      <div style="font-size:14px;font-weight:700">最高正答率</div>
+      <div style="font-size:28px;font-weight:900;color:#6a1b9a;margin:8px 0">95%</div>
+      <div style="font-size:11px;color:#888">佐藤 花子</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  100万人の速読 トレーニングシステム ｜ <a href="index.html">学習ガイド</a> ｜ <a href="parent.html">保護者レポート（デモ）</a>
+</div>
+
+</div>
+</body>
+</html>
