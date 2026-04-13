@@ -50,6 +50,7 @@ export interface CoachSessionConfig {
 
 // ========== 定数 ==========
 
+/** @deprecated 経過時間ベースに移行済み。後方互換のため残す */
 const FREQUENCY_MULTIPLIER: Record<TrainingFrequency, number> = {
   1: 0.6,
   2: 0.7,
@@ -57,6 +58,39 @@ const FREQUENCY_MULTIPLIER: Record<TrainingFrequency, number> = {
 }
 
 const DEFAULT_START_WPM = 300
+
+/**
+ * 前回トレーニングからの経過時間に応じた倍率
+ * - 48時間以内: 80%（記憶が新鮮）
+ * - 49〜96時間: 70%（やや忘れている）
+ * - 97時間以上: 60%（かなり忘れている）
+ */
+export function getMultiplierByElapsedHours(elapsedHours: number): number {
+  if (elapsedHours <= 48) return 0.8
+  if (elapsedHours <= 96) return 0.7
+  return 0.6
+}
+
+/**
+ * 経過時間ベースでスタート速度を計算する
+ */
+export function calculateStartSpeedByTime(
+  previousPreWpm: number | null,
+  lastTrainingAt: string | null,
+): number {
+  if (previousPreWpm === null || previousPreWpm <= 0) {
+    return DEFAULT_START_WPM
+  }
+  if (!lastTrainingAt) {
+    return DEFAULT_START_WPM
+  }
+
+  const elapsedMs = Date.now() - new Date(lastTrainingAt).getTime()
+  const elapsedHours = elapsedMs / (1000 * 60 * 60)
+  const multiplier = getMultiplierByElapsedHours(elapsedHours)
+
+  return Math.floor(previousPreWpm * multiplier)
+}
 
 const STAGE_NAMES: Record<CoachStageNumber, string> = {
   1: '3点読み',

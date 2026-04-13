@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import {
   calculateStartSpeed,
+  calculateStartSpeedByTime,
   getNextDirection,
   getDirectionBySession,
   generateMenuSegments,
@@ -91,40 +92,42 @@ export async function getStudentProgress(
 
 /**
  * 次回セッションの高速読み開始速度を返す。
- * コーチ仕様: 前回の事前速度計測(pre) × 頻度倍率
- *   週1回: ×60% / 週2回: ×70% / 週3回: ×80%
+ * 前回トレーニングからの経過時間で倍率を決定:
+ *   48時間以内: ×80%（記憶が新鮮）
+ *   49〜96時間: ×70%（やや忘れている）
+ *   97時間以上: ×60%（かなり忘れている）
  * 直近の pre 計測が無い場合は既定値 300 CPM を返す。
  */
 export async function getStartWpm(studentId: string): Promise<number> {
-  // 生徒の頻度設定を取得
-  const { data: student } = await supabase
-    .from('students')
-    .select('training_frequency')
-    .eq('id', studentId)
-    .single()
+  // 直近の pre 計測と前回トレーニング日時を取得
+  const [{ data: speedData }, { data: progressData }] = await Promise.all([
+    supabase
+      .from('speed_measurements')
+      .select('wpm, measured_at')
+      .eq('student_id', studentId)
+      .eq('measurement_type', 'pre')
+      .order('measured_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('student_progress')
+      .select('last_training_at')
+      .eq('student_id', studentId)
+      .single(),
+  ])
 
-  const frequency = (student?.training_frequency ?? 2) as TrainingFrequency
-
-  // 直近の pre 計測を取得
-  const { data, error } = await supabase
-    .from('speed_measurements')
-    .select('wpm, measured_at')
-    .eq('student_id', studentId)
-    .eq('measurement_type', 'pre')
-    .order('measured_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error || !data || !data.wpm) {
-    return calculateStartSpeed(null, frequency)
+  if (!speedData || !speedData.wpm) {
+    return 300
   }
 
-  const prevPreWpm = Number(data.wpm)
+  const prevPreWpm = Number(speedData.wpm)
   if (!Number.isFinite(prevPreWpm) || prevPreWpm <= 0) {
-    return calculateStartSpeed(null, frequency)
+    return 300
   }
 
-  return calculateStartSpeed(prevPreWpm, frequency)
+  const lastTrainingAt = (progressData as Record<string, unknown> | null)?.last_training_at as string | null
+
+  return calculateStartSpeedByTime(prevPreWpm, lastTrainingAt)
 }
 
 export async function getTrainingStep(stepId: string) {
