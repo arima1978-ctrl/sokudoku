@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保護者向け学習レポート（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 800px; margin: 0 auto; padding: 32px 20px; }
+
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+/* ヘッダー */
+.header { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 32px; margin-bottom: 24px; }
+.header h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+.header .sub { font-size: 14px; opacity: 0.8; }
+.header .student-info { margin-top: 16px; display: flex; gap: 24px; font-size: 13px; }
+.header .student-info span { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 10px; }
+
+/* カード */
+.card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-left: 12px; border-left: 4px solid #0984e3; }
+
+/* ステージ進捗 */
+.stage-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.stage-badge { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #55efc4, #00b894); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #fff; }
+.stage-name { font-size: 20px; font-weight: 700; }
+.stage-sub { font-size: 13px; color: #888; }
+.progress-wrap { margin-bottom: 20px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 6px; }
+.progress-bar { height: 10px; background: #e8ecf0; border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #0984e3, #00b894); transition: width 0.5s; }
+
+/* 統計カード */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat { text-align: center; padding: 16px 8px; border-radius: 12px; }
+.stat.blue { background: #e3f2fd; }
+.stat.green { background: #e8f5e9; }
+.stat.purple { background: #f3e5f5; }
+.stat .num { font-size: 28px; font-weight: 900; }
+.stat.blue .num { color: #1565c0; }
+.stat.green .num { color: #2e7d32; }
+.stat.purple .num { color: #6a1b9a; }
+.stat .label { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* 条件チェック */
+.conditions { display: flex; flex-direction: column; gap: 10px; }
+.cond { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #f8f9fa; font-size: 13px; }
+.cond .icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; }
+.cond .icon.done { background: #00b894; }
+.cond .icon.pending { background: #dfe6e9; color: #b2bec3; }
+.cond .text { flex: 1; }
+.cond .count { font-weight: 700; color: #0984e3; }
+
+/* グラフ */
+.chart-area { position: relative; height: 200px; margin: 20px 0; }
+.chart-svg { width: 100%; height: 100%; }
+
+/* テーブル */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { padding: 8px 10px; text-align: left; background: #f8f9fa; font-weight: 700; font-size: 12px; color: #888; }
+td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+.badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.badge.complete { background: #e8f5e9; color: #2e7d32; }
+.badge.progress { background: #fff3e0; color: #e65100; }
+.delta.up { color: #2e7d32; font-weight: 700; }
+.delta.down { color: #c62828; }
+
+/* 応援メッセージ */
+.message { background: linear-gradient(135deg, #fff9c4, #fff176); border-radius: 16px; padding: 20px 24px; margin-bottom: 16px; }
+.message .icon { font-size: 24px; margin-bottom: 8px; }
+.message .text { font-size: 14px; font-weight: 500; line-height: 1.7; }
+.message .highlight { color: #e65100; font-weight: 700; }
+
+/* フッター */
+.footer { text-align: center; padding: 24px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+
+/* 印刷 */
+@media print {
+  body { background: #fff; }
+  .demo-badge { display: none; }
+  .page { padding: 0; max-width: 100%; }
+  .header { border-radius: 0; }
+  .card { break-inside: avoid; box-shadow: none; border: 1px solid #eee; }
+}
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+<div class="page">
+
+<!-- ヘッダー -->
+<div class="header">
+  <h1>📊 学習レポート</h1>
+  <div class="sub">100万人の速読トレーニング</div>
+  <div class="student-info">
+    <span>👤 山田 太郎</span>
+    <span>🏫 名大SKY 本校</span>
+    <span>📅 2026年4月13日 発行</span>
+  </div>
+</div>
+
+<!-- 応援メッセージ -->
+<div class="message">
+  <div class="icon">🎉</div>
+  <div class="text">
+    太郎くん、<span class="highlight">Stage 2</span> のトレーニングを頑張っています！
+    読書スピードが <span class="highlight">+120字/分</span> 向上しました。
+    あと <span class="highlight">3回</span> のトレーニングでステージアップの条件達成です！
+  </div>
+</div>
+
+<!-- ステージ進捗 -->
+<div class="card">
+  <div class="card-title">現在のステージ</div>
+  <div class="stage-header">
+    <div class="stage-badge">2</div>
+    <div>
+      <div class="stage-name">2点高速読み</div>
+      <div class="stage-sub">1行を2つの固視点で素早く読む練習</div>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-label"><span>トレーニング回数</span><span>5 / 8回（最低回数）</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div>
+  </div>
+  <div class="stats">
+    <div class="stat blue">
+      <div class="num">380</div>
+      <div class="label">現在の読書速度<br>(字/分)</div>
+    </div>
+    <div class="stat green">
+      <div class="num">450</div>
+      <div class="label">最高読書速度<br>(字/分)</div>
+    </div>
+    <div class="stat purple">
+      <div class="num">88%</div>
+      <div class="label">平均正答率</div>
+    </div>
+  </div>
+
+  <div class="card-title" style="margin-top:8px">ステージアップ条件</div>
+  <div class="conditions">
+    <div class="cond">
+      <div class="icon done">✓</div>
+      <div class="text">最低トレーニング回数</div>
+      <div class="count">5 / 8回</div>
+    </div>
+    <div class="cond">
+      <div class="icon done">✓</div>
+      <div class="text">目標カウント（220）突破 × 5回</div>
+      <div class="count">3 / 5回</div>
+    </div>
+    <div class="cond">
+      <div class="icon pending">○</div>
+      <div class="text">正答率90%以上 × 5回</div>
+      <div class="count">2 / 5回</div>
+    </div>
+  </div>
+</div>
+
+<!-- 読書スピード推移グラフ -->
+<div class="card">
+  <div class="card-title">読書スピードの推移</div>
+  <div class="chart-area">
+    <svg class="chart-svg" viewBox="0 0 700 200">
+      <!-- グリッド -->
+      <line x1="50" y1="10" x2="50" y2="180" stroke="#e8ecf0" stroke-width="1"/>
+      <line x1="50" y1="180" x2="680" y2="180" stroke="#e8ecf0" stroke-width="1"/>
+      <line x1="50" y1="130" x2="680" y2="130" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="50" y1="80" x2="680" y2="80" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="50" y1="30" x2="680" y2="30" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="4"/>
+      <!-- Y軸ラベル -->
+      <text x="45" y="183" text-anchor="end" font-size="10" fill="#999">200</text>
+      <text x="45" y="133" text-anchor="end" font-size="10" fill="#999">300</text>
+      <text x="45" y="83" text-anchor="end" font-size="10" fill="#999">400</text>
+      <text x="45" y="33" text-anchor="end" font-size="10" fill="#999">500</text>
+      <!-- 前（青線） -->
+      <polyline points="113,165 176,155 239,145 302,130 365,120 428,105 491,100 554,90 617,85" fill="none" stroke="#0984e3" stroke-width="2.5"/>
+      <circle cx="113" cy="165" r="4" fill="#0984e3"/>
+      <circle cx="176" cy="155" r="4" fill="#0984e3"/>
+      <circle cx="239" cy="145" r="4" fill="#0984e3"/>
+      <circle cx="302" cy="130" r="4" fill="#0984e3"/>
+      <circle cx="365" cy="120" r="4" fill="#0984e3"/>
+      <circle cx="428" cy="105" r="4" fill="#0984e3"/>
+      <circle cx="491" cy="100" r="4" fill="#0984e3"/>
+      <circle cx="554" cy="90" r="4" fill="#0984e3"/>
+      <circle cx="617" cy="85" r="4" fill="#0984e3"/>
+      <!-- 後（緑線） -->
+      <polyline points="113,150 176,135 239,125 302,110 365,95 428,80 491,75 554,60 617,55" fill="none" stroke="#00b894" stroke-width="2.5" stroke-dasharray="6,3"/>
+      <circle cx="113" cy="150" r="4" fill="#00b894"/>
+      <circle cx="176" cy="135" r="4" fill="#00b894"/>
+      <circle cx="239" cy="125" r="4" fill="#00b894"/>
+      <circle cx="302" cy="110" r="4" fill="#00b894"/>
+      <circle cx="365" cy="95" r="4" fill="#00b894"/>
+      <circle cx="428" cy="80" r="4" fill="#00b894"/>
+      <circle cx="491" cy="75" r="4" fill="#00b894"/>
+      <circle cx="554" cy="60" r="4" fill="#00b894"/>
+      <circle cx="617" cy="55" r="4" fill="#00b894"/>
+      <!-- 凡例 -->
+      <line x1="200" y1="195" x2="220" y2="195" stroke="#0984e3" stroke-width="2.5"/>
+      <text x="225" y="198" font-size="10" fill="#666">測定（前）</text>
+      <line x1="310" y1="195" x2="330" y2="195" stroke="#00b894" stroke-width="2.5" stroke-dasharray="6,3"/>
+      <text x="335" y="198" font-size="10" fill="#666">測定（後）</text>
+      <!-- X軸ラベル -->
+      <text x="113" y="195" text-anchor="middle" font-size="9" fill="#999">4/1</text>
+      <text x="239" y="195" text-anchor="middle" font-size="9" fill="#999">4/3</text>
+      <text x="365" y="195" text-anchor="middle" font-size="9" fill="#999">4/7</text>
+      <text x="491" y="195" text-anchor="middle" font-size="9" fill="#999">4/9</text>
+      <text x="617" y="195" text-anchor="middle" font-size="9" fill="#999">4/13</text>
+    </svg>
+  </div>
+</div>
+
+<!-- 速度推移テーブル -->
+<div class="card">
+  <div class="card-title">直近のトレーニング記録</div>
+  <table>
+    <thead>
+      <tr><th>日付</th><th>コース</th><th>測定(前)</th><th>測定(後)</th><th>変化</th><th>正答率</th><th>状態</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>4/13</td><td>20分</td><td>380字/分</td><td>430字/分</td><td class="delta up">+50</td><td>92%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/11</td><td>20分</td><td>360字/分</td><td>420字/分</td><td class="delta up">+60</td><td>88%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/9</td><td>10分</td><td>350字/分</td><td>400字/分</td><td class="delta up">+50</td><td>85%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/7</td><td>20分</td><td>330字/分</td><td>390字/分</td><td class="delta up">+60</td><td>90%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/4</td><td>10分</td><td>310字/分</td><td>370字/分</td><td class="delta up">+60</td><td>82%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/3</td><td>20分</td><td>290字/分</td><td>350字/分</td><td class="delta up">+60</td><td>78%</td><td><span class="badge complete">完了</span></td></tr>
+      <tr><td>4/1</td><td>10分</td><td>260字/分</td><td>320字/分</td><td class="delta up">+60</td><td>80%</td><td><span class="badge complete">完了</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ステージ履歴 -->
+<div class="card">
+  <div class="card-title">ステージ進捗履歴</div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div style="text-align:center;padding:12px 20px;border-radius:12px;background:#e8f5e9;border:2px solid #00b894">
+      <div style="font-size:24px;font-weight:900;color:#2e7d32">1</div>
+      <div style="font-size:11px;color:#2e7d32;font-weight:700">3点高速読み</div>
+      <div style="font-size:10px;color:#4caf50;margin-top:4px">✓ 完了 (6回)</div>
+    </div>
+    <div style="font-size:24px;color:#00b894">→</div>
+    <div style="text-align:center;padding:12px 20px;border-radius:12px;background:#e3f2fd;border:2px solid #0984e3">
+      <div style="font-size:24px;font-weight:900;color:#1565c0">2</div>
+      <div style="font-size:11px;color:#1565c0;font-weight:700">2点高速読み</div>
+      <div style="font-size:10px;color:#42a5f5;margin-top:4px">🔄 トレーニング中</div>
+    </div>
+    <div style="font-size:24px;color:#dfe6e9">→</div>
+    <div style="text-align:center;padding:12px 20px;border-radius:12px;background:#f8f9fa;border:2px solid #e8ecf0">
+      <div style="font-size:24px;font-weight:900;color:#ccc">3</div>
+      <div style="font-size:11px;color:#999">1行高速読み</div>
+      <div style="font-size:10px;color:#ccc;margin-top:4px">未到達</div>
+    </div>
+    <div style="font-size:24px;color:#dfe6e9">→</div>
+    <div style="text-align:center;padding:12px 20px;border-radius:12px;background:#f8f9fa;border:2px solid #e8ecf0">
+      <div style="font-size:24px;font-weight:900;color:#ccc">4</div>
+      <div style="font-size:11px;color:#999">2行高速読み</div>
+    </div>
+    <div style="font-size:24px;color:#dfe6e9">→</div>
+    <div style="text-align:center;padding:12px 20px;border-radius:12px;background:#f8f9fa;border:2px solid #e8ecf0">
+      <div style="font-size:24px;font-weight:900;color:#ccc">5</div>
+      <div style="font-size:11px;color:#999">ブロック高速</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  100万人の速読 トレーニングシステム ｜ <a href="index.html">学習ガイドを見る</a>
+</div>
+
+</div>
+</body>
+</html>
