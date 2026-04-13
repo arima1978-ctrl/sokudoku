@@ -22,9 +22,8 @@ import {
   type StepEvaluation,
   type TrainingSession,
   type CoachStageEvaluation,
-  type DynamicSegment,
 } from '@/app/actions/training'
-import type { Direction } from '@/lib/coach'
+import type { Direction, DynamicSegment } from '@/lib/coach'
 import { getLoggedInStudent, type LoggedInStudent } from '@/lib/auth'
 
 // ========== 種目ラベル ==========

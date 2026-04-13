@@ -16,9 +16,8 @@ import {
 import {
   getQuizForContent,
   getCoachSessionConfig,
-  type CoachSessionConfig,
 } from '@/app/actions/training'
-import { getDirectionBySession, type Direction } from '@/lib/coach'
+import { getDirectionBySession, type Direction, type CoachSessionConfig } from '@/lib/coach'
 import StageInfo from '@/components/training/StageInfo'
 
 interface TrainingHomeProps {

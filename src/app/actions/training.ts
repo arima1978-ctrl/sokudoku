@@ -33,7 +33,8 @@ export interface StudentProgress {
   speed_mode: boolean         // Stage5完了後のスピードモード
 }
 
-export type { CoachSessionConfig, DynamicSegment }
+// Note: CoachSessionConfig, DynamicSegment types are exported from @/lib/coach directly
+// 'use server' modules cannot re-export types (Next.js treats them as value exports)
 
 export interface MenuSegment {
   id: string

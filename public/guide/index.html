@@ -233,10 +233,54 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   </div>
 </div>
 
+<!-- コース別の瞬間読みコンテンツ -->
+<div class="section">
+  <h2 class="section-title">コース別の瞬間読みコンテンツ</h2>
+  <p style="font-size:14px;color:#666;margin-bottom:16px">1行瞬間読み・2行瞬間読みで使用するコンテンツは、選択したコースによって異なります。ばらばら瞬間読みは単語のため共通です。</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <!-- 速読基本トレーニング -->
+    <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:2px solid #0984e3">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#0984e3">📘 速読基本トレーニング</h3>
+      <p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px">2種類の文章タイプを<strong>ログインごとに交互</strong>に使用します。</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="padding:12px;background:#f0f7ff;border-radius:10px;text-align:center">
+          <div style="font-size:20px;margin-bottom:4px">🔊</div>
+          <div style="font-size:13px;font-weight:700;color:#0984e3">声になる文</div>
+          <div style="font-size:11px;color:#666;margin-top:4px">音やリズムが<br>頭に浮かぶ文章</div>
+        </div>
+        <div style="padding:12px;background:#fff5f0;border-radius:10px;text-align:center">
+          <div style="font-size:20px;margin-bottom:4px">🎨</div>
+          <div style="font-size:13px;font-weight:700;color:#e17055">絵になる文</div>
+          <div style="font-size:11px;color:#666;margin-top:4px">情景や映像が<br>頭に浮かぶ文章</div>
+        </div>
+      </div>
+      <div style="padding:8px;background:#f8f9fa;border-radius:8px;font-size:11px;color:#666;text-align:center">
+        1回目 → <span style="color:#0984e3;font-weight:700">声</span> → 2回目 → <span style="color:#e17055;font-weight:700">絵</span> → 3回目 → <span style="color:#0984e3;font-weight:700">声</span> → ...（ログインごとに交互）
+      </div>
+    </div>
+    <!-- ジャンル別コース -->
+    <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:2px solid #00b894">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#00b894">📚 ジャンル別コース</h3>
+      <p style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px">選択したジャンルのコンテンツで瞬間読みを行います。声/絵の区別はありません。</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#e8f5e9;color:#2e7d32">📖 物語</span>
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#fff3e0;color:#e65100">🌟 道徳</span>
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#e3f2fd;color:#1565c0">🔍 雑学</span>
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#fce4ec;color:#c62828">👤 伝記</span>
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#f3e5f5;color:#6a1b9a">🌍 社会</span>
+        <span style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;background:#e0f7fa;color:#00695c">🔬 理科</span>
+      </div>
+      <div style="margin-top:12px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:11px;color:#666;text-align:center">
+        毎回同じジャンルのコンテンツを使用
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 4. ステージ別構成 -->
 <div class="section">
   <h2 class="section-title">ステージ別トレーニング内容（10分コースの例）</h2>
-  <p style="font-size:13px;color:#888;margin-bottom:16px">各セグメントの後にテスト（瞬間よみ5問 / 高速読み内容理解4択）があります。視点移動はテストなし（実際の本を使ったトレーニング）。</p>
+  <p style="font-size:13px;color:#888;margin-bottom:16px">各セグメントの後にテスト（瞬間よみ5問 / 高速読み内容理解4択）があります。視点移動はテストなし（実際の本を使ったトレーニング）。<br><span style="color:#0984e3">※ 以下は速読基本トレーニングの例です。1行・2行瞬間読みは「声になる文」と「絵になる文」がログインごとに交互に切り替わります。ジャンル別コースでは選択したジャンルのコンテンツを毎回使用します。</span></p>
 
   <!-- Stage 1 -->
   <div class="stage-detail">
@@ -255,13 +299,13 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <details style="margin-top:12px">
       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#0984e3;padding:8px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <tr style="background:#f0f7ff"><th style="padding:4px 8px;text-align:center;width:15%">回</th><th style="padding:4px 8px;text-align:center;width:12%">方向</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">4回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">5回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong> <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0f7ff"><th style="padding:4px 8px;text-align:center;width:12%">回</th><th style="padding:4px 8px;text-align:center;width:10%">方向</th><th style="padding:4px 8px;text-align:center;width:10%">文章</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">4回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">5回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → たて1行瞬間読み → たて2行瞬間読み → <strong>たて3点高速読み</strong></td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → よこ1行瞬間読み → よこ2行瞬間読み → <strong>よこ3点高速読み</strong> <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -281,15 +325,15 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <details style="margin-top:12px">
       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#00b894;padding:8px 0">回数ごとの内容を見る（1行/2行 交互ルール）</summary>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <tr style="background:#f0fff4"><th style="padding:4px 8px;text-align:center;width:15%">回</th><th style="padding:4px 8px;text-align:center;width:12%">方向</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">たて1行瞬間読み</span> → <strong>たて2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">よこ1行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">たて2行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#e17055">← 2行に切替</span></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">4回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">よこ2行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">5回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">たて1行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#0984e3">← 1行に戻る</span></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">6回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">よこ1行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">7回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">たて2行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#e17055">← 2行に切替</span></td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">よこ2行瞬間読み</span> → <strong>よこ2点高速読み</strong> <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff4"><th style="padding:4px 8px;text-align:center;width:12%">回</th><th style="padding:4px 8px;text-align:center;width:10%">方向</th><th style="padding:4px 8px;text-align:center;width:10%">文章</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">たて1行瞬間読み</span> → <strong>たて2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">よこ1行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">たて2行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#e17055">← 2行に切替</span></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">4回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">よこ2行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">5回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">たて1行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#0984e3">← 1行に戻る</span></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">6回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <span style="color:#0984e3;font-weight:700">よこ1行瞬間読み</span> → <strong>よこ2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">7回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">たて2行瞬間読み</span> → <strong>たて2点高速読み</strong> <span style="font-size:10px;color:#e17055">← 2行に切替</span></td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <span style="color:#e17055;font-weight:700">よこ2行瞬間読み</span> → <strong>よこ2点高速読み</strong> <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -311,11 +355,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <details style="margin-top:12px">
       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#e17055;padding:8px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <tr style="background:#fff5f0"><th style="padding:4px 8px;text-align:center;width:15%">回</th><th style="padding:4px 8px;text-align:center;width:12%">方向</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="background:#fff5f0"><th style="padding:4px 8px;text-align:center;width:12%">回</th><th style="padding:4px 8px;text-align:center;width:10%">方向</th><th style="padding:4px 8px;text-align:center;width:10%">文章</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
         <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -336,11 +380,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <details style="margin-top:12px">
       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#d63031;padding:8px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <tr style="background:#fff0f0"><th style="padding:4px 8px;text-align:center;width:15%">回</th><th style="padding:4px 8px;text-align:center;width:12%">方向</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td>ばらばら瞬間 → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>ばらばら瞬間 → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="background:#fff0f0"><th style="padding:4px 8px;text-align:center;width:12%">回</th><th style="padding:4px 8px;text-align:center;width:10%">方向</th><th style="padding:4px 8px;text-align:center;width:10%">文章</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間 → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間 → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
         <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -360,11 +404,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <details style="margin-top:12px">
       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#6c5ce7;padding:8px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <tr style="background:#f5f0ff"><th style="padding:4px 8px;text-align:center;width:15%">回</th><th style="padding:4px 8px;text-align:center;width:12%">方向</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="background:#f5f0ff"><th style="padding:4px 8px;text-align:center;width:12%">回</th><th style="padding:4px 8px;text-align:center;width:10%">方向</th><th style="padding:4px 8px;text-align:center;width:10%">文章</th><th style="padding:4px 8px;text-align:left">トレーニング内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1回目</td><td style="text-align:center;color:#0984e3;font-weight:700">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
         <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td><strong>よこブロック高速読み</strong> → 視点移動 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8回目</td><td style="text-align:center;color:#00b894;font-weight:700">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td><strong>よこブロック高速読み</strong> → 視点移動 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -403,11 +447,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#0984e3;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f0f7ff"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら瞬間読み → たて1行瞬間 → たて2行瞬間 → <strong>たて3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら瞬間読み → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ3点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜5</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0f7ff"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → たて1行瞬間 → たて2行瞬間 → <strong>たて3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ3点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜5</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -426,11 +470,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#00b894;padding:6px 0">回数ごとの内容を見る（毎回全種目）</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f0fff4"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら → たて1行瞬間 → たて2行瞬間 → <strong>たて2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ2点高速読み</strong></td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff4"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら → たて1行瞬間 → たて2行瞬間 → <strong>たて2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ2点高速読み</strong></td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -450,11 +494,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#e17055;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#fff5f0"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#fff5f0"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -473,11 +517,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#d63031;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#fff0f0"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら瞬間読み → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら瞬間読み → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#fff0f0"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -495,11 +539,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6c5ce7;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f5f0ff"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f5f0ff"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -539,11 +583,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#0984e3;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f0f7ff"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら瞬間 → たて1行瞬間 → たて2行瞬間 → <strong>たて3点高速</strong> → 視点移動</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら瞬間 → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ3点高速</strong> → 視点移動</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜5</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0f7ff"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間 → たて1行瞬間 → たて2行瞬間 → <strong>たて3点高速</strong> → 視点移動</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間 → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ3点高速</strong> → 視点移動</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜5</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">6</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -564,11 +608,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#00b894;padding:6px 0">回数ごとの内容を見る（毎回全種目）</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f0fff4"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら → たて1行瞬間 → たて2行瞬間 → <strong>たて2点高速読み</strong> → 視点移動</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ2点高速読み</strong> → 視点移動</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f0fff4"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら → たて1行瞬間 → たて2行瞬間 → <strong>たて2点高速読み</strong> → 視点移動</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら → よこ1行瞬間 → よこ2行瞬間 → <strong>よこ2点高速読み</strong> → 視点移動</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し（毎回全種目）</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -589,11 +633,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#e17055;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#fff5f0"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#fff5f0"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>たて1行瞬間 → たて2行瞬間 → <strong>たて1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>よこ1行瞬間 → よこ2行瞬間 → <strong>よこ1行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -613,11 +657,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#d63031;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#fff0f0"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td>ばらばら瞬間読み → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td>ばらばら瞬間読み → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#fff0f0"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>ばらばら瞬間読み → <strong>たて2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td>ばらばら瞬間読み → <strong>よこ2行高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -636,11 +680,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </table>
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6c5ce7;padding:6px 0">回数ごとの内容を見る</summary>
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
-        <tr style="background:#f5f0ff"><th style="padding:3px 6px;text-align:center;width:12%">回</th><th style="padding:3px 6px;text-align:center;width:10%">方向</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
-        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
+        <tr style="background:#f5f0ff"><th style="padding:3px 6px;text-align:center;width:10%">回</th><th style="padding:3px 6px;text-align:center;width:8%">方向</th><th style="padding:3px 6px;text-align:center;width:8%">文章</th><th style="padding:3px 6px;text-align:left">内容</th></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center;font-weight:700">1</td><td style="text-align:center;color:#0984e3">たて</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td><strong>たてブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa"><td style="text-align:center;font-weight:700">2</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#e17055">🎨絵</span></td><td><strong>よこブロック高速読み</strong> → 視点移動 → 本読み</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="text-align:center">3〜7</td><td style="text-align:center;color:#888">交互</td><td style="text-align:center;font-size:11px;color:#888">交互</td><td>同上パターンの繰り返し</td></tr>
+        <tr style="background:#f0fff0"><td style="text-align:center;font-weight:700">8</td><td style="text-align:center;color:#00b894">よこ</td><td style="text-align:center;font-size:11px"><span style="color:#0984e3">🔊声</span></td><td>同上 <span style="color:#00b894;font-weight:700">← 最低回数達成</span></td></tr>
       </table>
     </details>
   </div>
@@ -776,6 +820,106 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
       <div class="time-bar" style="border:2px solid #e84393">
         <div style="flex:4;background:#fd79a8">高速読み</div>
         <div style="flex:4;background:#a29bfe">視点移動</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8. 時間配分（20分） -->
+<div class="section">
+  <h2 class="section-title">20分コースの時間配分</h2>
+  <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+    <div class="time-grid">
+      <div class="time-label">Stage 1</div>
+      <div class="time-bar">
+        <div style="flex:2.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:3;background:#74b9ff">1行</div>
+        <div style="flex:3;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:8.5;background:#fd79a8">高速読み</div>
+      </div>
+      <div class="time-label">Stage 2</div>
+      <div class="time-bar">
+        <div style="flex:2.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:2.5;background:#74b9ff">1行</div>
+        <div style="flex:2.5;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:8.5;background:#fd79a8">高速読み</div>
+      </div>
+      <div class="time-label">Stage 3</div>
+      <div class="time-bar">
+        <div style="flex:3;background:#74b9ff">1行</div>
+        <div style="flex:3;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:5;background:#fd79a8">高速読み</div>
+        <div style="flex:5;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:4;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label">Stage 4</div>
+      <div class="time-bar">
+        <div style="flex:2.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:6;background:#fd79a8">高速読み</div>
+        <div style="flex:6;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:5.5;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label">Stage 5</div>
+      <div class="time-bar">
+        <div style="flex:7;background:#fd79a8">高速読み</div>
+        <div style="flex:7;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:6;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label" style="color:#e84393">Speed</div>
+      <div class="time-bar" style="border:2px solid #e84393">
+        <div style="flex:10;background:#fd79a8">高速読み</div>
+        <div style="flex:10;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9. 時間配分（30分） -->
+<div class="section">
+  <h2 class="section-title">30分コースの時間配分</h2>
+  <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+    <div class="time-grid">
+      <div class="time-label">Stage 1</div>
+      <div class="time-bar">
+        <div style="flex:3.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:4;background:#74b9ff">1行</div>
+        <div style="flex:4;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:10.5;background:#fd79a8">高速読み</div>
+        <div style="flex:5;background:#a29bfe;font-weight:700">視点移動</div>
+      </div>
+      <div class="time-label">Stage 2</div>
+      <div class="time-bar">
+        <div style="flex:3;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:3;background:#74b9ff">1行</div>
+        <div style="flex:3;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:11;background:#fd79a8">高速読み</div>
+        <div style="flex:5;background:#a29bfe;font-weight:700">視点移動</div>
+      </div>
+      <div class="time-label">Stage 3</div>
+      <div class="time-bar">
+        <div style="flex:4;background:#74b9ff">1行</div>
+        <div style="flex:4;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:7.5;background:#fd79a8">高速読み</div>
+        <div style="flex:7.5;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:7;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label">Stage 4</div>
+      <div class="time-bar">
+        <div style="flex:3;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:9;background:#fd79a8">高速読み</div>
+        <div style="flex:9;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:9;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label">Stage 5</div>
+      <div class="time-bar">
+        <div style="flex:10;background:#fd79a8">高速読み</div>
+        <div style="flex:10;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:10;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
+      </div>
+      <div class="time-label" style="color:#e84393">Speed</div>
+      <div class="time-bar" style="border:2px solid #e84393">
+        <div style="flex:15;background:#fd79a8">高速読み</div>
+        <div style="flex:15;background:#ffd8a8;color:#6c3800;font-weight:700">本読み</div>
       </div>
     </div>
   </div>
