@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   BLOCK_CONFIG,
-  COUNT_ACCELERATION,
+  COUNT_AUTO,
   MARKER_HIGHLIGHT,
   QUESTION_FONT,
-  getCountSpan,
 } from '@/lib/trainingConfig'
 
 interface SpeedReadingProps {
@@ -103,7 +102,7 @@ export default function SpeedReading({
     setMarkerCol(m.col)
   }, [blockNum, maxRow, pages, pageNum])
 
-  // カウント間隔処理（自動上昇+音+マーカー移動）
+  // カウント間隔処理（8カウントで+1ずつ緩やかに上昇）
   const startCountInterval = useCallback(() => {
     if (countIntervalRef.current) clearInterval(countIntervalRef.current)
 
@@ -114,22 +113,19 @@ export default function SpeedReading({
       playTick()
       moveMarker()
 
-      // 自動モードの場合: カウント上昇判定
+      // 自動モードの場合: 8カウントで+1
       if (isAuto) {
         countNumberRef.current++
-        const accelTable = COUNT_ACCELERATION[blockType]?.[blockNum]
-        const threshold = accelTable?.[displayCountRef.current] ?? 20
 
-        if (countNumberRef.current >= threshold) {
+        if (countNumberRef.current >= COUNT_AUTO.beatsPerStep) {
           countNumberRef.current = 0
           const currentVal = displayCountRef.current
 
           if (currentVal >= BLOCK_CONFIG.countMax) {
-            // 最大到達→最小に戻る
+            // 最大(260)到達→最小(60)に戻る
             displayCountRef.current = BLOCK_CONFIG.countMin
           } else {
-            const span = getCountSpan(currentVal, 'up')
-            displayCountRef.current = Math.min(currentVal + span, BLOCK_CONFIG.countMax)
+            displayCountRef.current = currentVal + COUNT_AUTO.stepSize
           }
           setCount(displayCountRef.current)
 
@@ -139,7 +135,7 @@ export default function SpeedReading({
         }
       }
     }, intervalMs)
-  }, [isAuto, blockType, blockNum, playTick, moveMarker])
+  }, [isAuto, playTick, moveMarker])
 
   // 音源読み込み + 開始
   const startReading = useCallback(async () => {
@@ -166,12 +162,11 @@ export default function SpeedReading({
     startCountInterval()
   }, [startCountInterval])
 
-  // カウント手動UP
+  // カウント手動UP (+10ずつ)
   function handleCountUp() {
     const current = displayCountRef.current
     if (current >= BLOCK_CONFIG.countMax) return
-    const span = getCountSpan(current, 'up')
-    displayCountRef.current = Math.min(current + span, BLOCK_CONFIG.countMax)
+    displayCountRef.current = Math.min(current + 10, BLOCK_CONFIG.countMax)
     setCount(displayCountRef.current)
     if (phase === 'reading') {
       countNumberRef.current = 0
@@ -180,11 +175,11 @@ export default function SpeedReading({
     }
   }
 
+  // カウント手動DOWN (-10ずつ)
   function handleCountDown() {
     const current = displayCountRef.current
     if (current <= BLOCK_CONFIG.countMin) return
-    const span = getCountSpan(current, 'down')
-    displayCountRef.current = Math.max(current - span, BLOCK_CONFIG.countMin)
+    displayCountRef.current = Math.max(current - 10, BLOCK_CONFIG.countMin)
     setCount(displayCountRef.current)
     if (phase === 'reading') {
       countNumberRef.current = 0
