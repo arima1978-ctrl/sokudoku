@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速読トレーニング 学習ガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+/* ヘッダー */
+.hero { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 48px 40px; margin-bottom: 48px; text-align: center; }
+.hero h1 { font-size: 32px; font-weight: 900; margin-bottom: 8px; }
+.hero p { font-size: 16px; opacity: 0.8; }
+
+/* セクション */
+.section { margin-bottom: 48px; }
+.section-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; padding-left: 16px; border-left: 5px solid #0084E8; }
+
+/* ロードマップ */
+.roadmap { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 20px 0; }
+.stage-card { flex-shrink: 0; width: 160px; text-align: center; position: relative; }
+.stage-badge { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: #fff; margin: 0 auto 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+.stage-card:nth-child(1) .stage-badge { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+.stage-card:nth-child(3) .stage-badge { background: linear-gradient(135deg, #55efc4, #00b894); }
+.stage-card:nth-child(5) .stage-badge { background: linear-gradient(135deg, #fdcb6e, #e17055); }
+.stage-card:nth-child(7) .stage-badge { background: linear-gradient(135deg, #e17055, #d63031); }
+.stage-card:nth-child(9) .stage-badge { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
+.stage-card:nth-child(11) .stage-badge { background: linear-gradient(135deg, #fd79a8, #e84393); width: 80px; height: 80px; font-size: 16px; }
+.stage-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.stage-sub { font-size: 11px; color: #666; }
+.arrow { flex-shrink: 0; font-size: 28px; color: #0084E8; padding: 0 4px; margin-top: -20px; }
+
+/* 進級条件 */
+.conditions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.cond-card { background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 2px solid #e8ecf0; }
+.cond-card .num { font-size: 48px; font-weight: 900; margin-bottom: 4px; }
+.cond-card:nth-child(1) .num { color: #0984e3; }
+.cond-card:nth-child(2) .num { color: #e17055; }
+.cond-card:nth-child(3) .num { color: #00b894; }
+.cond-card .label { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.cond-card .desc { font-size: 12px; color: #666; }
+.cond-note { text-align: center; margin-top: 12px; font-size: 13px; color: #888; }
+
+/* セッションフロー */
+.flow { display: flex; align-items: stretch; gap: 0; }
+.flow-step { flex: 1; text-align: center; padding: 20px 12px; border-radius: 16px; position: relative; }
+.flow-step.measure { background: #dfe6e9; }
+.flow-step.training { background: linear-gradient(135deg, #74b9ff, #0984e3); color: #fff; flex: 2; }
+.flow-step .step-icon { font-size: 32px; margin-bottom: 8px; }
+.flow-step .step-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.flow-step .step-desc { font-size: 11px; opacity: 0.8; }
+.flow-arrow { display: flex; align-items: center; font-size: 24px; color: #0084E8; padding: 0 8px; }
+
+/* ステージ別構成 */
+.stage-detail { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.stage-detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.stage-detail-badge { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; color: #fff; }
+.stage-detail-info h3 { font-size: 16px; font-weight: 700; }
+.stage-detail-info p { font-size: 12px; color: #888; }
+.segment-flow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.segment-pill { padding: 8px 16px; border-radius: 24px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.seg-barabara { background: #ffeaa7; color: #6c5400; }
+.seg-1line { background: #74b9ff; color: #fff; }
+.seg-2line { background: #55efc4; color: #00634a; }
+.seg-block { background: #fd79a8; color: #fff; }
+.seg-viewpoint { background: #a29bfe; color: #fff; }
+.seg-reading { background: #dfe6e9; color: #636e72; }
+.seg-arrow { color: #b2bec3; font-size: 18px; }
+.direction-note { margin-top: 12px; font-size: 12px; color: #888; padding: 8px 12px; background: #f8f9fa; border-radius: 8px; }
+
+/* カウントシステム */
+.count-visual { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.count-row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.count-label { font-size: 14px; font-weight: 700; width: 80px; text-align: right; }
+.count-bar-wrap { flex: 1; position: relative; height: 40px; }
+.count-bar { height: 100%; border-radius: 20px; display: flex; align-items: center; padding: 0 16px; }
+.count-bar span { font-size: 13px; font-weight: 700; color: #fff; }
+.beats { display: flex; gap: 6px; margin: 20px 0; justify-content: center; }
+.beat { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+.beat.active { background: #0984e3; color: #fff; }
+.beat.inactive { background: #dfe6e9; color: #b2bec3; }
+.count-equation { text-align: center; font-size: 20px; font-weight: 700; margin: 16px 0; color: #2d3436; }
+.count-equation .highlight { color: #0984e3; font-size: 24px; }
+
+/* スピード設定 */
+.speed-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.speed-card { background: #fff; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.speed-card .freq { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.speed-card .mult { font-size: 36px; font-weight: 900; }
+.speed-card:nth-child(1) .mult { color: #00b894; }
+.speed-card:nth-child(2) .mult { color: #0984e3; }
+.speed-card:nth-child(3) .mult { color: #e17055; }
+.speed-card .example { font-size: 11px; color: #888; margin-top: 8px; }
+
+/* 時間配分 */
+.time-grid { display: grid; grid-template-columns: 60px 1fr; gap: 8px; align-items: center; }
+.time-label { font-size: 12px; font-weight: 700; color: #888; text-align: right; }
+.time-bar { display: flex; height: 32px; border-radius: 8px; overflow: hidden; }
+.time-bar > div { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: #fff; white-space: nowrap; padding: 0 4px; }
+
+/* 印刷 */
+@media print {
+  body { background: #fff; }
+  .page { padding: 0; }
+  .hero { break-after: avoid; }
+  .section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ヘッダー -->
+<div class="hero">
+  <h1>100万人の速読 学習ガイド</h1>
+  <p>5つのステージを段階的にクリアして、読書スピードを飛躍的に向上させます</p>
+</div>
+
+<!-- 1. 全体ロードマップ -->
+<div class="section">
+  <h2 class="section-title">学習ロードマップ</h2>
+  <div class="roadmap">
+    <div class="stage-card">
+      <div class="stage-badge">1</div>
+      <div class="stage-name">3点読み</div>
+      <div class="stage-sub">最低6回</div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage-card">
+      <div class="stage-badge">2</div>
+      <div class="stage-name">2点読み</div>
+      <div class="stage-sub">最低8回</div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage-card">
+      <div class="stage-badge">3</div>
+      <div class="stage-name">1行読み</div>
+      <div class="stage-sub">最低8回</div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage-card">
+      <div class="stage-badge">4</div>
+      <div class="stage-name">2行読み</div>
+      <div class="stage-sub">最低8回</div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage-card">
+      <div class="stage-badge">5</div>
+      <div class="stage-name">ブロック読み</div>
+      <div class="stage-sub">最低8回</div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage-card">
+      <div class="stage-badge">&infin;</div>
+      <div class="stage-name">スピードモード</div>
+      <div class="stage-sub">無限に加速</div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 進級条件 -->
+<div class="section">
+  <h2 class="section-title">ステージアップの条件（3つすべて達成）</h2>
+  <div class="conditions">
+    <div class="cond-card">
+      <div class="num">6〜8</div>
+      <div class="label">最低トレーニング回数</div>
+      <div class="desc">Stage 1は6回<br>Stage 2〜5は各8回</div>
+    </div>
+    <div class="cond-card">
+      <div class="num">&times;5</div>
+      <div class="label">240カウント突破</div>
+      <div class="desc">ブロック読みで<br>240カウント以上を5回達成</div>
+    </div>
+    <div class="cond-card">
+      <div class="num">&times;5</div>
+      <div class="label">正答率90%以上</div>
+      <div class="desc">ブロック読みテストで<br>90%以上を5回達成</div>
+    </div>
+  </div>
+  <p class="cond-note">※ ステージアップ時に達成カウントはすべてリセットされます</p>
+</div>
+
+<!-- 3. 1セッションの流れ -->
+<div class="section">
+  <h2 class="section-title">1回のトレーニングの流れ</h2>
+  <div class="flow">
+    <div class="flow-step measure">
+      <div class="step-icon">&#9201;</div>
+      <div class="step-title">速度測定（前）</div>
+      <div class="step-desc">約2〜3分<br>現在の読書速度を計測</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step training">
+      <div class="step-icon">&#9889;</div>
+      <div class="step-title">ステージ別トレーニング</div>
+      <div class="step-desc">10分 / 20分 / 30分 から選択<br>瞬間よみ + 高速よみ + 視点移動</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step measure">
+      <div class="step-icon">&#128200;</div>
+      <div class="step-title">速度測定（後）</div>
+      <div class="step-desc">約2〜3分<br>トレーニング効果を確認</div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. ステージ別構成 -->
+<div class="section">
+  <h2 class="section-title">ステージ別トレーニング内容</h2>
+
+  <div class="stage-detail">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#74b9ff,#0984e3)">1</div>
+      <div class="stage-detail-info"><h3>Stage 1: 3点読み</h3><p>最低6回 / 4種目を順番に</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-barabara">ばらばら</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-1line">1行読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-2line">2行読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-block">ブロック読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+    <div class="direction-note">方向: 1回目たて → 2回目よこ → 3回目たて → ...（奇数回=たて、偶数回=よこ）</div>
+  </div>
+
+  <div class="stage-detail">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#55efc4,#00b894)">2</div>
+      <div class="stage-detail-info"><h3>Stage 2: 2点読み</h3><p>最低8回 / 1行と2行を交互</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-barabara">ばらばら</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-1line" style="border:3px dashed #0984e3">1行 or 2行</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-block">ブロック読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+    <div class="direction-note">
+      <strong>交互ルール:</strong> 1,2回目→1行読み / 3,4回目→2行読み / 5,6回目→1行読み / 7,8回目→2行読み（4回周期）
+    </div>
+  </div>
+
+  <div class="stage-detail">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#fdcb6e,#e17055)">3</div>
+      <div class="stage-detail-info"><h3>Stage 3: 1行読み</h3><p>最低8回 / ばらばら省略</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-1line">1行読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-2line">2行読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-block">ブロック読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+  </div>
+
+  <div class="stage-detail">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#e17055,#d63031)">4</div>
+      <div class="stage-detail-info"><h3>Stage 4: 2行読み</h3><p>最低8回 / 視点移動が時間の半分</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-barabara">ばらばら</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-block">ブロック読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-viewpoint" style="font-weight:700;font-size:15px">視点移動 (約50%)</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+  </div>
+
+  <div class="stage-detail">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#a29bfe,#6c5ce7)">5</div>
+      <div class="stage-detail-info"><h3>Stage 5: ブロック読み</h3><p>最低8回 / 高速処理能力の完成</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-block">ブロック読み</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-viewpoint" style="font-weight:700;font-size:15px">視点移動 (約50%)</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+  </div>
+
+  <div class="stage-detail" style="border:2px solid #e84393;background:linear-gradient(135deg,#fff5f7,#fff)">
+    <div class="stage-detail-header">
+      <div class="stage-detail-badge" style="background:linear-gradient(135deg,#fd79a8,#e84393)">&infin;</div>
+      <div class="stage-detail-info"><h3>スピードモード</h3><p>Stage 5 完了後 / カウント青天井</p></div>
+    </div>
+    <div class="segment-flow">
+      <span class="segment-pill seg-block">ブロック読み (50%)</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-viewpoint">視点移動 (50%)</span>
+      <span class="seg-arrow">&rarr;</span>
+      <span class="segment-pill seg-reading">高速読み</span>
+    </div>
+    <div class="direction-note">どこまでもカウントを上げ続けるトレーニング。上限なし。</div>
+  </div>
+</div>
+
+<!-- 5. カウントシステム -->
+<div class="section">
+  <h2 class="section-title">カウントシステム（高速よみの速度）</h2>
+  <div class="count-visual">
+    <p style="text-align:center;font-size:15px;margin-bottom:20px;color:#666">8カウントごとに速度が1ずつ上がります。上限はありません。</p>
+
+    <div class="beats">
+      <div class="beat active">1</div>
+      <div class="beat active">2</div>
+      <div class="beat active">3</div>
+      <div class="beat active">4</div>
+      <div class="beat active">5</div>
+      <div class="beat active">6</div>
+      <div class="beat active">7</div>
+      <div class="beat active">8</div>
+      <div style="font-size:24px;display:flex;align-items:center;color:#0984e3;font-weight:900;padding:0 8px">&rarr; +1</div>
+    </div>
+
+    <div class="count-equation">
+      <span class="highlight">60</span>
+      &rarr; 61 &rarr; 62 &rarr; 63 &rarr; &middot;&middot;&middot; &rarr;
+      <span class="highlight">240</span>
+      &rarr; 241 &rarr; &middot;&middot;&middot; &rarr;
+      <span class="highlight" style="color:#e84393">&infin;</span>
+    </div>
+
+    <!-- 速度バー -->
+    <div class="count-row">
+      <div class="count-label">初回</div>
+      <div class="count-bar-wrap">
+        <div class="count-bar" style="width:15%;background:linear-gradient(90deg,#74b9ff,#0984e3);border-radius:20px"><span>60</span></div>
+      </div>
+    </div>
+    <div class="count-row">
+      <div class="count-label">30分後</div>
+      <div class="count-bar-wrap">
+        <div class="count-bar" style="width:40%;background:linear-gradient(90deg,#55efc4,#00b894);border-radius:20px"><span>約140</span></div>
+      </div>
+    </div>
+    <div class="count-row">
+      <div class="count-label">上級者</div>
+      <div class="count-bar-wrap">
+        <div class="count-bar" style="width:70%;background:linear-gradient(90deg,#fdcb6e,#e17055);border-radius:20px"><span>240+</span></div>
+      </div>
+    </div>
+    <div class="count-row">
+      <div class="count-label">スピード<br>モード</div>
+      <div class="count-bar-wrap">
+        <div class="count-bar" style="width:100%;background:linear-gradient(90deg,#a29bfe,#e84393);border-radius:20px"><span>300, 400, 500... 上限なし</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. スタート速度 -->
+<div class="section">
+  <h2 class="section-title">スタート速度の決定</h2>
+  <p style="font-size:14px;color:#666;margin-bottom:16px">前回の測定(前)の数値に、通塾頻度に応じた倍率を掛けます。</p>
+  <div class="speed-cards">
+    <div class="speed-card">
+      <div class="freq">週1回通塾</div>
+      <div class="mult">&times;60%</div>
+      <div class="example">例: 前回500字/分 → 300字/分から開始</div>
+    </div>
+    <div class="speed-card">
+      <div class="freq">週2回通塾</div>
+      <div class="mult">&times;70%</div>
+      <div class="example">例: 前回500字/分 → 350字/分から開始</div>
+    </div>
+    <div class="speed-card">
+      <div class="freq">週3回通塾</div>
+      <div class="mult">&times;80%</div>
+      <div class="example">例: 前回500字/分 → 400字/分から開始</div>
+    </div>
+  </div>
+</div>
+
+<!-- 7. 時間配分（10分の例） -->
+<div class="section">
+  <h2 class="section-title">10分コースの時間配分</h2>
+  <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+    <div class="time-grid">
+      <div class="time-label">Stage 1</div>
+      <div class="time-bar">
+        <div style="flex:1.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:2;background:#74b9ff">1行</div>
+        <div style="flex:2;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:2.5;background:#fd79a8">ブロック</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+      <div class="time-label">Stage 2</div>
+      <div class="time-bar">
+        <div style="flex:1.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:2;background:#74b9ff;border:2px dashed #0984e3">1行or2行</div>
+        <div style="flex:2.5;background:#fd79a8">ブロック</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+      <div class="time-label">Stage 3</div>
+      <div class="time-bar">
+        <div style="flex:2;background:#74b9ff">1行</div>
+        <div style="flex:2;background:#55efc4;color:#00634a">2行</div>
+        <div style="flex:2.5;background:#fd79a8">ブロック</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+      <div class="time-label">Stage 4</div>
+      <div class="time-bar">
+        <div style="flex:1.5;background:#ffeaa7;color:#6c5400">ばらばら</div>
+        <div style="flex:2.5;background:#fd79a8">ブロック</div>
+        <div style="flex:4;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+      <div class="time-label">Stage 5</div>
+      <div class="time-bar">
+        <div style="flex:2.5;background:#fd79a8">ブロック</div>
+        <div style="flex:4;background:#a29bfe;font-weight:700">視点移動</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+      <div class="time-label" style="color:#e84393">Speed</div>
+      <div class="time-bar" style="border:2px solid #e84393">
+        <div style="flex:4;background:#fd79a8">ブロック読み</div>
+        <div style="flex:4;background:#a29bfe">視点移動</div>
+        <div style="flex:2;background:#dfe6e9;color:#636e72">高速読み</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- フッター -->
+<div style="text-align:center;padding:32px 0;color:#999;font-size:12px">
+  100万人の速読 トレーニングシステム
+</div>
+
+</div>
+</body>
+</html>
