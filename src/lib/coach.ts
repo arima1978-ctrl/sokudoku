@@ -236,67 +236,6 @@ function getSegmentLabel(segType: string): string {
   return labels[segType] ?? segType
 }
 
-// ========== 時間配分計算 ==========
-
-/**
- * セグメントごとの秒数を計算。
- * Stage 4-5 では視点移動がトレーニング時間の約半分を占めるよう調整。
- */
-function getSegmentDuration(
-  segKey: string,
-  durationMin: DurationMin,
-  stageNumber: CoachStageNumber,
-): number {
-  // Stage 4-5: 視点移動をトレーニング時間の約半分に
-  const isViewpointHeavy = stageNumber >= 4 && segKey === 'viewpoint'
-
-  if (isViewpointHeavy) {
-    // 高速読み仕上げ(2-3分)を除いた残りの約半分を視点移動に
-    switch (durationMin) {
-      case 10: return 240  // 4分（全体10分のうち高速読み2分を除いた8分の半分）
-      case 20: return 480  // 8分（全体20分のうち高速読み2分を除いた18分の半分）
-      case 30: return 720  // 12分（全体30分のうち高速読み3分+本読み5分を除いた22分の半分）
-    }
-  }
-
-  // 通常のセグメント
-  const base = getBaseDuration10(segKey)
-  if (durationMin === 20) return base + getExtraDuration20(segKey)
-  if (durationMin === 30) return base + getExtraDuration30(segKey)
-  return base
-}
-
-/** 10分コースの基本秒数 */
-function getBaseDuration10(segKey: string): number {
-  switch (segKey) {
-    case 'barabara': return 90       // 1.5分
-    case '1line': return 120         // 2分
-    case '2line': return 120         // 2分
-    case '1line_or_2line': return 120 // 2分
-    case 'block': return 150         // 2.5分
-    case 'viewpoint': return 90      // 1.5分 (Stage 1-3 用、4-5は上で上書き)
-    default: return 90
-  }
-}
-
-/** 20分コースの追加秒数 */
-function getExtraDuration20(segKey: string): number {
-  switch (segKey) {
-    case 'block': return 180     // +3分
-    case 'viewpoint': return 120 // +2分 (Stage 1-3 用)
-    default: return 60           // +1分
-  }
-}
-
-/** 30分コースの追加秒数 */
-function getExtraDuration30(segKey: string): number {
-  switch (segKey) {
-    case 'block': return 300     // +5分
-    case 'viewpoint': return 180 // +3分 (Stage 1-3 用)
-    default: return 120          // +2分
-  }
-}
-
 // ========== 動的メニュー生成 ==========
 
 interface MenuGenerationParams {
@@ -306,86 +245,170 @@ interface MenuGenerationParams {
   stageSessionCount: number
 }
 
-type AddSegmentFn = (
-  type: string,
-  durationSec: number,
-  hasTest: boolean,
-  testDurationSec: number,
-  testType: string | null,
-  skippable: boolean,
-  description: string,
-) => void
+type SegmentEntry = {
+  segKey: string
+  durationSec: number
+  hasTest: boolean
+  skippable: boolean
+}
+
+/**
+ * ステージ・時間別のメニュー定義テーブル。
+ * ガイド（/guide/index.html）と完全に一致させること。
+ *
+ * 10分: たて/よこ交互、Stage2は1行/2行交互
+ * 20分: 毎回全種目、Stage2は1行+2行両方
+ * 30分: 毎回全種目、Stage1-2は視点移動追加、Stage3-5は高速読み・視点移動・本読み均等
+ */
+function getMenuDefinition(
+  durationMin: DurationMin,
+  stageNumber: CoachStageNumber,
+  stageSessionCount: number,
+): SegmentEntry[] {
+  switch (durationMin) {
+    case 10: return getMenu10(stageNumber, stageSessionCount)
+    case 20: return getMenu20(stageNumber)
+    case 30: return getMenu30(stageNumber)
+  }
+}
+
+function getMenu10(stage: CoachStageNumber, sessionCount: number): SegmentEntry[] {
+  switch (stage) {
+    case 1: return [
+      { segKey: 'barabara', durationSec: 90, hasTest: true, skippable: true },
+      { segKey: '1line', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 270, hasTest: true, skippable: false },
+    ]
+    case 2: return [
+      { segKey: 'barabara', durationSec: 90, hasTest: true, skippable: true },
+      { segKey: '1line_or_2line', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 270, hasTest: true, skippable: false },
+    ]
+    case 3: return [
+      { segKey: '1line', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 120, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 120, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 120, hasTest: false, skippable: false },
+    ]
+    case 4: return [
+      { segKey: 'barabara', durationSec: 90, hasTest: true, skippable: true },
+      { segKey: 'block', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 180, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 150, hasTest: false, skippable: false },
+    ]
+    case 5: return [
+      { segKey: 'block', durationSec: 210, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 210, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 180, hasTest: false, skippable: false },
+    ]
+  }
+}
+
+function getMenu20(stage: CoachStageNumber): SegmentEntry[] {
+  switch (stage) {
+    case 1: return [
+      { segKey: 'barabara', durationSec: 150, hasTest: true, skippable: true },
+      { segKey: '1line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 510, hasTest: true, skippable: false },
+    ]
+    case 2: return [
+      { segKey: 'barabara', durationSec: 150, hasTest: true, skippable: true },
+      { segKey: '1line', durationSec: 150, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 150, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 510, hasTest: true, skippable: false },
+    ]
+    case 3: return [
+      { segKey: '1line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 300, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 300, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 240, hasTest: false, skippable: false },
+    ]
+    case 4: return [
+      { segKey: 'barabara', durationSec: 150, hasTest: true, skippable: true },
+      { segKey: 'block', durationSec: 360, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 360, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 330, hasTest: false, skippable: false },
+    ]
+    case 5: return [
+      { segKey: 'block', durationSec: 420, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 420, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 360, hasTest: false, skippable: false },
+    ]
+  }
+}
+
+function getMenu30(stage: CoachStageNumber): SegmentEntry[] {
+  switch (stage) {
+    case 1: return [
+      { segKey: 'barabara', durationSec: 210, hasTest: true, skippable: true },
+      { segKey: '1line', durationSec: 240, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 240, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 630, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 300, hasTest: false, skippable: false },
+    ]
+    case 2: return [
+      { segKey: 'barabara', durationSec: 180, hasTest: true, skippable: true },
+      { segKey: '1line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 180, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 660, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 300, hasTest: false, skippable: false },
+    ]
+    case 3: return [
+      { segKey: '1line', durationSec: 240, hasTest: true, skippable: false },
+      { segKey: '2line', durationSec: 240, hasTest: true, skippable: false },
+      { segKey: 'block', durationSec: 450, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 450, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 420, hasTest: false, skippable: false },
+    ]
+    case 4: return [
+      { segKey: 'barabara', durationSec: 180, hasTest: true, skippable: true },
+      { segKey: 'block', durationSec: 540, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 540, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 540, hasTest: false, skippable: false },
+    ]
+    case 5: return [
+      { segKey: 'block', durationSec: 600, hasTest: true, skippable: false },
+      { segKey: 'viewpoint', durationSec: 600, hasTest: false, skippable: false },
+      { segKey: 'hon_yomi', durationSec: 600, hasTest: false, skippable: false },
+    ]
+  }
+}
 
 /**
  * ステージ構成に基づいてトレーニングメニューを動的生成する。
+ * ガイド（/guide/index.html）の時間配分テーブルと完全一致。
  *
- * 測定(前/後)は daily_session フローで処理するため、
- * ここではトレーニングセグメントのみ生成する。
- *
- * 各ステージの構成:
- * - Stage 1: ばらばら → 1行 → 2行 → ブロック
- * - Stage 2: ばらばら → 1行or2行(交互) → ブロック
- * - Stage 3: 1行 → 2行 → ブロック
- * - Stage 4: ばらばら → ブロック → 視点移動
- * - Stage 5: ブロック → 視点移動
- *
- * 時間別調整:
- * - 10分: 基本構成をタイトに
- * - 20分: ブロック+3分、視点移動+2分
- * - 30分: ブロック+5分、視点移動+3分、本読み追加
+ * 10分: たて/よこ交互、Stage2は1行/2行交互(4回周期)
+ * 20分: 毎回全種目、Stage2は1行+2行両方
+ * 30分: 毎回全種目、Stage1-2は視点移動追加、Stage3-5は均等配分
  */
 export function generateMenuSegments(params: MenuGenerationParams): DynamicSegment[] {
   const { durationMin, stageNumber, direction, stageSessionCount } = params
   const segments: DynamicSegment[] = []
   let order = 1
 
-  const config = STAGE_CONFIGS[stageNumber]
+  const definition = getMenuDefinition(durationMin, stageNumber, stageSessionCount)
 
-  const add: AddSegmentFn = (type, durationSec, hasTest, testDurationSec, testType, skippable, desc) => {
+  for (const entry of definition) {
+    const segType = resolveSegmentType(entry.segKey, direction, stageSessionCount)
+    const label = getSegmentLabel(segType)
+    const testType = entry.hasTest ? getTestType(segType) : null
+
     segments.push({
       segment_order: order++,
-      segment_type: type,
-      duration_sec: durationSec,
-      has_test: hasTest,
-      test_duration_sec: testDurationSec,
+      segment_type: segType,
+      duration_sec: entry.durationSec,
+      has_test: entry.hasTest,
+      test_duration_sec: entry.hasTest ? 30 : 0,
       test_type: testType,
-      skippable,
-      description: desc,
+      skippable: entry.skippable,
+      description: `${label} ${formatMin(entry.durationSec)}${entry.hasTest ? ' + テスト' : ''}`,
     })
   }
-
-  // ステージ定義のセグメントを順番に生成
-  for (const segKey of config.segments) {
-    const segType = resolveSegmentType(segKey, direction, stageSessionCount)
-    const label = getSegmentLabel(segType)
-    const testType = getTestType(segType)
-    const hasTest = segKey !== 'viewpoint' // 視点移動はテストなし
-
-    const durationSec = getSegmentDuration(segKey, durationMin, stageNumber)
-    const isBarabara = segKey === 'barabara'
-    const testDurationSec = hasTest ? 30 : 0
-
-    add(
-      segType,
-      durationSec,
-      hasTest,
-      testDurationSec,
-      hasTest ? testType : null,
-      isBarabara, // ばらばらのみスキップ可能
-      `${label} ${formatMin(durationSec)}${hasTest ? ' + テスト' : ''}`,
-    )
-  }
-
-  // 30分コースのみ: 本読みを追加（Stage 4以降、または全ステージ）
-  if (durationMin === 30) {
-    add('hon_yomi', 300, true, 60, 'content_comprehension', false,
-      '本読み 5分 + テスト')
-  }
-
-  // 最後に高速読み仕上げ（全コース共通）
-  const readingSpeedSec = durationMin === 30 ? 180 : 120
-  add('reading_speed', readingSpeedSec, false, 0, null, false,
-    `高速読み ${formatMin(readingSpeedSec)}`)
 
   return segments
 }
@@ -394,45 +417,41 @@ export function generateMenuSegments(params: MenuGenerationParams): DynamicSegme
  * スピードモード用メニュー生成（Stage 5 完了後）
  * ブロック読みと視点移動を半々でカウントを上げ続ける
  */
+/**
+ * スピードモード（本読みトレーニング）用メニュー生成
+ * Stage 5 完了後: ブロック高速読み + 本読み（均等配分）
+ */
 export function generateSpeedModeSegments(params: {
   durationMin: DurationMin
   direction: Direction
 }): DynamicSegment[] {
   const { durationMin, direction } = params
-  const segments: DynamicSegment[] = []
-  let order = 1
-
-  const add: AddSegmentFn = (type, durationSec, hasTest, testDurationSec, testType, skippable, desc) => {
-    segments.push({
-      segment_order: order++,
-      segment_type: type,
-      duration_sec: durationSec,
-      has_test: hasTest,
-      test_duration_sec: testDurationSec,
-      test_type: testType,
-      skippable,
-      description: desc,
-    })
-  }
-
   const blockType = direction === 'tate' ? 'block_tate' : 'block_yoko'
-  const blockLabel = direction === 'tate' ? 'たてブロック読み' : 'よこブロック読み'
+  const blockLabel = direction === 'tate' ? 'たてブロック高速読み' : 'よこブロック高速読み'
+  const halfTime = Math.floor((durationMin * 60) / 2)
 
-  // 高速読み仕上げの時間を除いた残りを ブロック:視点移動 = 1:1 で配分
-  const readingSpeedSec = durationMin === 30 ? 180 : 120
-  const trainingTime = durationMin * 60 - readingSpeedSec
-  const halfTime = Math.floor(trainingTime / 2)
-
-  add(blockType, halfTime, true, 30, 'content_comprehension', false,
-    `${blockLabel} ${formatMin(halfTime)} + テスト`)
-
-  add('shiten_ido', halfTime, false, 0, null, false,
-    `視点移動 ${formatMin(halfTime)}`)
-
-  add('reading_speed', readingSpeedSec, false, 0, null, false,
-    `高速読み ${formatMin(readingSpeedSec)}`)
-
-  return segments
+  return [
+    {
+      segment_order: 1,
+      segment_type: blockType,
+      duration_sec: halfTime,
+      has_test: true,
+      test_duration_sec: 30,
+      test_type: 'content_comprehension',
+      skippable: false,
+      description: `${blockLabel} ${formatMin(halfTime)} + テスト`,
+    },
+    {
+      segment_order: 2,
+      segment_type: 'hon_yomi',
+      duration_sec: halfTime,
+      has_test: false,
+      test_duration_sec: 0,
+      test_type: null,
+      skippable: false,
+      description: `本読み ${formatMin(halfTime)}`,
+    },
+  ]
 }
 
 /** 秒数を「○分」「○.○分」に変換 */

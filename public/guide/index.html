@@ -681,22 +681,22 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 <!-- 6. スタート速度 -->
 <div class="section">
   <h2 class="section-title">スタート速度の決定</h2>
-  <p style="font-size:14px;color:#666;margin-bottom:16px">前回の測定(前)の数値に、通塾頻度に応じた倍率を掛けます。</p>
+  <p style="font-size:14px;color:#666;margin-bottom:16px">前回の測定(前)の数値に、前回トレーニングからの経過時間に応じた倍率を掛けます。</p>
   <div class="speed-cards">
     <div class="speed-card">
-      <div class="freq">週1回通塾</div>
-      <div class="mult">&times;60%</div>
-      <div class="example">例: 前回500字/分 → 300字/分から開始</div>
+      <div class="freq">48時間以内</div>
+      <div class="mult">&times;80%</div>
+      <div class="example">例: 前回500字/分 → 400字/分から開始</div>
     </div>
     <div class="speed-card">
-      <div class="freq">週2回通塾</div>
+      <div class="freq">49〜96時間</div>
       <div class="mult">&times;70%</div>
       <div class="example">例: 前回500字/分 → 350字/分から開始</div>
     </div>
     <div class="speed-card">
-      <div class="freq">週3回通塾</div>
-      <div class="mult">&times;80%</div>
-      <div class="example">例: 前回500字/分 → 400字/分から開始</div>
+      <div class="freq">97時間以上</div>
+      <div class="mult">&times;60%</div>
+      <div class="example">例: 前回500字/分 → 300字/分から開始</div>
     </div>
   </div>
 </div>
