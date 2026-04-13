@@ -119,14 +119,8 @@ export default function SpeedReading({
 
         if (countNumberRef.current >= COUNT_AUTO.beatsPerStep) {
           countNumberRef.current = 0
-          const currentVal = displayCountRef.current
-
-          if (currentVal >= BLOCK_CONFIG.countMax) {
-            // 最大(260)到達→最小(60)に戻る
-            displayCountRef.current = BLOCK_CONFIG.countMin
-          } else {
-            displayCountRef.current = currentVal + COUNT_AUTO.stepSize
-          }
+          // 青天井: 上限なしで+1ずつ上昇し続ける
+          displayCountRef.current = displayCountRef.current + COUNT_AUTO.stepSize
           setCount(displayCountRef.current)
 
           // 間隔変更のため再スケジュール
@@ -162,11 +156,10 @@ export default function SpeedReading({
     startCountInterval()
   }, [startCountInterval])
 
-  // カウント手動UP (+10ずつ)
+  // カウント手動UP (+10ずつ、青天井)
   function handleCountUp() {
     const current = displayCountRef.current
-    if (current >= BLOCK_CONFIG.countMax) return
-    displayCountRef.current = Math.min(current + 10, BLOCK_CONFIG.countMax)
+    displayCountRef.current = current + 10
     setCount(displayCountRef.current)
     if (phase === 'reading') {
       countNumberRef.current = 0

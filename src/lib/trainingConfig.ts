@@ -96,8 +96,6 @@ export const BLOCK_CONFIG = {
   horizontalMaxRow: 9,
   /** カウント初期値 */
   countMin: 60 as number,
-  /** カウント最大値 */
-  countMax: 260 as number,
 }
 
 /**
