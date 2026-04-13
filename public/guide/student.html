@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイページ（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+/* ヘッダー */
+.header { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 24px; margin-bottom: 20px; text-align: center; }
+.header .greeting { font-size: 14px; opacity: 0.8; }
+.header .name { font-size: 24px; font-weight: 900; margin: 4px 0; }
+.header .school { font-size: 12px; opacity: 0.7; }
+
+/* 今日のステージ */
+.stage-hero { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); text-align: center; }
+.stage-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 900; color: #fff; margin: 0 auto 12px; }
+.stage-circle.s2 { background: linear-gradient(135deg, #55efc4, #00b894); }
+.stage-label { font-size: 20px; font-weight: 700; }
+.stage-desc { font-size: 13px; color: #888; margin-top: 4px; }
+
+/* 進捗リング */
+.progress-ring-wrap { display: flex; justify-content: center; gap: 24px; margin: 20px 0; }
+.ring-item { text-align: center; }
+.ring-item svg { width: 70px; height: 70px; }
+.ring-item .ring-label { font-size: 10px; color: #888; margin-top: 4px; }
+.ring-item .ring-value { font-size: 12px; font-weight: 700; }
+
+/* カード */
+.card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; padding-left: 10px; border-left: 4px solid #0984e3; }
+
+/* 記録カード横並び */
+.records { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.record { text-align: center; padding: 14px 8px; border-radius: 14px; }
+.record .num { font-size: 28px; font-weight: 900; }
+.record .unit { font-size: 11px; color: #888; }
+.record .label { font-size: 11px; color: #888; margin-top: 2px; }
+.record.speed { background: #e3f2fd; }
+.record.speed .num { color: #1565c0; }
+.record.best { background: #e8f5e9; }
+.record.best .num { color: #2e7d32; }
+.record.count { background: #fff3e0; }
+.record.count .num { color: #e65100; }
+.record.acc { background: #f3e5f5; }
+.record.acc .num { color: #6a1b9a; }
+
+/* 成長グラフ */
+.chart-area { position: relative; height: 160px; margin: 12px 0; }
+.chart-svg { width: 100%; height: 100%; }
+
+/* 条件チェック */
+.cond-list { display: flex; flex-direction: column; gap: 8px; }
+.cond { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #f8f9fa; font-size: 13px; }
+.cond .dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; flex-shrink: 0; }
+.cond .dot.done { background: #00b894; }
+.cond .dot.pending { background: #dfe6e9; color: #b2bec3; }
+.cond .text { flex: 1; }
+.cond .val { font-weight: 700; font-size: 14px; color: #0984e3; }
+
+/* 履歴 */
+.history-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; gap: 12px; font-size: 13px; }
+.history-item:last-child { border-bottom: none; }
+.history-date { font-size: 12px; color: #888; min-width: 40px; text-align: center; }
+.history-course { font-size: 11px; padding: 2px 8px; border-radius: 8px; background: #e3f2fd; color: #1565c0; font-weight: 700; }
+.history-speeds { flex: 1; }
+.history-speeds .pre-post { font-weight: 700; }
+.history-delta { font-weight: 700; font-size: 14px; }
+.history-delta.up { color: #2e7d32; }
+.history-acc { font-size: 12px; }
+.history-acc.high { color: #2e7d32; font-weight: 700; }
+.history-acc.mid { color: #e65100; }
+
+/* メダル/バッジ */
+.badges { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.badge-item { text-align: center; padding: 12px; border-radius: 14px; background: #f8f9fa; min-width: 90px; }
+.badge-item .emoji { font-size: 28px; }
+.badge-item .b-label { font-size: 10px; color: #888; margin-top: 4px; }
+.badge-item.earned { background: linear-gradient(135deg, #fff9c4, #fff176); }
+
+/* ステージ履歴 */
+.stage-track { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 8px 0; }
+.stage-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #fff; flex-shrink: 0; }
+.stage-dot.done { background: #00b894; }
+.stage-dot.current { background: #0984e3; box-shadow: 0 0 0 3px rgba(9,132,227,0.3); }
+.stage-dot.locked { background: #dfe6e9; color: #b2bec3; }
+.stage-arrow { color: #b2bec3; font-size: 16px; flex-shrink: 0; }
+
+/* トレーニング開始ボタン */
+.start-btn { display: block; width: 100%; padding: 16px; border: none; border-radius: 14px; background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; font-size: 18px; font-weight: 900; font-family: inherit; cursor: pointer; text-align: center; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(9,132,227,0.3); }
+.start-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(9,132,227,0.4); }
+
+/* フッター */
+.footer { text-align: center; padding: 20px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+
+/* ステージアップ祝福 */
+.stageup-banner { background: linear-gradient(135deg, #ffd700, #ff9800); border-radius: 20px; padding: 24px; margin-bottom: 16px; text-align: center; color: #fff; position: relative; overflow: hidden; }
+.stageup-banner::before { content: '🎊'; position: absolute; top: -10px; left: 10px; font-size: 60px; opacity: 0.2; }
+.stageup-banner::after { content: '🎊'; position: absolute; bottom: -10px; right: 10px; font-size: 60px; opacity: 0.2; transform: scaleX(-1); }
+.stageup-banner .congrats { font-size: 28px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.stageup-banner .detail { font-size: 14px; margin-top: 8px; opacity: 0.9; }
+
+/* 成長実感 */
+.growth-card { background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; padding: 20px; margin-bottom: 16px; color: #fff; text-align: center; }
+.growth-card .before-after { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 12px 0; }
+.growth-card .speed-box { padding: 10px 16px; border-radius: 12px; background: rgba(255,255,255,0.15); }
+.growth-card .speed-box .val { font-size: 28px; font-weight: 900; }
+.growth-card .speed-box .lbl { font-size: 10px; opacity: 0.8; }
+.growth-card .arrow-grow { font-size: 32px; }
+.growth-card .multiplier { font-size: 14px; font-weight: 700; margin-top: 8px; opacity: 0.9; }
+
+/* 連続記録 */
+.streak { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 16px; }
+.streak-day { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+.streak-day.done { background: #00b894; color: #fff; }
+.streak-day.today { background: #0984e3; color: #fff; box-shadow: 0 0 0 2px rgba(9,132,227,0.4); }
+.streak-day.future { background: #e8ecf0; color: #b2bec3; }
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+<div class="page">
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="greeting">こんにちは！</div>
+  <div class="name">山田 太郎</div>
+  <div class="school">名大SKY 本校 ｜ 小4</div>
+</div>
+
+<!-- ステージアップ祝福（直近のステージアップ時に表示） -->
+<div class="stageup-banner">
+  <div class="congrats">🎉 Stage 2 にレベルアップ！</div>
+  <div class="detail">「3点高速読み」をマスターしたよ！次は「2点高速読み」に挑戦だ！</div>
+</div>
+
+<!-- 成長実感 -->
+<div class="growth-card">
+  <div style="font-size:13px;opacity:0.8">トレーニングを始めてから</div>
+  <div class="before-after">
+    <div class="speed-box">
+      <div class="val">260</div>
+      <div class="lbl">最初の速さ</div>
+    </div>
+    <div class="arrow-grow">→</div>
+    <div class="speed-box">
+      <div class="val">380</div>
+      <div class="lbl">いまの速さ</div>
+    </div>
+  </div>
+  <div class="multiplier">📈 読書スピードが <strong style="font-size:20px">1.5倍</strong> になったよ！</div>
+</div>
+
+<!-- 今週のがんばり -->
+<div style="text-align:center;margin-bottom:16px">
+  <div style="font-size:13px;color:#888;margin-bottom:8px">今週のがんばり</div>
+  <div class="streak">
+    <div class="streak-day done">月</div>
+    <div class="streak-day done">火</div>
+    <div class="streak-day future">水</div>
+    <div class="streak-day done">木</div>
+    <div class="streak-day done">金</div>
+    <div class="streak-day today">土</div>
+    <div class="streak-day future">日</div>
+  </div>
+  <div style="font-size:12px;color:#00b894;font-weight:700">🔥 今週 5回トレーニング達成！</div>
+</div>
+
+<!-- 今日のステージ -->
+<div class="stage-hero">
+  <div class="stage-circle s2">2</div>
+  <div class="stage-label">2点高速読み</div>
+  <div class="stage-desc">1行を2つの点で素早く読む練習中</div>
+
+  <!-- 進捗リング -->
+  <div class="progress-ring-wrap">
+    <div class="ring-item">
+      <svg viewBox="0 0 70 70">
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#e8ecf0" stroke-width="6"/>
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#0984e3" stroke-width="6" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="66" transform="rotate(-90 35 35)"/>
+        <text x="35" y="33" text-anchor="middle" font-size="14" font-weight="900" fill="#0984e3">5</text>
+        <text x="35" y="44" text-anchor="middle" font-size="8" fill="#999">/8回</text>
+      </svg>
+      <div class="ring-label">トレーニング</div>
+    </div>
+    <div class="ring-item">
+      <svg viewBox="0 0 70 70">
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#e8ecf0" stroke-width="6"/>
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#e17055" stroke-width="6" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="70" transform="rotate(-90 35 35)"/>
+        <text x="35" y="33" text-anchor="middle" font-size="14" font-weight="900" fill="#e17055">3</text>
+        <text x="35" y="44" text-anchor="middle" font-size="8" fill="#999">/5回</text>
+      </svg>
+      <div class="ring-label">カウント突破</div>
+    </div>
+    <div class="ring-item">
+      <svg viewBox="0 0 70 70">
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#e8ecf0" stroke-width="6"/>
+        <circle cx="35" cy="35" r="28" fill="none" stroke="#6c5ce7" stroke-width="6" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="106" transform="rotate(-90 35 35)"/>
+        <text x="35" y="33" text-anchor="middle" font-size="14" font-weight="900" fill="#6c5ce7">2</text>
+        <text x="35" y="44" text-anchor="middle" font-size="8" fill="#999">/5回</text>
+      </svg>
+      <div class="ring-label">正答率90%</div>
+    </div>
+  </div>
+
+  <!-- ステージトラック -->
+  <div class="stage-track">
+    <div class="stage-dot done">1</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-dot current">2</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-dot locked">3</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-dot locked">4</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-dot locked">5</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage-dot locked" style="font-size:11px">∞</div>
+  </div>
+</div>
+
+<!-- トレーニング開始 -->
+<button class="start-btn" onclick="alert('デモ画面です')">⚡ トレーニングを始める</button>
+
+<!-- 記録 -->
+<div class="records">
+  <div class="record speed">
+    <div class="num">380</div>
+    <div class="unit">字/分</div>
+    <div class="label">いまの速さ</div>
+  </div>
+  <div class="record best">
+    <div class="num">450</div>
+    <div class="unit">字/分</div>
+    <div class="label">自己ベスト</div>
+  </div>
+  <div class="record count">
+    <div class="num">12</div>
+    <div class="unit">回</div>
+    <div class="label">トレーニング回数</div>
+  </div>
+  <div class="record acc">
+    <div class="num">88%</div>
+    <div class="unit"></div>
+    <div class="label">平均正答率</div>
+  </div>
+</div>
+
+<!-- 読書スピード推移 -->
+<div class="card">
+  <div class="card-title">読書スピードの変化</div>
+  <div class="chart-area">
+    <svg class="chart-svg" viewBox="0 0 580 160">
+      <line x1="40" y1="10" x2="40" y2="140" stroke="#e8ecf0" stroke-width="1"/>
+      <line x1="40" y1="140" x2="560" y2="140" stroke="#e8ecf0" stroke-width="1"/>
+      <line x1="40" y1="100" x2="560" y2="100" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="40" y1="60" x2="560" y2="60" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="40" y1="20" x2="560" y2="20" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="3"/>
+      <text x="36" y="143" text-anchor="end" font-size="9" fill="#999">200</text>
+      <text x="36" y="103" text-anchor="end" font-size="9" fill="#999">300</text>
+      <text x="36" y="63" text-anchor="end" font-size="9" fill="#999">400</text>
+      <text x="36" y="23" text-anchor="end" font-size="9" fill="#999">500</text>
+      <!-- 前(青) -->
+      <polyline points="114,130 188,120 262,112 336,100 410,88 484,76" fill="none" stroke="#0984e3" stroke-width="2.5"/>
+      <circle cx="114" cy="130" r="4" fill="#0984e3"/><circle cx="188" cy="120" r="4" fill="#0984e3"/>
+      <circle cx="262" cy="112" r="4" fill="#0984e3"/><circle cx="336" cy="100" r="4" fill="#0984e3"/>
+      <circle cx="410" cy="88" r="4" fill="#0984e3"/><circle cx="484" cy="76" r="4" fill="#0984e3"/>
+      <!-- 後(緑) -->
+      <polyline points="114,116 188,104 262,92 336,80 410,64 484,52" fill="none" stroke="#00b894" stroke-width="2.5" stroke-dasharray="5,3"/>
+      <circle cx="114" cy="116" r="4" fill="#00b894"/><circle cx="188" cy="104" r="4" fill="#00b894"/>
+      <circle cx="262" cy="92" r="4" fill="#00b894"/><circle cx="336" cy="80" r="4" fill="#00b894"/>
+      <circle cx="410" cy="64" r="4" fill="#00b894"/><circle cx="484" cy="52" r="4" fill="#00b894"/>
+      <!-- ステージアップライン -->
+      <line x1="262" y1="10" x2="262" y2="140" stroke="#00b894" stroke-width="1" stroke-dasharray="4"/>
+      <text x="266" y="18" font-size="8" fill="#00b894" font-weight="700">Stage 2 ↑</text>
+      <!-- 凡例 -->
+      <line x1="160" y1="155" x2="175" y2="155" stroke="#0984e3" stroke-width="2.5"/>
+      <text x="178" y="158" font-size="9" fill="#666">前</text>
+      <line x1="220" y1="155" x2="235" y2="155" stroke="#00b894" stroke-width="2.5" stroke-dasharray="5,3"/>
+      <text x="238" y="158" font-size="9" fill="#666">後</text>
+      <!-- X軸 -->
+      <text x="114" y="153" text-anchor="middle" font-size="8" fill="#999">4/1</text>
+      <text x="262" y="153" text-anchor="middle" font-size="8" fill="#999">4/4</text>
+      <text x="410" y="153" text-anchor="middle" font-size="8" fill="#999">4/9</text>
+      <text x="484" y="153" text-anchor="middle" font-size="8" fill="#999">4/13</text>
+    </svg>
+  </div>
+</div>
+
+<!-- トレーニング履歴 -->
+<div class="card">
+  <div class="card-title">トレーニング履歴</div>
+  <div class="history-item">
+    <div class="history-date">4/13</div>
+    <div class="history-course">20分</div>
+    <div class="history-speeds"><span class="pre-post">380 → 430</span> 字/分</div>
+    <div class="history-delta up">+50</div>
+    <div class="history-acc high">92%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/11</div>
+    <div class="history-course">20分</div>
+    <div class="history-speeds"><span class="pre-post">360 → 420</span> 字/分</div>
+    <div class="history-delta up">+60</div>
+    <div class="history-acc high">88%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/9</div>
+    <div class="history-course">10分</div>
+    <div class="history-speeds"><span class="pre-post">350 → 400</span> 字/分</div>
+    <div class="history-delta up">+50</div>
+    <div class="history-acc mid">85%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/7</div>
+    <div class="history-course">20分</div>
+    <div class="history-speeds"><span class="pre-post">330 → 390</span> 字/分</div>
+    <div class="history-delta up">+60</div>
+    <div class="history-acc high">90%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/4</div>
+    <div class="history-course">10分</div>
+    <div class="history-speeds"><span class="pre-post">310 → 370</span> 字/分</div>
+    <div class="history-delta up">+60</div>
+    <div class="history-acc mid">82%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/3</div>
+    <div class="history-course">20分</div>
+    <div class="history-speeds"><span class="pre-post">290 → 350</span> 字/分</div>
+    <div class="history-delta up">+60</div>
+    <div class="history-acc mid">78%</div>
+  </div>
+  <div class="history-item">
+    <div class="history-date">4/1</div>
+    <div class="history-course">10分</div>
+    <div class="history-speeds"><span class="pre-post">260 → 320</span> 字/分</div>
+    <div class="history-delta up">+60</div>
+    <div class="history-acc mid">80%</div>
+  </div>
+</div>
+
+<!-- バッジ -->
+<div class="card">
+  <div class="card-title">獲得バッジ</div>
+  <div class="badges">
+    <div class="badge-item earned">
+      <div class="emoji">🎉</div>
+      <div class="b-label">はじめての<br>トレーニング</div>
+    </div>
+    <div class="badge-item earned">
+      <div class="emoji">🔥</div>
+      <div class="b-label">10回達成</div>
+    </div>
+    <div class="badge-item earned">
+      <div class="emoji">⭐</div>
+      <div class="b-label">Stage 1<br>クリア</div>
+    </div>
+    <div class="badge-item earned">
+      <div class="emoji">🎯</div>
+      <div class="b-label">正答率90%</div>
+    </div>
+    <div class="badge-item">
+      <div class="emoji" style="opacity:0.3">🏆</div>
+      <div class="b-label" style="color:#ccc">Stage 5<br>クリア</div>
+    </div>
+    <div class="badge-item">
+      <div class="emoji" style="opacity:0.3">💎</div>
+      <div class="b-label" style="color:#ccc">50回達成</div>
+    </div>
+  </div>
+</div>
+
+<!-- 次の目標 -->
+<div class="card" style="background:linear-gradient(135deg,#e3f2fd,#fff);border:2px solid #0984e3">
+  <div style="text-align:center">
+    <div style="font-size:24px;margin-bottom:8px">🚀</div>
+    <div style="font-size:16px;font-weight:700;color:#0984e3;margin-bottom:8px">次の目標</div>
+    <div style="font-size:14px;color:#666;line-height:1.7">
+      あと <strong style="color:#e17055;font-size:18px">3回</strong> トレーニングして<br>
+      カウント <strong style="color:#0984e3">220</strong> を突破しよう！<br>
+      <span style="font-size:12px;color:#888">Stage 3「1行高速読み」が待っているよ！</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  100万人の速読 ｜ <a href="index.html">学習ガイド</a> ｜ <a href="teacher.html">先生用</a> ｜ <a href="parent.html">保護者用</a>
+</div>
+
+</div>
+</body>
+</html>
