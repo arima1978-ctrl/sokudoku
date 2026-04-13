@@ -1,107 +1,220 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import {
+  BLOCK_CONFIG,
+  COUNT_ACCELERATION,
+  MARKER_HIGHLIGHT,
+  QUESTION_FONT,
+  getCountSpan,
+} from '@/lib/trainingConfig'
 
 interface SpeedReadingProps {
   title: string
   body: string
   charCount: number
-  /** 最低読書時間（秒） */
   minReadingSec: number
-  /** 目標WPM（前回最高速の80%を引き継いだ値） */
   targetWpm?: number
+  /** ブロックタイプ: verticalBlock / horizontalBlock (デフォルト: verticalBlock) */
+  blockType?: 'verticalBlock' | 'horizontalBlock'
+  /** 1行あたりのブロック数 (デフォルト: 2) */
+  blockNum?: number
   onComplete: (readingTimeSec: number, wpm: number) => void
 }
 
 /**
- * 高速読みコンポーネント
- * 最低時間が経過するまで「読み終わった」ボタンを押せない。
- * 経過時間とWPMをリアルタイム表示。
+ * 高速読みコンポーネント（元システム準拠）
+ *
+ * - カウント: 60〜260回/分、自動上昇テーブルで段階的に加速
+ * - マーカー: ブロック単位で赤ハイライト(#ffe5e5)が移動
+ * - クリック音: メトロノームのようにカウント間隔で s_tick.mp3 再生
+ * - 手動/自動切替: 手動時はカウント固定、自動時は自動上昇
+ * - 読書スピード: count × (1行文字数/ブロック数) で算出
  */
-// ============================================================
-// メトロノーム定数
-// 仕様:
-//   - 1行 = 30文字想定 / 2点読み = 1カウントで1行読了
-//   - 従って 1カウント = 30文字 → CPM = 30 × (カウント/分)
-//   - 1カウントの間隔(ms) = 60000 / (CPM / 30) = 1800000 / CPM
-//   - 8カウントごとに1段階(+30 CPM = 1行/分)自動昇速
-// ============================================================
-const BEATS_PER_STEP = 8
-const STEP_CPM = 30
-const CHARS_PER_LINE = 30
-const cpmToIntervalMs = (cpm: number) => Math.max(100, Math.round((CHARS_PER_LINE * 60 * 1000) / cpm))
-
 export default function SpeedReading({
   title,
   body,
   charCount,
   minReadingSec,
   targetWpm,
+  blockType = 'verticalBlock',
+  blockNum = 2,
   onComplete,
 }: SpeedReadingProps) {
   const [phase, setPhase] = useState<'ready' | 'reading' | 'done'>('ready')
   const [elapsed, setElapsed] = useState(0)
+  const [count, setCount] = useState(BLOCK_CONFIG.countMin)
+  const [isAuto, setIsAuto] = useState(true)
+  const [markerRow, setMarkerRow] = useState(1)
+  const [markerCol, setMarkerCol] = useState(1)
+  const [pageNum, setPageNum] = useState(0)
+  const [savedSpeed, setSavedSpeed] = useState<number | null>(null)
+
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const countIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const audioBufferRef = useRef<AudioBuffer | null>(null)
+  const countNumberRef = useRef(0) // 現在のカウントでの刻み数
+  const displayCountRef = useRef(BLOCK_CONFIG.countMin)
+  const markerRef = useRef({ row: 1, col: 1 })
 
-  // メトロノーム状態
-  const initialCpm = targetWpm && targetWpm > 0 ? targetWpm : 300
-  const [beatCount, setBeatCount] = useState(0)        // 0〜7 のサイクル
-  const [currentCpm, setCurrentCpm] = useState(initialCpm)
-  const [totalBeats, setTotalBeats] = useState(0)
-  const [pulse, setPulse] = useState(false)
-  const metronomeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const currentCpmRef = useRef(initialCpm)
+  const isVertical = blockType === 'verticalBlock'
+  const maxWord = isVertical
+    ? BLOCK_CONFIG.verticalSplitWord / blockNum
+    : BLOCK_CONFIG.horizontalSplitWord / blockNum
+  const maxRow = isVertical ? BLOCK_CONFIG.verticalMaxRow : BLOCK_CONFIG.horizontalMaxRow
+  const splitWord = isVertical ? BLOCK_CONFIG.verticalSplitWord : BLOCK_CONFIG.horizontalSplitWord
+
+  // テキストをページに分割
+  const pages = splitTextToPages(body, splitWord, maxRow)
+  const currentPage = pages[pageNum] ?? []
+  const readingSpeed = Math.round(count * maxWord)
 
   const canFinish = elapsed >= minReadingSec
 
-  // メトロノームtick: カウント+1, 8で1段階昇速, 次回スケジュール
-  const metronomeTick = useCallback(() => {
-    setPulse(true)
-    setTimeout(() => setPulse(false), 120)
-
-    setTotalBeats(t => t + 1)
-    setBeatCount(prev => {
-      const next = prev + 1
-      if (next >= BEATS_PER_STEP) {
-        currentCpmRef.current = currentCpmRef.current + STEP_CPM
-        setCurrentCpm(currentCpmRef.current)
-        return 0
-      }
-      return next
-    })
-
-    metronomeRef.current = setTimeout(metronomeTick, cpmToIntervalMs(currentCpmRef.current))
+  // クリック音再生
+  const playTick = useCallback(() => {
+    if (!audioContextRef.current || !audioBufferRef.current) return
+    try {
+      const source = audioContextRef.current.createBufferSource()
+      source.buffer = audioBufferRef.current
+      source.connect(audioContextRef.current.destination)
+      source.start(0)
+    } catch { /* audio error */ }
   }, [])
 
-  const startReading = useCallback(() => {
+  // マーカー移動
+  const moveMarker = useCallback(() => {
+    const m = markerRef.current
+    if (m.col >= blockNum) {
+      m.col = 1
+      m.row++
+      if (m.row > maxRow || m.row > (pages[pageNum]?.length ?? 0)) {
+        m.row = 1
+        m.col = 1
+        // 次ページ
+        setPageNum(p => (pages[p + 1] ? p + 1 : 0))
+      }
+    } else {
+      m.col++
+    }
+    setMarkerRow(m.row)
+    setMarkerCol(m.col)
+  }, [blockNum, maxRow, pages, pageNum])
+
+  // カウント間隔処理（自動上昇+音+マーカー移動）
+  const startCountInterval = useCallback(() => {
+    if (countIntervalRef.current) clearInterval(countIntervalRef.current)
+
+    const dc = displayCountRef.current
+    const intervalMs = Math.max(50, Math.round((60 / dc) * 1000))
+
+    countIntervalRef.current = setInterval(() => {
+      playTick()
+      moveMarker()
+
+      // 自動モードの場合: カウント上昇判定
+      if (isAuto) {
+        countNumberRef.current++
+        const accelTable = COUNT_ACCELERATION[blockType]?.[blockNum]
+        const threshold = accelTable?.[displayCountRef.current] ?? 20
+
+        if (countNumberRef.current >= threshold) {
+          countNumberRef.current = 0
+          const currentVal = displayCountRef.current
+
+          if (currentVal >= BLOCK_CONFIG.countMax) {
+            // 最大到達→最小に戻る
+            displayCountRef.current = BLOCK_CONFIG.countMin
+          } else {
+            const span = getCountSpan(currentVal, 'up')
+            displayCountRef.current = Math.min(currentVal + span, BLOCK_CONFIG.countMax)
+          }
+          setCount(displayCountRef.current)
+
+          // 間隔変更のため再スケジュール
+          if (countIntervalRef.current) clearInterval(countIntervalRef.current)
+          startCountInterval()
+        }
+      }
+    }, intervalMs)
+  }, [isAuto, blockType, blockNum, playTick, moveMarker])
+
+  // 音源読み込み + 開始
+  const startReading = useCallback(async () => {
+    try {
+      audioContextRef.current = new AudioContext()
+      const response = await fetch('/sounds/s_tick.mp3')
+      const arrayBuffer = await response.arrayBuffer()
+      audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer)
+    } catch { /* no audio */ }
+
     startTimeRef.current = Date.now()
     setPhase('reading')
+    displayCountRef.current = BLOCK_CONFIG.countMin
+    setCount(BLOCK_CONFIG.countMin)
+    countNumberRef.current = 0
+    markerRef.current = { row: 1, col: 1 }
+    setMarkerRow(1)
+    setMarkerCol(1)
+
     timerRef.current = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
     }, 500)
-    // メトロノーム開始
-    currentCpmRef.current = initialCpm
-    setCurrentCpm(initialCpm)
-    setBeatCount(0)
-    setTotalBeats(0)
-    metronomeRef.current = setTimeout(metronomeTick, cpmToIntervalMs(initialCpm))
-  }, [initialCpm, metronomeTick])
 
+    startCountInterval()
+  }, [startCountInterval])
+
+  // カウント手動UP
+  function handleCountUp() {
+    const current = displayCountRef.current
+    if (current >= BLOCK_CONFIG.countMax) return
+    const span = getCountSpan(current, 'up')
+    displayCountRef.current = Math.min(current + span, BLOCK_CONFIG.countMax)
+    setCount(displayCountRef.current)
+    if (phase === 'reading') {
+      countNumberRef.current = 0
+      if (countIntervalRef.current) clearInterval(countIntervalRef.current)
+      startCountInterval()
+    }
+  }
+
+  function handleCountDown() {
+    const current = displayCountRef.current
+    if (current <= BLOCK_CONFIG.countMin) return
+    const span = getCountSpan(current, 'down')
+    displayCountRef.current = Math.max(current - span, BLOCK_CONFIG.countMin)
+    setCount(displayCountRef.current)
+    if (phase === 'reading') {
+      countNumberRef.current = 0
+      if (countIntervalRef.current) clearInterval(countIntervalRef.current)
+      startCountInterval()
+    }
+  }
+
+  // 記録を保存
+  function handleSaveSpeed() {
+    const current = readingSpeed
+    if (savedSpeed === null || current > savedSpeed) {
+      setSavedSpeed(current)
+    }
+  }
+
+  // 終了
   const finishReading = useCallback(() => {
-    if (!canFinish) return
     if (timerRef.current) clearInterval(timerRef.current)
-    if (metronomeRef.current) clearTimeout(metronomeRef.current)
+    if (countIntervalRef.current) clearInterval(countIntervalRef.current)
     const timeSec = Math.round((Date.now() - startTimeRef.current) / 100) / 10
-    const wpm = timeSec > 0 ? Math.round((charCount / timeSec) * 60) : 0
+    const finalSpeed = savedSpeed ?? readingSpeed
     setPhase('done')
-    onComplete(timeSec, wpm)
-  }, [canFinish, charCount, onComplete])
+    onComplete(timeSec, finalSpeed)
+  }, [savedSpeed, readingSpeed, onComplete])
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
-      if (metronomeRef.current) clearTimeout(metronomeRef.current)
+      if (countIntervalRef.current) clearInterval(countIntervalRef.current)
     }
   }, [])
 
@@ -109,48 +222,68 @@ export default function SpeedReading({
   const elapsedSec = elapsed % 60
   const elapsedStr = `${String(elapsedMin).padStart(2, '0')}:${String(elapsedSec).padStart(2, '0')}`
   const remainToMin = Math.max(0, minReadingSec - elapsed)
-  const currentWpm = elapsed > 0 ? Math.round((charCount / elapsed) * 60) : 0
 
-  // 準備画面
+  // === 準備画面 ===
   if (phase === 'ready') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-        <div className="text-center px-6">
-          <div className="mb-4 inline-block rounded-full bg-orange-500 px-5 py-2 text-sm font-bold text-white">
-            高速読み
-          </div>
-          <h2 className="mb-3 text-xl font-bold text-zinc-900">{title}</h2>
-          <p className="mb-2 text-sm text-zinc-600">{charCount}文字</p>
-          <p className="mb-2 text-sm text-zinc-500">
-            できるだけ速く、内容を理解しながら読んでください
-          </p>
-          {targetWpm && targetWpm > 0 && (
-            <p className="mb-2 text-sm font-semibold text-orange-600">
-              今回の目標: <span className="text-lg">{targetWpm}</span> 文字/分
-              <span className="ml-1 text-xs text-zinc-400">(前回の80%)</span>
+      <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
+        <div className="mx-auto max-w-4xl px-4 py-6">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-4 text-center">
+              <span className="inline-block rounded-full bg-blue-600 px-4 py-1 text-sm font-bold text-white">
+                {isVertical ? 'たてブロックよみ' : 'よこブロックよみ'}
+              </span>
+            </div>
+            <h2 className="mb-2 text-center text-lg font-bold text-zinc-900">{title}</h2>
+            <p className="mb-4 text-center text-sm text-zinc-500">
+              レベル選択: 1行{blockNum}ブロック / {charCount}文字
             </p>
-          )}
-          <p className="mb-8 text-xs text-zinc-400">
-            最低{Math.round(minReadingSec / 60)}分間は読書してください（脳の定着のため）
-          </p>
-          <button
-            type="button"
-            onClick={startReading}
-            style={{
-              padding: '14px 48px', borderRadius: 28,
-              background: 'linear-gradient(180deg, #ff9f43 0%, #ee5a24 100%)',
-              border: '2px solid #d35400',
-              color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
-            }}
-          >
-            読み始める
-          </button>
+
+            {/* カウント設定 */}
+            <div className="mb-4 rounded-lg border border-zinc-200 p-4">
+              <h4 className="mb-2 text-sm font-bold text-zinc-700">カウントの速さ</h4>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="radio" name="mode" checked={isAuto} onChange={() => setIsAuto(true)} />
+                    自動
+                  </label>
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="radio" name="mode" checked={!isAuto} onChange={() => setIsAuto(false)} />
+                    手動
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={handleCountDown}
+                    className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">おそく</button>
+                  <span className="min-w-[60px] text-center font-mono text-lg font-bold text-zinc-900">{count}</span>
+                  <span className="text-xs text-zinc-500">回/分</span>
+                  <button type="button" onClick={handleCountUp}
+                    className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">はやく</button>
+                </div>
+              </div>
+              {isAuto && (
+                <p className="mt-2 text-xs text-zinc-400">カウントが徐々に速くなります</p>
+              )}
+            </div>
+
+            <div className="text-center">
+              <button type="button" onClick={startReading} style={{
+                padding: '14px 48px', borderRadius: 28,
+                border: '2px solid #E6C200',
+                background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
+                color: '#333', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
+              }}>
+                スタート
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  // 完了（onComplete呼び出し後の一瞬）
+  // === 完了 ===
   if (phase === 'done') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -162,118 +295,181 @@ export default function SpeedReading({
     )
   }
 
-  // 読書中
+  // === 読書中（2カラムレイアウト）===
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #D4EDFF 0%, #B0D9FF 100%)' }}>
-      {/* ヘッダーバー */}
-      <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{
-            background: '#ee5a24', color: '#fff', fontWeight: 'bold',
-            padding: '4px 12px', borderRadius: 16, fontSize: 12,
-          }}>
-            高速読み
-          </span>
-          <span style={{ fontSize: 16, fontFamily: 'monospace', fontWeight: 'bold', color: '#333' }}>
-            {elapsedStr}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {!canFinish && (
-            <span style={{ fontSize: 12, color: '#e74c3c', fontWeight: 'bold' }}>
-              あと{remainToMin}秒
-            </span>
-          )}
-          {canFinish && (
-            <span style={{ fontSize: 12, color: '#27ae60', fontWeight: 'bold' }}>
-              読了OK
-            </span>
-          )}
-        </div>
-      </div>
+      <div className="mx-auto flex max-w-6xl gap-4 px-4 py-4" style={{ height: 'calc(100vh - 16px)' }}>
+        {/* 左: コンテンツエリア */}
+        <div className="flex flex-1 flex-col">
+          {/* タイマーバー */}
+          <div className="mb-2 rounded-lg bg-white px-4 py-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-2 flex-1 min-w-[120px] overflow-hidden rounded-full bg-zinc-100">
+                  <div style={{
+                    height: '100%', borderRadius: 999,
+                    background: canFinish ? '#27ae60' : '#3b82f6',
+                    width: `${Math.min(100, (elapsed / Math.max(1, minReadingSec)) * 100)}%`,
+                    transition: 'width 0.5s',
+                  }} />
+                </div>
+                <span className="font-mono text-sm font-bold text-zinc-700">
+                  あと {String(Math.floor(remainToMin / 60)).padStart(2, '0')}:{String(remainToMin % 60).padStart(2, '0')}
+                </span>
+              </div>
+              <span className="text-xs text-zinc-400">{elapsedStr} 経過</span>
+            </div>
+          </div>
 
-      {/* 最低時間プログレスバー */}
-      <div style={{ padding: '0 16px 8px' }}>
-        <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', borderRadius: 2,
-            background: canFinish ? '#27ae60' : '#3b82f6',
-            width: `${Math.min(100, (elapsed / minReadingSec) * 100)}%`,
-            transition: 'width 0.5s',
-          }} />
-        </div>
-      </div>
+          {/* テキスト表示エリア + マーカー */}
+          <div className="relative flex-1 overflow-hidden rounded-lg bg-white">
+            <div style={{
+              padding: 20,
+              writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+              fontFamily: QUESTION_FONT.family,
+              fontSize: isVertical ? 20 : 18,
+              lineHeight: 2,
+              height: '100%',
+              overflowY: 'auto',
+              position: 'relative',
+            }}>
+              {currentPage.map((line, i) => (
+                <p key={`${pageNum}-${i}`} style={{ margin: 0 }}>{line}</p>
+              ))}
+            </div>
 
-      {/* メトロノームバー(8カウント + 目標CPM) */}
-      <div style={{
-        padding: '6px 16px 8px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', gap: 12,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{
-            width: 14, height: 14, borderRadius: '50%',
-            background: pulse ? '#ee5a24' : '#ffd7c9',
-            boxShadow: pulse ? '0 0 12px #ee5a24' : 'none',
-            transition: 'all 0.12s',
-          }} />
-          <span style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>
-            {beatCount + 1} / {BEATS_PER_STEP}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {Array.from({ length: BEATS_PER_STEP }).map((_, i) => (
-            <div key={i} style={{
-              width: 10, height: 10, borderRadius: 2,
-              background: i < beatCount ? '#ee5a24' : '#e5e7eb',
-              transition: 'background 0.12s',
-            }} />
-          ))}
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#1478C3' }}>
-          目標 {currentCpm} 文字/分
-        </div>
-      </div>
+            {/* マーカーグリッドオーバーレイ */}
+            <div style={{
+              position: 'absolute', top: 20, left: 20, right: 20, bottom: 20,
+              display: 'grid',
+              gridTemplateColumns: isVertical
+                ? `repeat(${maxRow}, 1fr)`
+                : `repeat(${blockNum}, 1fr)`,
+              gridTemplateRows: isVertical
+                ? `repeat(${blockNum}, 1fr)`
+                : `repeat(${maxRow}, 1fr)`,
+              pointerEvents: 'none',
+            }}>
+              {Array.from({ length: maxRow * blockNum }).map((_, i) => {
+                const r = isVertical ? (i % blockNum) + 1 : Math.floor(i / blockNum) + 1
+                const c = isVertical ? Math.floor(i / blockNum) + 1 : (i % blockNum) + 1
+                const isActive = r === markerRow && c === markerCol
+                return (
+                  <div key={i} style={{
+                    background: isActive ? MARKER_HIGHLIGHT : 'transparent',
+                    transition: 'background 0.1s',
+                    borderRadius: 2,
+                  }} />
+                )
+              })}
+            </div>
 
-      {/* 本文 */}
-      <div style={{ padding: '0 16px 16px' }}>
-        <div style={{
-          background: '#fff', borderRadius: 8, padding: 20,
-          minHeight: 'calc(100vh - 200px)', overflowY: 'auto',
-        }}>
-          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 16, textAlign: 'center' }}>
-            {title}
-          </h3>
-          <div style={{
-            fontFamily: '"Noto Sans JP", sans-serif',
-            fontSize: 18, lineHeight: 2.2, color: '#333',
-            whiteSpace: 'pre-wrap',
-          }}>
-            {body}
+            {/* ページ番号 */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-zinc-400">
+              {pageNum + 1} / {pages.length}
+            </div>
           </div>
         </div>
 
-        {/* 読了ボタン */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-          <button
-            type="button"
-            onClick={finishReading}
-            disabled={!canFinish}
-            style={{
-              padding: '14px 48px', borderRadius: 28,
-              border: canFinish ? '2px solid #E6C200' : '2px solid #ccc',
-              background: canFinish
-                ? 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)'
-                : '#e5e7eb',
-              color: canFinish ? '#333' : '#999',
-              fontSize: 16, fontWeight: 'bold',
-              cursor: canFinish ? 'pointer' : 'not-allowed',
-              opacity: canFinish ? 1 : 0.6,
-            }}
-          >
-            {canFinish ? '読み終わった' : `あと${remainToMin}秒お待ちください`}
-          </button>
+        {/* 右: サイドバー */}
+        <div className="flex w-56 flex-col gap-3">
+          {/* 読書スピード */}
+          <div className="rounded-lg bg-white p-4 text-center">
+            <div className="text-xs text-zinc-500">読書スピード<small>（字/分）</small></div>
+            <div className="mt-1 font-mono text-3xl font-bold text-zinc-900">
+              {readingSpeed.toLocaleString()}
+            </div>
+            {savedSpeed !== null && (
+              <div className="mt-1 text-xs text-green-600">保存済: {savedSpeed.toLocaleString()}</div>
+            )}
+          </div>
+
+          {/* カウント設定 */}
+          <div className="rounded-lg bg-white p-4">
+            <h4 className="mb-2 text-xs font-bold text-zinc-600">カウントの速さ</h4>
+            <div className="mb-2 text-center">
+              <span className="font-mono text-2xl font-bold text-zinc-900">{count}</span>
+              <span className="ml-1 text-xs text-zinc-500">回/分</span>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={handleCountDown} className="flex-1 rounded-full border border-zinc-300 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50">
+                おそく
+              </button>
+              <button type="button" onClick={handleCountUp} className="flex-1 rounded-full border border-zinc-300 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50">
+                はやく
+              </button>
+            </div>
+            <div className="mt-2 text-center text-[10px] text-zinc-400">
+              {isAuto ? 'カウントが徐々に速くなります' : '手動モード'}
+            </div>
+          </div>
+
+          {/* ボタン */}
+          <div className="mt-auto flex flex-col gap-2">
+            <button type="button" onClick={handleSaveSpeed} style={{
+              padding: '10px 16px', borderRadius: 28,
+              border: '2px solid #00aa6e', background: '#00aa6e',
+              color: '#fff', fontSize: 13, fontWeight: 'bold', cursor: 'pointer',
+              textAlign: 'center',
+            }}>
+              記録を保存
+            </button>
+            {canFinish && (
+              <button type="button" onClick={finishReading} style={{
+                padding: '10px 16px', borderRadius: 28,
+                border: '2px solid #E6C200',
+                background: 'linear-gradient(180deg, #FFE44D 0%, #FFD700 100%)',
+                color: '#333', fontSize: 13, fontWeight: 'bold', cursor: 'pointer',
+                textAlign: 'center',
+              }}>
+                読み終わり
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
+}
+
+// ========== テキスト分割ユーティリティ ==========
+
+/** テキストをページ単位に分割（元システム splitSentence / splitByChunk 準拠） */
+function splitTextToPages(text: string, lineSize: number, maxRows: number): string[][] {
+  const paragraphs = text.split(/\n/g)
+  const allLines: string[] = []
+
+  for (const para of paragraphs) {
+    const cleaned = para.replace(/ +/g, '')
+    if (cleaned.length === 0) continue
+    const chunks = splitByChunk(cleaned, lineSize)
+    allLines.push(...chunks)
+  }
+
+  // maxRows ごとにページ分割
+  const pages: string[][] = []
+  for (let i = 0; i < allLines.length; i += maxRows) {
+    pages.push(allLines.slice(i, i + maxRows))
+  }
+
+  return pages.length > 0 ? pages : [['']]
+}
+
+/** 句読点繰り上げ付きの文字数分割（元システム準拠） */
+function splitByChunk(str: string, size: number): string[] {
+  const result: string[] = []
+  let pos = 0
+  while (pos < str.length) {
+    let end = pos + size
+    // 次の文字が句読点なら繰り上げ
+    if (end < str.length) {
+      const nextChar = str[end]
+      if (nextChar === '。' || nextChar === '、' || nextChar === '」') {
+        end++
+      }
+    }
+    result.push(str.slice(pos, end))
+    pos = end
+  }
+  return result
 }
