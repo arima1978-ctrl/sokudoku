@@ -156,10 +156,10 @@ export default function SpeedReading({
     startCountInterval()
   }, [startCountInterval])
 
-  // カウント手動UP (+10ずつ、青天井)
+  // カウント手動UP (+1ずつ、青天井)
   function handleCountUp() {
     const current = displayCountRef.current
-    displayCountRef.current = current + 10
+    displayCountRef.current = current + 1
     setCount(displayCountRef.current)
     if (phase === 'reading') {
       countNumberRef.current = 0
@@ -168,11 +168,11 @@ export default function SpeedReading({
     }
   }
 
-  // カウント手動DOWN (-10ずつ)
+  // カウント手動DOWN (-1ずつ)
   function handleCountDown() {
     const current = displayCountRef.current
     if (current <= BLOCK_CONFIG.countMin) return
-    displayCountRef.current = Math.max(current - 10, BLOCK_CONFIG.countMin)
+    displayCountRef.current = Math.max(current - 1, BLOCK_CONFIG.countMin)
     setCount(displayCountRef.current)
     if (phase === 'reading') {
       countNumberRef.current = 0
