@@ -43,6 +43,7 @@ interface TrainingHomeProps {
     block240Count: number
     block90Count: number
     speedMode: boolean
+    countTarget: number
     minSessions: number
   }
   stats: {
@@ -376,6 +377,7 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
             block240Count={progress.block240Count}
             block90Count={progress.block90Count}
             speedMode={progress.speedMode}
+            countTarget={progress.countTarget}
           />
         </div>
       )}

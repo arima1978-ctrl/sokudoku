@@ -111,5 +111,29 @@ export const COUNT_AUTO = {
   stepSize: 1,
 } as const
 
+/**
+ * 学年別カウント目標（ステージアップ条件）
+ * 幼児〜小3: 200カウント
+ * 小4〜小6: 220カウント
+ * 中学生以上: 240カウント
+ */
+export function getCountTarget(gradeLevelId: string | null): number {
+  switch (gradeLevelId) {
+    case 'preschool':
+    case 'g1':
+    case 'g2':
+    case 'g3':
+      return 200
+    case 'g4':
+    case 'g5':
+    case 'g6':
+      return 220
+    case 'jh':
+    case 'hs':
+    default:
+      return 240
+  }
+}
+
 /** マーカーハイライト色 */
 export const MARKER_HIGHLIGHT = '#ffe5e5' as const

@@ -12,6 +12,7 @@ interface StageInfoProps {
   block240Count: number
   block90Count: number
   speedMode: boolean
+  countTarget: number  // 学年別目標（200/220/240）
 }
 
 export default function StageInfo({
@@ -23,6 +24,7 @@ export default function StageInfo({
   block240Count,
   block90Count,
   speedMode,
+  countTarget,
 }: StageInfoProps) {
   const progressPct = Math.min(100, Math.round((sessionCount / minSessions) * 100))
   const sessionsReached = sessionCount >= minSessions
@@ -102,7 +104,7 @@ export default function StageInfo({
             {block240Done ? '\u2713' : '\u25CB'}
           </span>
           <span className={block240Done ? 'text-zinc-700' : 'text-zinc-400'}>
-            ブロック読み 240カウント突破 ({block240Count}/{REQUIRED_CLEARS}回)
+            ブロック読み {countTarget}カウント突破 ({block240Count}/{REQUIRED_CLEARS}回)
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">

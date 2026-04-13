@@ -9,6 +9,7 @@ import {
 } from '@/app/actions/training'
 import { getSubjects } from '@/app/actions/onboarding'
 import { supabase } from '@/lib/supabase'
+import { getCountTarget } from '@/lib/trainingConfig'
 import TrainingHome from './TrainingHome'
 
 export default async function TrainingPage() {
@@ -80,6 +81,7 @@ export default async function TrainingPage() {
         block240Count: (progress.block_240_cleared as number) ?? 0,
         block90Count: (progress.block_accuracy_90 as number) ?? 0,
         speedMode: (progress.speed_mode as boolean) ?? false,
+        countTarget: getCountTarget(student.grade_level_id ?? null),
         minSessions: coachMinSessions,
       }}
       stats={{

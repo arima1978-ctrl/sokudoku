@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { reportBlock240Cleared, reportBlockAccuracy90 } from '@/app/actions/training'
+import { getCountTarget } from '@/lib/trainingConfig'
 
 export interface SpeedMeasurementResult {
   id: string
@@ -103,14 +104,26 @@ export async function saveSpeedMeasurement(
     .update({ [updateField]: (data as Record<string, unknown>).id } as Record<string, unknown>)
     .eq('id', dailySessionId)
 
-  // 測定(前)で240文字/分以上 → ブロック読み240カウント達成を記録(+1)
-  if (measurementType === 'pre' && wpm >= 240) {
-    await reportBlock240Cleared(studentId)
-  }
+  // 測定(前)の場合: 学年別カウント目標で判定
+  if (measurementType === 'pre') {
+    // 生徒の学年を取得
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('grade_level_id')
+      .eq('id', studentId)
+      .single()
+    const gradeLevelId = (studentData as Record<string, unknown> | null)?.grade_level_id as string | null
+    const countTarget = getCountTarget(gradeLevelId)
 
-  // 測定(前)のテストで正答率90%以上 → 正答率90%達成を記録(+1)
-  if (measurementType === 'pre' && quizAccuracy !== null && quizAccuracy >= 90) {
-    await reportBlockAccuracy90(studentId)
+    // WPMが学年別目標以上 → カウント達成を記録(+1)
+    if (wpm >= countTarget) {
+      await reportBlock240Cleared(studentId)
+    }
+
+    // テスト正答率90%以上 → 正答率達成を記録(+1)
+    if (quizAccuracy !== null && quizAccuracy >= 90) {
+      await reportBlockAccuracy90(studentId)
+    }
   }
 
   return data as SpeedMeasurementResult

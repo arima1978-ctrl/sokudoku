@@ -1,6 +1,7 @@
 'use server'
 
 import { supabase } from '@/lib/supabase'
+import { getCountTarget } from '@/lib/trainingConfig'
 
 // ========== Types ==========
 
@@ -13,6 +14,7 @@ export interface CoachProgressSummary {
   block240Count: number
   block90Count: number
   speedMode: boolean
+  countTarget: number  // 学年別カウント目標（200/220/240）
   totalTrainingCount: number
   latestWpm: number | null
   bestWpm: number | null
@@ -53,13 +55,13 @@ export async function getCoachProgressSummary(studentId: string): Promise<CoachP
   const p = progress as Record<string, unknown>
   const stageId = (p.coach_stage_id as string) ?? 'stage_1'
 
-  const { data: stage } = await supabase
-    .from('coach_stages')
-    .select('name, stage_number, min_sessions')
-    .eq('id', stageId)
-    .single()
+  const [{ data: stage }, { data: studentData }] = await Promise.all([
+    supabase.from('coach_stages').select('name, stage_number, min_sessions').eq('id', stageId).single(),
+    supabase.from('students').select('grade_level_id').eq('id', studentId).single(),
+  ])
 
   const s = (stage as Record<string, unknown>) ?? {}
+  const gradeLevelId = (studentData as Record<string, unknown> | null)?.grade_level_id as string | null
 
   return {
     stageNumber: (s.stage_number as number) ?? 1,
@@ -70,6 +72,7 @@ export async function getCoachProgressSummary(studentId: string): Promise<CoachP
     block240Count: (p.block_240_cleared as number) ?? 0,
     block90Count: (p.block_accuracy_90 as number) ?? 0,
     speedMode: (p.speed_mode as boolean) ?? false,
+    countTarget: getCountTarget(gradeLevelId),
     totalTrainingCount: (p.total_training_count as number) ?? 0,
     latestWpm: p.latest_wpm as number | null,
     bestWpm: p.best_wpm as number | null,
