@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トレーニング選択（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+.header { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 24px; margin-bottom: 20px; text-align: center; }
+.header h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+.header .sub { font-size: 13px; opacity: 0.8; }
+
+/* ステップ表示 */
+.steps { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+.step-dot { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #fff; color: #b2bec3; }
+.step-dot.active { background: #0984e3; color: #fff; }
+.step-dot.done { background: #00b894; color: #fff; }
+
+/* コース選択 */
+.step-card { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.step-title { font-size: 18px; font-weight: 900; margin-bottom: 4px; text-align: center; }
+.step-sub { font-size: 13px; color: #888; text-align: center; margin-bottom: 20px; }
+
+/* コース種別（速読基本/ジャンル別） */
+.course-types { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.course-type { padding: 20px; border-radius: 16px; border: 3px solid #e8ecf0; cursor: pointer; text-align: center; transition: all 0.2s; }
+.course-type:hover { border-color: #74b9ff; transform: translateY(-2px); }
+.course-type.selected { border-color: #0984e3; background: #f0f7ff; }
+.course-type .emoji { font-size: 40px; margin-bottom: 8px; }
+.course-type .name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+.course-type .desc { font-size: 11px; color: #888; line-height: 1.5; }
+
+/* 時間選択 */
+.duration-select { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.duration-btn { padding: 16px; border-radius: 14px; border: 2px solid #e8ecf0; background: #fff; cursor: pointer; text-align: center; font-family: inherit; }
+.duration-btn.selected { border-color: #0984e3; background: #f0f7ff; }
+.duration-btn .time { font-size: 20px; font-weight: 900; color: #0984e3; }
+.duration-btn .label { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* ジャンル選択 */
+.genre-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.genre-btn { padding: 16px 8px; border-radius: 14px; border: 2px solid #e8ecf0; background: #fff; cursor: pointer; text-align: center; font-family: inherit; transition: all 0.15s; }
+.genre-btn:hover { border-color: #74b9ff; }
+.genre-btn.selected { border-color: #0984e3; background: #f0f7ff; }
+.genre-btn .g-icon { font-size: 32px; display: block; margin-bottom: 6px; }
+.genre-btn .g-name { font-size: 13px; font-weight: 700; }
+.genre-btn .g-count { font-size: 10px; color: #888; margin-top: 2px; }
+.genre-btn.own { border-color: #55efc4; background: linear-gradient(135deg, #fff, #f0fff4); }
+.genre-btn.own .g-name::after { content: " 🏫"; font-size: 11px; }
+
+/* コンテンツ選択 */
+.content-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
+.content-item { padding: 14px 16px; border-radius: 12px; border: 2px solid #e8ecf0; background: #fff; cursor: pointer; transition: all 0.15s; }
+.content-item:hover { border-color: #74b9ff; }
+.content-item.selected { border-color: #0984e3; background: #f0f7ff; }
+.content-item .ci-header { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 6px; }
+.content-item .ci-title { font-size: 14px; font-weight: 700; }
+.content-item .ci-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: #e3f2fd; color: #1565c0; font-weight: 700; white-space: nowrap; }
+.content-item .ci-badge.own { background: #e8f5e9; color: #2e7d32; }
+.content-item .ci-badge.koe { background: #e3f2fd; color: #1565c0; }
+.content-item .ci-badge.e { background: #fff5f0; color: #e17055; }
+.content-item .ci-meta { display: flex; gap: 8px; font-size: 11px; color: #888; }
+.content-item .ci-preview { font-size: 12px; color: #666; margin-top: 8px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.content-item.done::after { content: "✓ 過去に実施"; font-size: 10px; color: #00b894; display: inline-block; margin-left: 6px; }
+
+/* フィルター */
+.content-filter { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; font-size: 12px; }
+.content-filter label { color: #888; font-weight: 700; }
+.content-filter input { flex: 1; padding: 6px 12px; border: 1px solid #e8ecf0; border-radius: 8px; font-size: 12px; font-family: inherit; }
+
+/* 確認画面 */
+.confirm-box { background: linear-gradient(135deg, #e3f2fd, #fff); border-radius: 16px; padding: 20px; margin: 16px 0; }
+.confirm-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8ecf0; font-size: 13px; }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row .label { color: #888; }
+.confirm-row .val { font-weight: 700; }
+
+/* ボタン */
+.btn-wrap { display: flex; gap: 10px; margin-top: 20px; }
+.btn { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 900; cursor: pointer; font-family: inherit; }
+.btn.back { background: #f5f5f5; color: #888; }
+.btn.next { background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; box-shadow: 0 4px 16px rgba(9,132,227,0.3); }
+.btn.next:disabled { background: #e8ecf0; color: #b2bec3; cursor: not-allowed; box-shadow: none; }
+.btn.start { background: linear-gradient(135deg, #e84393, #fd79a8); color: #fff; box-shadow: 0 4px 16px rgba(232,67,147,0.3); font-size: 18px; padding: 18px; }
+
+/* 速読基本用表示 */
+.koe-e-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+.koe-e-btn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid #e8ecf0; background: #fff; cursor: pointer; font-family: inherit; text-align: center; }
+.koe-e-btn.selected.koe { border-color: #0984e3; background: #f0f7ff; }
+.koe-e-btn.selected.e { border-color: #e17055; background: #fff5f0; }
+.koe-e-btn .ke-icon { font-size: 20px; }
+.koe-e-btn .ke-name { font-size: 12px; font-weight: 700; margin-top: 4px; }
+.koe-e-btn .ke-now { font-size: 10px; color: #00b894; font-weight: 700; margin-top: 2px; }
+
+.auto-indicator { padding: 10px 14px; border-radius: 10px; background: #fff3cd; color: #6c5400; font-size: 12px; margin-bottom: 12px; text-align: center; }
+
+.footer { text-align: center; padding: 20px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+<div class="page">
+
+<div class="header">
+  <h1>⚡ トレーニング開始</h1>
+  <div class="sub">今日はどんなトレーニングをする？</div>
+</div>
+
+<!-- ステップインジケーター -->
+<div class="steps">
+  <div class="step-dot done">1 コース</div>
+  <div class="step-dot done">2 時間</div>
+  <div class="step-dot active">3 コンテンツ</div>
+  <div class="step-dot">4 確認</div>
+</div>
+
+<!-- ステップ1: コース選択 -->
+<div class="step-card">
+  <div class="step-title">🎯 コース選択</div>
+  <div class="step-sub">今日はどちらのトレーニングをしますか？</div>
+  <div class="course-types">
+    <div class="course-type selected" onclick="selectCourseType(this, 'basic')">
+      <div class="emoji">📘</div>
+      <div class="name">速読基本<br>トレーニング</div>
+      <div class="desc">声になる文・絵になる文で<br>基本の読む力を鍛える</div>
+    </div>
+    <div class="course-type" onclick="selectCourseType(this, 'genre')">
+      <div class="emoji">📚</div>
+      <div class="name">ジャンル別<br>コース</div>
+      <div class="desc">好きなジャンルで<br>楽しく読書スピードアップ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ステップ2: 時間選択 -->
+<div class="step-card">
+  <div class="step-title">⏱️ コース時間</div>
+  <div class="step-sub">今日は何分トレーニングする？</div>
+  <div class="duration-select">
+    <button class="duration-btn" onclick="selectDuration(this, 10)">
+      <div class="time">10分</div>
+      <div class="label">サクッと</div>
+    </button>
+    <button class="duration-btn selected" onclick="selectDuration(this, 20)">
+      <div class="time">20分</div>
+      <div class="label">しっかり</div>
+    </button>
+    <button class="duration-btn" onclick="selectDuration(this, 30)">
+      <div class="time">30分</div>
+      <div class="label">じっくり</div>
+    </button>
+  </div>
+</div>
+
+<!-- ステップ3a: 速読基本 → 声/絵 + コンテンツ選択 -->
+<div class="step-card" id="basicContentStep">
+  <div class="step-title">📖 コンテンツ選択</div>
+  <div class="step-sub">速読基本トレーニングでは、声になる文と絵になる文を交互に使います</div>
+
+  <div class="auto-indicator">
+    💡 今回は <strong>🔊 声になる文</strong> の番です（前回は 🎨 絵になる文 でした）
+  </div>
+
+  <div class="content-filter">
+    <label>🔍</label>
+    <input type="search" placeholder="タイトルで検索...">
+  </div>
+
+  <div class="content-list">
+    <div class="content-item selected">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">走れメロス 〜友情のお話〜</div>
+          <div class="ci-meta"><span>📝 542字</span><span>小4-6</span><span>難易度 2</span></div>
+        </div>
+        <span class="ci-badge koe">🔊 声</span>
+      </div>
+      <div class="ci-preview">メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ…</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">夏目漱石「坊っちゃん」冒頭</div>
+          <div class="ci-meta"><span>📝 486字</span><span>小4-6</span><span>難易度 2</span></div>
+        </div>
+        <span class="ci-badge koe">🔊 声</span>
+      </div>
+      <div class="ci-preview">親譲りの無鉄砲で小供の時から損ばかりしている。小学校に居る時分学校の二階から飛び降りて…</div>
+    </div>
+    <div class="content-item done">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">友達とケンカした日</div>
+          <div class="ci-meta"><span>📝 412字</span><span>小4-6</span><span>難易度 1</span></div>
+        </div>
+        <span class="ci-badge koe">🔊 声</span>
+      </div>
+      <div class="ci-preview">「ごめんね」の一言がなかなか言えなかった。昨日、親友のさくらと些細なことでケンカして…</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">雨の日の図書館</div>
+          <div class="ci-meta"><span>📝 398字</span><span>小4-6</span><span>難易度 1</span></div>
+        </div>
+        <span class="ci-badge koe">🔊 声</span>
+      </div>
+      <div class="ci-preview">ポツポツと雨が降り始めた。学校から歩いて5分、僕は近所の図書館に駆け込んだ…</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">初めてのおつかい</div>
+          <div class="ci-meta"><span>📝 368字</span><span>幼児-小3</span><span>難易度 1</span></div>
+        </div>
+        <span class="ci-badge koe">🔊 声</span>
+      </div>
+      <div class="ci-preview">お母さんから500円玉を受け取って、ぼくは近所のスーパーへと向かった。ドキドキしながら…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ステップ3b: ジャンル別 → ジャンル + コンテンツ選択 -->
+<div class="step-card" id="genreContentStep" style="display:none">
+  <div class="step-title">📚 ジャンル選択</div>
+  <div class="step-sub">どのジャンルから読む？</div>
+  <div class="genre-grid" style="margin-bottom:20px">
+    <div class="genre-btn selected" onclick="selectGenre(this)">
+      <span class="g-icon">📖</span>
+      <div class="g-name">物語</div>
+      <div class="g-count">32件</div>
+    </div>
+    <div class="genre-btn" onclick="selectGenre(this)">
+      <span class="g-icon">🌟</span>
+      <div class="g-name">道徳</div>
+      <div class="g-count">24件</div>
+    </div>
+    <div class="genre-btn" onclick="selectGenre(this)">
+      <span class="g-icon">🔍</span>
+      <div class="g-name">雑学</div>
+      <div class="g-count">18件</div>
+    </div>
+    <div class="genre-btn" onclick="selectGenre(this)">
+      <span class="g-icon">👤</span>
+      <div class="g-name">伝記</div>
+      <div class="g-count">14件</div>
+    </div>
+    <div class="genre-btn" onclick="selectGenre(this)">
+      <span class="g-icon">🌍</span>
+      <div class="g-name">社会</div>
+      <div class="g-count">10件</div>
+    </div>
+    <div class="genre-btn" onclick="selectGenre(this)">
+      <span class="g-icon">🔬</span>
+      <div class="g-name">理科</div>
+      <div class="g-count">4件</div>
+    </div>
+    <div class="genre-btn own" onclick="selectGenre(this)">
+      <span class="g-icon">🌱</span>
+      <div class="g-name">環境・SDGs</div>
+      <div class="g-count">12件</div>
+    </div>
+    <div class="genre-btn own" onclick="selectGenre(this)">
+      <span class="g-icon">⚽</span>
+      <div class="g-name">スポーツ</div>
+      <div class="g-count">14件</div>
+    </div>
+  </div>
+
+  <div class="step-title" style="font-size:16px;margin-top:16px">📖 物語のコンテンツから選ぶ</div>
+  <div class="step-sub">読みたい物語を選ぼう</div>
+
+  <div class="content-filter">
+    <label>🔍</label>
+    <input type="search" placeholder="タイトルで検索...">
+  </div>
+
+  <div class="content-list">
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">桃太郎</div>
+          <div class="ci-meta"><span>📝 380字</span><span>幼児-小3</span><span>難易度 1</span></div>
+        </div>
+        <span class="ci-badge">🌐 共有</span>
+      </div>
+      <div class="ci-preview">昔々、あるところにおじいさんとおばあさんが住んでいました。ある日、おばあさんが川で洗濯を…</div>
+    </div>
+    <div class="content-item done">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">浦島太郎</div>
+          <div class="ci-meta"><span>📝 420字</span><span>幼児-小3</span><span>難易度 1</span></div>
+        </div>
+        <span class="ci-badge">🌐 共有</span>
+      </div>
+      <div class="ci-preview">昔、丹後の国に浦島太郎という若い漁師がいました。ある日、子どもたちが亀をいじめているのを見て…</div>
+    </div>
+    <div class="content-item selected">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">名大SKYオリジナル「夏休みの思い出」</div>
+          <div class="ci-meta"><span>📝 452字</span><span>小4-6</span><span>難易度 2</span></div>
+        </div>
+        <span class="ci-badge own">🏫 自塾</span>
+      </div>
+      <div class="ci-preview">太郎は夏休みの宿題に頭を悩ませていた。毎年のように決まって出される読書感想文。今年こそは…</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">かぐや姫</div>
+          <div class="ci-meta"><span>📝 460字</span><span>小4-6</span><span>難易度 2</span></div>
+        </div>
+        <span class="ci-badge">🌐 共有</span>
+      </div>
+      <div class="ci-preview">今となっては昔のこと、竹取の翁と呼ばれる者がおりました。野山に入って竹を取っては色々なものを作っていました…</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-header">
+        <div>
+          <div class="ci-title">走れメロス</div>
+          <div class="ci-meta"><span>📝 620字</span><span>中学以上</span><span>難易度 3</span></div>
+        </div>
+        <span class="ci-badge">🌐 共有</span>
+      </div>
+      <div class="ci-preview">メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した…</div>
+    </div>
+  </div>
+</div>
+
+<!-- 確認 -->
+<div class="step-card" style="background:linear-gradient(135deg,#e3f2fd,#fff);border:2px solid #0984e3">
+  <div class="step-title">✓ トレーニング内容の確認</div>
+  <div class="confirm-box">
+    <div class="confirm-row"><span class="label">コース</span><span class="val">📘 速読基本トレーニング</span></div>
+    <div class="confirm-row"><span class="label">時間</span><span class="val">⏱️ 20分</span></div>
+    <div class="confirm-row"><span class="label">文章タイプ</span><span class="val">🔊 声になる文</span></div>
+    <div class="confirm-row"><span class="label">コンテンツ</span><span class="val">走れメロス 〜友情のお話〜</span></div>
+    <div class="confirm-row"><span class="label">ステージ</span><span class="val">Stage 2 (2点高速読み)</span></div>
+    <div class="confirm-row"><span class="label">スタート速度</span><span class="val">320字/分 (前回×70%)</span></div>
+  </div>
+
+  <div class="btn-wrap">
+    <button class="btn back">戻る</button>
+    <button class="btn start" onclick="alert('デモ画面です')">🚀 トレーニング開始</button>
+  </div>
+</div>
+
+<div class="footer">
+  100万人の速読 ｜ <a href="index.html">学習ガイド</a> ｜ <a href="student.html">マイページ</a> ｜ <a href="contents.html">コンテンツ管理</a>
+</div>
+
+</div>
+
+<script>
+  function selectCourseType(el, type) {
+    document.querySelectorAll('.course-type').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    if (type === 'basic') {
+      document.getElementById('basicContentStep').style.display = 'block';
+      document.getElementById('genreContentStep').style.display = 'none';
+    } else {
+      document.getElementById('basicContentStep').style.display = 'none';
+      document.getElementById('genreContentStep').style.display = 'block';
+    }
+  }
+  function selectDuration(el, min) {
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function selectGenre(el) {
+    document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  document.querySelectorAll('.content-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.content-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+    });
+  });
+</script>
+</body>
+</html>

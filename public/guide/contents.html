@@ -499,32 +499,50 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     </div>
     <div class="modal-body">
 
-      <!-- タイプ選択 -->
+      <!-- 対象コース選択 -->
       <div class="form-row">
-        <label>コンテンツタイプ <span class="required">*</span></label>
+        <label>対象コース <span class="required">*</span></label>
         <div class="type-select">
-          <div class="type-option selected" onclick="selectType(this, 'fast')">
-            <div class="icon">📖</div>
-            <div class="label">高速読み</div>
-            <div class="desc">本文＋内容理解4択×5問</div>
+          <div class="type-option selected" onclick="selectCourseTarget(this, 'basic')">
+            <div class="icon">📘</div>
+            <div class="label">速読基本トレーニング</div>
+            <div class="desc">声になる文/絵になる文<br>の区別あり</div>
           </div>
-          <div class="type-option" onclick="selectType(this, 'shunkan')">
-            <div class="icon">⚡</div>
-            <div class="label">瞬間読み</div>
-            <div class="desc">問題文5問＋選択肢4つ</div>
+          <div class="type-option" onclick="selectCourseTarget(this, 'genre')">
+            <div class="icon">📚</div>
+            <div class="label">ジャンル別コース</div>
+            <div class="desc">ジャンルに所属<br>（声/絵の区別なし）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 速読基本のみ: 声/絵フラグ -->
+      <div class="form-row" id="koeEField">
+        <label>文章タイプ <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">（速読基本トレーニング用）</span></label>
+        <div class="type-select">
+          <div class="type-option" onclick="selectKoeE(this, 'koe')">
+            <div class="icon">🔊</div>
+            <div class="label">声になる文</div>
+            <div class="desc">音やリズムが頭に浮かぶ文章</div>
+          </div>
+          <div class="type-option" onclick="selectKoeE(this, 'e')">
+            <div class="icon">🎨</div>
+            <div class="label">絵になる文</div>
+            <div class="desc">情景や映像が頭に浮かぶ文章</div>
           </div>
         </div>
       </div>
 
       <!-- 基本情報 -->
       <div class="form-row">
-        <label>タイトル <span class="required">*</span></label>
-        <input type="text" placeholder="例: 夏休みの思い出" value="">
+        <label>パックタイトル <span class="required">*</span></label>
+        <input type="text" placeholder="例: 走れメロス 〜友情のお話〜" value="">
+        <div style="font-size:11px;color:#888;margin-top:4px">💡 生徒がトレーニング開始時に選ぶ単位です</div>
       </div>
 
       <div class="form-row-triple">
-        <div class="form-row">
-          <label>ジャンル <span class="required">*</span></label>
+        <div class="form-row" id="genreField" style="display:none">
+          <label>ジャンル <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(ジャンル別のみ)</span></label>
           <select>
             <optgroup label="🌐 共有ジャンル">
               <option>📖 物語</option>
@@ -558,49 +576,58 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
         </div>
       </div>
 
-      <!-- 本文 -->
+      <!-- 4セグメント分のテキスト登録 -->
+      <div style="background:#f0f7ff;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700;color:#0984e3;margin-bottom:4px">📝 4種目分のテキストを登録</div>
+        <div style="font-size:11px;color:#666;line-height:1.6">生徒がこのパックを選ぶと、以下4つのテキストが順に使われます。各セグメントに適した文章を登録してください。</div>
+      </div>
+
+      <!-- ① ばらばら瞬間読み -->
       <div class="form-row">
-        <label>本文 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">（目安: 300〜800字）</span></label>
-        <textarea placeholder="ここに本文を入力してください..."></textarea>
+        <label>① ばらばら瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(円形配置される単語を10〜20個)</span></label>
+        <textarea placeholder="例: りんご, みかん, ぶどう, いちご, もも, なし, バナナ, すいか, メロン, キウイ" style="min-height:60px"></textarea>
+      </div>
+
+      <!-- ② 1行瞬間読み -->
+      <div class="form-row">
+        <label>② 1行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(1行に収まる短文を複数登録)</span></label>
+        <textarea placeholder="メロスは激怒した&#10;邪智暴虐の王を除かねばならぬ&#10;メロスには政治がわからぬ&#10;..." style="min-height:100px"></textarea>
+      </div>
+
+      <!-- ③ 2行瞬間読み -->
+      <div class="form-row">
+        <label>③ 2行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(2行分の文を複数登録)</span></label>
+        <textarea placeholder="メロスは激怒した。必ず、かの邪智暴虐の王を&#10;除かなければならぬと決意した。&#10;..." style="min-height:100px"></textarea>
+      </div>
+
+      <!-- ④ 高速読み（本文） -->
+      <div class="form-row">
+        <label>④ 高速読み用本文 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(目安: 300〜800字)</span></label>
+        <textarea placeholder="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ…" style="min-height:120px"></textarea>
         <div style="font-size:11px;color:#888;margin-top:4px">📊 0 字 / 想定読書時間: 約 0 秒</div>
       </div>
 
-      <!-- クイズ（高速読み用：内容理解4択×5問） -->
+      <!-- 内容理解クイズ -->
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <label style="margin:0">理解度クイズ 5問 <span class="required">*</span></label>
+          <label style="margin:0">高速読みの内容理解クイズ 5問 <span class="required">*</span></label>
           <button class="btn outline small">🤖 AIで下書き生成</button>
         </div>
 
-        <!-- 問題1 -->
         <div class="question-block">
           <div class="q-num">Q1</div>
           <div class="q-title">問題文</div>
           <input type="text" placeholder="主人公の名前は何ですか？" style="width:100%;padding:8px 10px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit">
           <div class="q-title" style="margin-top:10px">選択肢（正解を選択）</div>
           <div class="choices-grid">
-            <div class="choice-row"><input type="radio" name="q1" checked><span style="font-weight:700;font-size:12px">A</span><input type="text" placeholder="太郎"></div>
-            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">B</span><input type="text" placeholder="次郎"></div>
-            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">C</span><input type="text" placeholder="三郎"></div>
-            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">D</span><input type="text" placeholder="花子"></div>
+            <div class="choice-row"><input type="radio" name="q1" checked><span style="font-weight:700;font-size:12px">A</span><input type="text" placeholder="メロス"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">B</span><input type="text" placeholder="セリヌンティウス"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">C</span><input type="text" placeholder="ディオニス王"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">D</span><input type="text" placeholder="妹"></div>
           </div>
         </div>
 
-        <!-- 問題2-5 (折りたたみ) -->
-        <div class="question-block">
-          <div class="q-num">Q2</div>
-          <div class="q-title">問題文</div>
-          <input type="text" placeholder="問題文を入力" style="width:100%;padding:8px 10px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit">
-          <div class="q-title" style="margin-top:10px">選択肢</div>
-          <div class="choices-grid">
-            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">A</span><input type="text" placeholder="選択肢A"></div>
-            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">B</span><input type="text" placeholder="選択肢B"></div>
-            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">C</span><input type="text" placeholder="選択肢C"></div>
-            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">D</span><input type="text" placeholder="選択肢D"></div>
-          </div>
-        </div>
-
-        <div style="padding:10px;background:#f8f9fa;border-radius:10px;text-align:center;font-size:12px;color:#888">... Q3 〜 Q5 も同様に入力 ...</div>
+        <div style="padding:10px;background:#f8f9fa;border-radius:10px;text-align:center;font-size:12px;color:#888">... Q2 〜 Q5 も同様に入力 ...</div>
       </div>
 
     </div>
@@ -720,6 +747,26 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   }
   function selectType(el, type) {
     document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function selectCourseTarget(el, target) {
+    // 対象コースの選択行だけリセット
+    const siblings = el.parentElement.querySelectorAll('.type-option');
+    siblings.forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    const koeEField = document.getElementById('koeEField');
+    const genreField = document.getElementById('genreField');
+    if (target === 'basic') {
+      koeEField.style.display = 'block';
+      genreField.style.display = 'none';
+    } else {
+      koeEField.style.display = 'none';
+      genreField.style.display = 'block';
+    }
+  }
+  function selectKoeE(el, type) {
+    const siblings = el.parentElement.querySelectorAll('.type-option');
+    siblings.forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
   }
 </script>
