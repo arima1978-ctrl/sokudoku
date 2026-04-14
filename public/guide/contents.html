@@ -298,6 +298,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     <label>🔍</label>
     <input type="search" placeholder="タイトル・本文で検索..." style="width:100%">
   </div>
+  <button class="btn outline" onclick="openImportModal()">📥 一括インポート</button>
   <button class="btn primary" onclick="openModal()">＋ 新規作成</button>
 </div>
 
@@ -582,15 +583,21 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
         <div style="font-size:11px;color:#666;line-height:1.6">生徒がこのパックを選ぶと、以下4つのテキストが順に使われます。各セグメントに適した文章を登録してください。</div>
       </div>
 
+      <!-- シャッフル説明 -->
+      <div style="background:linear-gradient(135deg,#fff3cd,#fff);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#6c5400">
+        🔀 <strong>シャッフル表示</strong>：各セグメント50問ずつ登録が理想です。トレーニング中は毎回ランダムに出題されるので、問題数が多いほど飽きずに繰り返し学習できます。
+      </div>
+
       <!-- ① ばらばら瞬間読み -->
       <div class="form-row">
-        <label>① ばらばら瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(円形配置される単語を10〜20個)</span></label>
-        <textarea placeholder="例: りんご, みかん, ぶどう, いちご, もも, なし, バナナ, すいか, メロン, キウイ" style="min-height:60px"></textarea>
+        <label>① ばらばら瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(単語を50個以上・1問ごとにシャッフル)</span></label>
+        <textarea placeholder="りんご&#10;みかん&#10;ぶどう&#10;いちご&#10;もも&#10;..." style="min-height:100px"></textarea>
+        <div style="font-size:11px;color:#888;margin-top:4px">📊 <span id="barabaraCount">0</span> 単語 <span style="color:#e17055">（推奨: 50以上）</span></div>
       </div>
 
       <!-- ② 1行瞬間読み -->
       <div class="form-row">
-        <label>② 1行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(たて24字/よこ30字以内の短文を10〜20個)</span></label>
+        <label>② 1行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(たて24字/よこ30字以内の短文を50問以上・1問ごとにシャッフル)</span></label>
         <div id="line1Rows" style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;gap:8px;align-items:center">
             <span style="font-size:11px;color:#888;min-width:20px">#1</span>
@@ -610,7 +617,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 
       <!-- ③ 2行瞬間読み -->
       <div class="form-row">
-        <label>③ 2行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(1行目と2行目を個別に登録・各24〜30字以内)</span></label>
+        <label>③ 2行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(1行目と2行目を個別に登録・各24〜30字以内・50ペア以上推奨)</span></label>
         <div style="background:#e3f2fd;border-radius:8px;padding:10px 14px;font-size:11px;color:#1565c0;margin-bottom:10px">
           💡 1行目と2行目のペアで1問になります。文字数を揃えると瞬間読みのリズムが整います。
         </div>
@@ -653,9 +660,16 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 
       <!-- ④ 高速読み（本文） -->
       <div class="form-row">
-        <label>④ 高速読み用本文 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(目安: 300〜800字)</span></label>
-        <textarea placeholder="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ…" style="min-height:120px"></textarea>
-        <div style="font-size:11px;color:#888;margin-top:4px">📊 0 字 / 想定読書時間: 約 0 秒</div>
+        <label>④ 高速読み用本文 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(最低5,000字〜20,000字推奨・読書スピード測定と高速読みで使用)</span></label>
+        <textarea placeholder="メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ。メロスは、村の牧人である…&#10;&#10;※長文を貼り付けてください（5,000〜20,000字）" style="min-height:200px"></textarea>
+        <div style="font-size:11px;color:#888;margin-top:4px;display:flex;gap:16px;align-items:center">
+          <span>📊 <strong id="mainTextCount">0</strong> 字</span>
+          <span style="color:#0984e3">推奨: 5,000〜20,000字</span>
+          <span>想定読書時間: 約 <strong id="readingTime">0</strong> 分</span>
+        </div>
+        <div style="margin-top:8px;background:#e8f5e9;border-radius:8px;padding:8px 12px;font-size:11px;color:#2e7d32">
+          💡 長めの本文を登録すると、毎回のトレーニングで読み始める位置を変えてランダム出題できます（同じ物語を何度も読まずに済みます）
+        </div>
       </div>
 
       <!-- 内容理解クイズ -->
@@ -686,6 +700,113 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
       <button class="btn outline">下書き保存</button>
       <button class="btn" style="background:#f5f5f5;color:#888" onclick="closeModal()">キャンセル</button>
       <button class="btn primary">✓ 公開する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 一括インポートモーダル -->
+<div class="modal-backdrop" id="importModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <div>
+        <h2>📥 コンテンツパックを一括インポート</h2>
+        <div style="font-size:12px;color:#888;margin-top:4px">Excel / CSV でまとめて登録できます</div>
+      </div>
+      <button class="modal-close" onclick="closeImportModal()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- テンプレートDL -->
+      <div style="background:#e3f2fd;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;color:#1565c0;margin-bottom:8px">📋 STEP 1: テンプレートをダウンロード</div>
+        <div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:12px">
+          まずはテンプレートをダウンロードして、指定フォーマットに沿って記入してください。
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary">📊 Excelテンプレート (.xlsx)</button>
+          <button class="btn outline">📄 CSVテンプレート (.csv)</button>
+          <button class="btn outline">📖 記入例を見る</button>
+        </div>
+      </div>
+
+      <!-- フォーマット説明 -->
+      <div style="background:#fff;border:1px solid #e8ecf0;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px">📝 テンプレート構造（4シート）</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:6px 10px;text-align:left;font-weight:700;font-size:11px;color:#888">シート名</th>
+              <th style="padding:6px 10px;text-align:left;font-weight:700;font-size:11px;color:#888">内容</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:700;font-size:11px;color:#888">行数目安</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">📘 Packs</td>
+              <td style="padding:8px 10px">タイトル/ジャンル/対象コース/声絵/学年/難易度</td>
+              <td style="padding:8px 10px;text-align:center">1行＝1パック</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">① Barabara</td>
+              <td style="padding:8px 10px">pack_id / 単語</td>
+              <td style="padding:8px 10px;text-align:center">50+/パック</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">② Line1</td>
+              <td style="padding:8px 10px">pack_id / 1行文</td>
+              <td style="padding:8px 10px;text-align:center">50+/パック</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">③ Line2</td>
+              <td style="padding:8px 10px">pack_id / 1行目 / 2行目</td>
+              <td style="padding:8px 10px;text-align:center">50+/パック</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">④ Main</td>
+              <td style="padding:8px 10px">pack_id / 高速読み本文</td>
+              <td style="padding:8px 10px;text-align:center">1行＝1パック</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 10px;font-weight:700">🎯 Quizzes</td>
+              <td style="padding:8px 10px">pack_id / 問題文 / A / B / C / D / 正解</td>
+              <td style="padding:8px 10px;text-align:center">5問/パック</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- アップロード -->
+      <div style="background:#fff;border:2px dashed #0984e3;border-radius:12px;padding:32px;margin-bottom:16px;text-align:center">
+        <div style="font-weight:700;font-size:13px;color:#0984e3;margin-bottom:10px">📤 STEP 2: ファイルをアップロード</div>
+        <div style="font-size:40px;margin-bottom:10px">📁</div>
+        <div style="font-size:13px;color:#666;margin-bottom:12px">
+          ファイルをドラッグ&ドロップ または<br>
+          <button class="btn primary" style="margin-top:10px">ファイルを選択</button>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:10px">対応形式: .xlsx, .xls, .csv ／ 最大10MB</div>
+      </div>
+
+      <!-- プレビュー -->
+      <div style="background:#f0fff4;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;color:#00b894;margin-bottom:10px">✓ STEP 3: プレビューと確認</div>
+        <div style="font-size:12px;color:#555;margin-bottom:10px">アップロード後、以下を確認してからインポート実行します:</div>
+        <ul style="font-size:12px;color:#555;line-height:1.8;padding-left:20px">
+          <li>パック数 / 総問題数 / エラー行</li>
+          <li>文字数オーバー・必須項目欠落の検出</li>
+          <li>既存パックとの重複検出（タイトルで判定）</li>
+          <li>インポート方法: <strong>新規追加のみ</strong> / <strong>上書き更新</strong> / <strong>スキップ</strong></li>
+        </ul>
+      </div>
+
+      <!-- 注意事項 -->
+      <div style="background:#fff3cd;border-radius:10px;padding:12px 14px;font-size:12px;color:#6c5400">
+        ⚠️ 一括インポート時は、pack_id を各シートで共通にしてパックとテキストを紐付けます。テンプレートの記入例を参考にしてください。
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f5f5f5;color:#888" onclick="closeImportModal()">キャンセル</button>
+      <button class="btn primary" disabled style="opacity:0.5">ファイル未選択</button>
     </div>
   </div>
 </div>
@@ -789,6 +910,12 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   }
   function closeGenreModal() {
     document.getElementById('genreModal').classList.remove('open');
+  }
+  function openImportModal() {
+    document.getElementById('importModal').classList.add('open');
+  }
+  function closeImportModal() {
+    document.getElementById('importModal').classList.remove('open');
   }
   function openModal() {
     document.getElementById('modal').classList.add('open');
