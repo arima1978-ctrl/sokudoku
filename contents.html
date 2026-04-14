@@ -590,14 +590,65 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 
       <!-- ② 1行瞬間読み -->
       <div class="form-row">
-        <label>② 1行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(1行に収まる短文を複数登録)</span></label>
-        <textarea placeholder="メロスは激怒した&#10;邪智暴虐の王を除かねばならぬ&#10;メロスには政治がわからぬ&#10;..." style="min-height:100px"></textarea>
+        <label>② 1行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(たて24字/よこ30字以内の短文を10〜20個)</span></label>
+        <div id="line1Rows" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:#888;min-width:20px">#1</span>
+            <input type="text" placeholder="メロスは激怒した。" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+            <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            <button type="button" class="btn outline small" onclick="this.parentElement.remove()">削除</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:#888;min-width:20px">#2</span>
+            <input type="text" placeholder="邪智暴虐の王を除かねばならぬ。" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+            <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            <button type="button" class="btn outline small" onclick="this.parentElement.remove()">削除</button>
+          </div>
+        </div>
+        <button type="button" class="btn outline small" style="margin-top:8px" onclick="addLine1Row()">＋ 文を追加</button>
       </div>
 
       <!-- ③ 2行瞬間読み -->
       <div class="form-row">
-        <label>③ 2行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(2行分の文を複数登録)</span></label>
-        <textarea placeholder="メロスは激怒した。必ず、かの邪智暴虐の王を&#10;除かなければならぬと決意した。&#10;..." style="min-height:100px"></textarea>
+        <label>③ 2行瞬間読み用 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">(1行目と2行目を個別に登録・各24〜30字以内)</span></label>
+        <div style="background:#e3f2fd;border-radius:8px;padding:10px 14px;font-size:11px;color:#1565c0;margin-bottom:10px">
+          💡 1行目と2行目のペアで1問になります。文字数を揃えると瞬間読みのリズムが整います。
+        </div>
+        <div id="line2Rows" style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:#f8f9fa;border-radius:10px;padding:12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:700;color:#0984e3">ペア #1</span>
+              <button type="button" class="btn outline small" onclick="this.parentElement.parentElement.remove()">削除</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;color:#888;font-weight:700;min-width:50px">1行目</span>
+              <input type="text" placeholder="メロスは激怒した。必ず、" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+              <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:11px;color:#888;font-weight:700;min-width:50px">2行目</span>
+              <input type="text" placeholder="かの邪智暴虐の王を除かねばならぬ" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+              <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            </div>
+          </div>
+          <div style="background:#f8f9fa;border-radius:10px;padding:12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:700;color:#0984e3">ペア #2</span>
+              <button type="button" class="btn outline small" onclick="this.parentElement.parentElement.remove()">削除</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;color:#888;font-weight:700;min-width:50px">1行目</span>
+              <input type="text" placeholder="1行目を入力" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+              <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:11px;color:#888;font-weight:700;min-width:50px">2行目</span>
+              <input type="text" placeholder="2行目を入力" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">
+              <span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn outline small" style="margin-top:8px" onclick="addLine2Row()">＋ ペアを追加</button>
       </div>
 
       <!-- ④ 高速読み（本文） -->
@@ -768,6 +819,48 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     const siblings = el.parentElement.querySelectorAll('.type-option');
     siblings.forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
+  }
+  function updateCharCount(input) {
+    const count = input.value.length;
+    const max = input.getAttribute('maxlength') || 30;
+    const counter = input.parentElement.querySelector('.char-count');
+    if (counter) {
+      counter.textContent = count + '/' + max;
+      counter.style.color = count >= max ? '#e17055' : (count > max * 0.85 ? '#e65100' : '#888');
+    }
+  }
+  function addLine1Row() {
+    const container = document.getElementById('line1Rows');
+    const idx = container.children.length + 1;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center';
+    row.innerHTML = '<span style="font-size:11px;color:#888;min-width:20px">#' + idx + '</span>' +
+      '<input type="text" placeholder="文を入力" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">' +
+      '<span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>' +
+      '<button type="button" class="btn outline small" onclick="this.parentElement.remove()">削除</button>';
+    container.appendChild(row);
+  }
+  function addLine2Row() {
+    const container = document.getElementById('line2Rows');
+    const idx = container.children.length + 1;
+    const row = document.createElement('div');
+    row.style.cssText = 'background:#f8f9fa;border-radius:10px;padding:12px;position:relative';
+    row.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+        '<span style="font-size:11px;font-weight:700;color:#0984e3">ペア #' + idx + '</span>' +
+        '<button type="button" class="btn outline small" onclick="this.parentElement.parentElement.remove()">削除</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:11px;color:#888;font-weight:700;min-width:50px">1行目</span>' +
+        '<input type="text" placeholder="1行目を入力" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">' +
+        '<span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
+        '<span style="font-size:11px;color:#888;font-weight:700;min-width:50px">2行目</span>' +
+        '<input type="text" placeholder="2行目を入力" maxlength="30" style="flex:1;padding:8px 12px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit" oninput="updateCharCount(this)">' +
+        '<span class="char-count" style="font-size:11px;color:#888;min-width:40px;text-align:right">0/30</span>' +
+      '</div>';
+    container.appendChild(row);
   }
 </script>
 </body>
