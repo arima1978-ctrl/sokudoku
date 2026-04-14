@@ -231,107 +231,58 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   <div class="step-title">📚 ジャンル選択</div>
   <div class="step-sub">どのジャンルから読む？</div>
   <div class="genre-grid" style="margin-bottom:20px">
-    <div class="genre-btn selected" onclick="selectGenre(this)">
+    <div class="genre-btn selected" onclick="selectGenre(this, 'story', '物語', '📖')">
       <span class="g-icon">📖</span>
       <div class="g-name">物語</div>
       <div class="g-count">32件</div>
     </div>
-    <div class="genre-btn" onclick="selectGenre(this)">
+    <div class="genre-btn" onclick="selectGenre(this, 'moral', '道徳', '🌟')">
       <span class="g-icon">🌟</span>
       <div class="g-name">道徳</div>
       <div class="g-count">24件</div>
     </div>
-    <div class="genre-btn" onclick="selectGenre(this)">
+    <div class="genre-btn" onclick="selectGenre(this, 'trivia', '雑学', '🔍')">
       <span class="g-icon">🔍</span>
       <div class="g-name">雑学</div>
       <div class="g-count">18件</div>
     </div>
-    <div class="genre-btn" onclick="selectGenre(this)">
+    <div class="genre-btn" onclick="selectGenre(this, 'biography', '伝記', '👤')">
       <span class="g-icon">👤</span>
       <div class="g-name">伝記</div>
       <div class="g-count">14件</div>
     </div>
-    <div class="genre-btn" onclick="selectGenre(this)">
+    <div class="genre-btn" onclick="selectGenre(this, 'social', '社会', '🌍')">
       <span class="g-icon">🌍</span>
       <div class="g-name">社会</div>
       <div class="g-count">10件</div>
     </div>
-    <div class="genre-btn" onclick="selectGenre(this)">
+    <div class="genre-btn" onclick="selectGenre(this, 'science', '理科', '🔬')">
       <span class="g-icon">🔬</span>
       <div class="g-name">理科</div>
       <div class="g-count">4件</div>
     </div>
-    <div class="genre-btn own" onclick="selectGenre(this)">
+    <div class="genre-btn own" onclick="selectGenre(this, 'sdgs', '環境・SDGs', '🌱')">
       <span class="g-icon">🌱</span>
       <div class="g-name">環境・SDGs</div>
       <div class="g-count">12件</div>
     </div>
-    <div class="genre-btn own" onclick="selectGenre(this)">
+    <div class="genre-btn own" onclick="selectGenre(this, 'sports', 'スポーツ', '⚽')">
       <span class="g-icon">⚽</span>
       <div class="g-name">スポーツ</div>
       <div class="g-count">14件</div>
     </div>
   </div>
 
-  <div class="step-title" style="font-size:16px;margin-top:16px">📖 物語のコンテンツから選ぶ</div>
-  <div class="step-sub">読みたい物語を選ぼう</div>
+  <div class="step-title" id="genreContentTitle" style="font-size:16px;margin-top:16px">📖 物語のコンテンツから選ぶ</div>
+  <div class="step-sub" id="genreContentSub">読みたい物語を選ぼう</div>
 
   <div class="content-filter">
     <label>🔍</label>
     <input type="search" placeholder="タイトルで検索...">
   </div>
 
-  <div class="content-list">
-    <div class="content-item">
-      <div class="ci-header">
-        <div>
-          <div class="ci-title">桃太郎</div>
-          <div class="ci-meta"><span>📝 380字</span><span>幼児-小3</span><span>難易度 1</span></div>
-        </div>
-        <span class="ci-badge">🌐 共有</span>
-      </div>
-      <div class="ci-preview">昔々、あるところにおじいさんとおばあさんが住んでいました。ある日、おばあさんが川で洗濯を…</div>
-    </div>
-    <div class="content-item done">
-      <div class="ci-header">
-        <div>
-          <div class="ci-title">浦島太郎</div>
-          <div class="ci-meta"><span>📝 420字</span><span>幼児-小3</span><span>難易度 1</span></div>
-        </div>
-        <span class="ci-badge">🌐 共有</span>
-      </div>
-      <div class="ci-preview">昔、丹後の国に浦島太郎という若い漁師がいました。ある日、子どもたちが亀をいじめているのを見て…</div>
-    </div>
-    <div class="content-item selected">
-      <div class="ci-header">
-        <div>
-          <div class="ci-title">名大SKYオリジナル「夏休みの思い出」</div>
-          <div class="ci-meta"><span>📝 452字</span><span>小4-6</span><span>難易度 2</span></div>
-        </div>
-        <span class="ci-badge own">🏫 自塾</span>
-      </div>
-      <div class="ci-preview">太郎は夏休みの宿題に頭を悩ませていた。毎年のように決まって出される読書感想文。今年こそは…</div>
-    </div>
-    <div class="content-item">
-      <div class="ci-header">
-        <div>
-          <div class="ci-title">かぐや姫</div>
-          <div class="ci-meta"><span>📝 460字</span><span>小4-6</span><span>難易度 2</span></div>
-        </div>
-        <span class="ci-badge">🌐 共有</span>
-      </div>
-      <div class="ci-preview">今となっては昔のこと、竹取の翁と呼ばれる者がおりました。野山に入って竹を取っては色々なものを作っていました…</div>
-    </div>
-    <div class="content-item">
-      <div class="ci-header">
-        <div>
-          <div class="ci-title">走れメロス</div>
-          <div class="ci-meta"><span>📝 620字</span><span>中学以上</span><span>難易度 3</span></div>
-        </div>
-        <span class="ci-badge">🌐 共有</span>
-      </div>
-      <div class="ci-preview">メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した…</div>
-    </div>
+  <div class="content-list" id="genreContentList">
+    <!-- ここに選択したジャンルのコンテンツが表示される -->
   </div>
 </div>
 
@@ -375,10 +326,91 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
     el.classList.add('selected');
   }
-  function selectGenre(el) {
+  // ジャンル別コンテンツのダミーデータ
+  const genreContents = {
+    story: [
+      { title: '桃太郎', chars: 380, grade: '幼児-小3', diff: 1, scope: 'shared', preview: '昔々、あるところにおじいさんとおばあさんが住んでいました。ある日、おばあさんが川で洗濯を…' },
+      { title: '浦島太郎', chars: 420, grade: '幼児-小3', diff: 1, scope: 'shared', done: true, preview: '昔、丹後の国に浦島太郎という若い漁師がいました。ある日、子どもたちが亀をいじめているのを見て…' },
+      { title: '名大SKYオリジナル「夏休みの思い出」', chars: 452, grade: '小4-6', diff: 2, scope: 'own', preview: '太郎は夏休みの宿題に頭を悩ませていた。毎年のように決まって出される読書感想文。今年こそは…' },
+      { title: 'かぐや姫', chars: 460, grade: '小4-6', diff: 2, scope: 'shared', preview: '今となっては昔のこと、竹取の翁と呼ばれる者がおりました。野山に入って竹を取っては色々なものを作っていました…' },
+      { title: '走れメロス', chars: 620, grade: '中学以上', diff: 3, scope: 'shared', preview: 'メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した…' },
+    ],
+    moral: [
+      { title: '正直者の木こり', chars: 360, grade: '幼児-小3', diff: 1, scope: 'shared', preview: 'むかしむかし、一人の正直な木こりがいました。ある日、川のほとりで木を切っていると、手がすべって…' },
+      { title: 'ありがとうの魔法', chars: 400, grade: '幼児-小3', diff: 1, scope: 'shared', preview: '「ありがとう」という言葉には、不思議な力が宿っていると、おじいちゃんは教えてくれた…' },
+      { title: '友達の大切さ', chars: 480, grade: '小4-6', diff: 2, scope: 'shared', done: true, preview: '転校してきたばかりの日、誰も話しかけてくれなかった。でも、そんな時に声をかけてくれたのが…' },
+      { title: '小さな親切', chars: 520, grade: '小4-6', diff: 2, scope: 'shared', preview: '雨の日、傘を忘れてずぶ濡れで帰ろうとした時、見知らぬおばあさんが声をかけてくれた…' },
+    ],
+    trivia: [
+      { title: '身近な雑学クイズ', chars: 420, grade: '小4-6', diff: 2, scope: 'shared', preview: 'バナナが曲がっている理由を知っていますか？実はバナナは太陽の光を浴びるために…' },
+      { title: 'なぜ空は青い？', chars: 500, grade: '小4-6', diff: 2, scope: 'shared', preview: '空が青く見えるのには、光の不思議な性質が関係しています。太陽からの光は実は…' },
+      { title: '日本語の面白い由来', chars: 480, grade: '中学以上', diff: 2, scope: 'shared', preview: '「おはよう」「こんにちは」「こんばんは」。毎日使うあいさつ言葉にも、それぞれ由来があります…' },
+    ],
+    biography: [
+      { title: '先生が選ぶ偉人「野口英世」', chars: 520, grade: '小4-6', diff: 3, scope: 'own', preview: '野口英世は明治9年、福島県の貧しい農家に生まれました。幼い頃にやけどで左手が不自由に…' },
+      { title: '夢をあきらめなかった人 — イチロー', chars: 580, grade: '小4-6', diff: 2, scope: 'shared', preview: 'イチロー選手は、小学生の頃から「プロ野球選手になる」という夢を持っていました…' },
+      { title: '世界を変えた発明家 — エジソン', chars: 620, grade: '中学以上', diff: 3, scope: 'shared', preview: 'トーマス・エジソンは、電球や蓄音機など、現代生活に欠かせない多くの発明を残しました…' },
+    ],
+    social: [
+      { title: '日本の歴史 〜戦国時代〜', chars: 680, grade: '中学以上', diff: 3, scope: 'shared', preview: '戦国時代は、応仁の乱（1467年）から豊臣秀吉による天下統一（1590年）までの約120年間を指します…' },
+      { title: '世界の国々と文化', chars: 540, grade: '小4-6', diff: 2, scope: 'shared', preview: '世界には200近くの国があり、それぞれが独自の文化や習慣を持っています…' },
+      { title: '日本の祭りと伝統', chars: 460, grade: '小4-6', diff: 2, scope: 'shared', preview: '日本には地域ごとにさまざまな祭りがあります。青森のねぶた祭り、京都の祇園祭…' },
+    ],
+    science: [
+      { title: 'ふしぎな海の生き物', chars: 520, grade: '小4-6', diff: 2, scope: 'shared', preview: '深海に住むチョウチンアンコウは、自ら光を発して獲物をおびき寄せる珍しい魚です。この光は…' },
+      { title: '宇宙のはじまり', chars: 720, grade: '中学以上', diff: 3, scope: 'shared', preview: '約138億年前、宇宙はビッグバンと呼ばれる大爆発によって誕生したと考えられています…' },
+      { title: '身近な科学 — 虹のひみつ', chars: 440, grade: '小4-6', diff: 2, scope: 'shared', preview: '雨上がりの空に現れる虹。どうして7色に見えるのか、知っていますか？…' },
+    ],
+    sdgs: [
+      { title: '名大SKYオリジナル「海のプラスチック問題」', chars: 560, grade: '小4-6', diff: 2, scope: 'own', preview: '私たちが普段使っているペットボトルやレジ袋。これらのプラスチックごみが、今、大きな問題になっています…' },
+      { title: '名大SKYオリジナル「食品ロスを減らそう」', chars: 500, grade: '小4-6', diff: 2, scope: 'own', preview: '日本では年間約600万トンの食品ロスが発生しています。これは世界の食糧援助量の約1.5倍に相当…' },
+      { title: '名大SKYオリジナル「再生可能エネルギー」', chars: 620, grade: '中学以上', diff: 3, scope: 'own', preview: '太陽光、風力、水力。これらは地球に優しい再生可能エネルギーと呼ばれています…' },
+    ],
+    sports: [
+      { title: '名大SKYオリジナル「サッカーワールドカップの歴史」', chars: 540, grade: '小4-6', diff: 2, scope: 'own', preview: 'サッカーワールドカップは1930年、ウルグアイで第1回大会が開催されました…' },
+      { title: '名大SKYオリジナル「オリンピックの誕生」', chars: 580, grade: '小4-6', diff: 2, scope: 'own', preview: '古代ギリシャで始まったオリンピック。紀元前776年の第1回大会から、2800年以上の歴史があります…' },
+      { title: '名大SKYオリジナル「日本のプロ野球」', chars: 480, grade: '小4-6', diff: 2, scope: 'own', preview: '1936年、日本プロ野球は産声を上げました。当初は7チームでスタートしたリーグは、今や12球団に…' },
+    ],
+  };
+
+  function renderGenreContents(genreId, genreName, genreIcon) {
+    const items = genreContents[genreId] || [];
+    const list = document.getElementById('genreContentList');
+    const title = document.getElementById('genreContentTitle');
+    const sub = document.getElementById('genreContentSub');
+    if (title) title.textContent = `${genreIcon} ${genreName}のコンテンツから選ぶ`;
+    if (sub) sub.textContent = `読みたい${genreName}を選ぼう (${items.length}件)`;
+    list.innerHTML = items.map((it, idx) => `
+      <div class="content-item${it.done ? ' done' : ''}${idx === 0 ? ' selected' : ''}">
+        <div class="ci-header">
+          <div>
+            <div class="ci-title">${it.title}</div>
+            <div class="ci-meta"><span>📝 ${it.chars}字</span><span>${it.grade}</span><span>難易度 ${it.diff}</span></div>
+          </div>
+          <span class="ci-badge${it.scope === 'own' ? ' own' : ''}">${it.scope === 'own' ? '🏫 自塾' : '🌐 共有'}</span>
+        </div>
+        <div class="ci-preview">${it.preview}</div>
+      </div>
+    `).join('');
+    // 再バインド（新しいDOMなのでクリックリスナーを付け直す）
+    list.querySelectorAll('.content-item').forEach(item => {
+      item.addEventListener('click', () => {
+        list.querySelectorAll('.content-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+      });
+    });
+  }
+
+  function selectGenre(el, genreId, genreName, genreIcon) {
     document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('selected'));
     el.classList.add('selected');
+    renderGenreContents(genreId, genreName, genreIcon);
   }
+
+  // 初期表示: 物語
+  document.addEventListener('DOMContentLoaded', () => {
+    renderGenreContents('story', '物語', '📖');
+  });
   document.querySelectorAll('.content-item').forEach(item => {
     item.addEventListener('click', () => {
       document.querySelectorAll('.content-item').forEach(i => i.classList.remove('selected'));
