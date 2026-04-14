@@ -147,20 +147,121 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 
 <!-- 権限説明: 運営塾 -->
 <div class="role-info" id="role-platform">
-  <strong>🏢 運営塾モード</strong>：ここで作成したコンテンツは <strong>全ての導入塾</strong> で利用できる共有コンテンツになります。各塾が独自に登録したコンテンツも閲覧できます。
+  <strong>🏢 運営塾モード</strong>：ここで作成した <strong>コンテンツ・ジャンル</strong> は <strong>全ての導入塾</strong> で利用できる共有リソースになります。各塾が独自に登録したコンテンツ・ジャンルも閲覧できます。
 </div>
 
 <!-- 権限説明: 塾管理者 -->
 <div class="role-info school" id="role-school" style="display:none">
-  <strong>🏫 塾管理者モード（名大SKY 本校）</strong>：ここで作成したコンテンツは <strong>自塾の生徒のみ</strong> が利用できる独自コンテンツです。運営塾が作成した共有コンテンツはあわせて閲覧・利用できます（編集は不可）。
+  <strong>🏫 塾管理者モード（名大SKY 本校）</strong>：ここで作成した <strong>コンテンツ・ジャンル</strong> は <strong>自塾の生徒のみ</strong> が利用できる独自リソースです。運営塾が作成した共有リソースはあわせて閲覧・利用できます（編集は不可）。
 </div>
 
 <!-- タブ -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab(this)">📚 すべて (128)</div>
-  <div class="tab" onclick="switchTab(this)">🌐 共有コンテンツ (102)</div>
-  <div class="tab" onclick="switchTab(this)" id="ownTab">🏫 自塾オリジナル (26)</div>
+  <div class="tab active" onclick="switchTab(this)">📚 コンテンツ (128)</div>
+  <div class="tab" onclick="switchTab(this)" onclick="switchView('genres')">🏷️ ジャンル管理 (8)</div>
 </div>
+
+<!-- ジャンル管理セクション -->
+<div class="genres-section" id="genresSection" style="display:none">
+  <div class="info-banner" style="background:#e3f2fd;color:#1565c0">
+    💡 ジャンルは「物語」「道徳」など、コンテンツを分類するカテゴリです。運営塾が作成したジャンルは全塾で利用可能、各塾は独自ジャンルを追加できます。
+  </div>
+  <div style="background:#fff;border-radius:14px;padding:20px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:700">ジャンル一覧</h3>
+      <button class="btn primary" onclick="openGenreModal()">＋ ジャンル追加</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#f8f9fa">
+          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#888">アイコン</th>
+          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#888">ジャンル名</th>
+          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#888">スコープ</th>
+          <th style="padding:10px 12px;text-align:center;font-size:11px;color:#888">コンテンツ数</th>
+          <th style="padding:10px 12px;text-align:center;font-size:11px;color:#888">表示順</th>
+          <th style="padding:10px 12px;text-align:right;font-size:11px;color:#888">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">📖</span></td>
+          <td style="padding:10px 12px;font-weight:700">物語</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">32</td>
+          <td style="padding:10px 12px;text-align:center">1</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">🌟</span></td>
+          <td style="padding:10px 12px;font-weight:700">道徳</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">24</td>
+          <td style="padding:10px 12px;text-align:center">2</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">🔍</span></td>
+          <td style="padding:10px 12px;font-weight:700">雑学</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">18</td>
+          <td style="padding:10px 12px;text-align:center">3</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">👤</span></td>
+          <td style="padding:10px 12px;font-weight:700">伝記</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">14</td>
+          <td style="padding:10px 12px;text-align:center">4</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">🌍</span></td>
+          <td style="padding:10px 12px;font-weight:700">社会</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">10</td>
+          <td style="padding:10px 12px;text-align:center">5</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:10px 12px"><span style="font-size:24px">🔬</span></td>
+          <td style="padding:10px 12px;font-weight:700">理科</td>
+          <td style="padding:10px 12px"><span class="owner-badge shared">🌐 共有</span></td>
+          <td style="padding:10px 12px;text-align:center">4</td>
+          <td style="padding:10px 12px;text-align:center">6</td>
+          <td style="padding:10px 12px;text-align:right"><button class="btn outline small">編集</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;background:#f0fff4">
+          <td style="padding:10px 12px"><span style="font-size:24px">🌱</span></td>
+          <td style="padding:10px 12px;font-weight:700">環境・SDGs <span style="font-size:10px;color:#00b894;background:#fff;padding:2px 8px;border-radius:8px;margin-left:6px">NEW</span></td>
+          <td style="padding:10px 12px"><span class="owner-badge own">🏫 名大SKY</span></td>
+          <td style="padding:10px 12px;text-align:center">12</td>
+          <td style="padding:10px 12px;text-align:center">7</td>
+          <td style="padding:10px 12px;text-align:right">
+            <button class="btn outline small">編集</button>
+            <button class="btn danger small">削除</button>
+          </td>
+        </tr>
+        <tr style="background:#f0fff4">
+          <td style="padding:10px 12px"><span style="font-size:24px">⚽</span></td>
+          <td style="padding:10px 12px;font-weight:700">スポーツ <span style="font-size:10px;color:#00b894;background:#fff;padding:2px 8px;border-radius:8px;margin-left:6px">NEW</span></td>
+          <td style="padding:10px 12px"><span class="owner-badge own">🏫 名大SKY</span></td>
+          <td style="padding:10px 12px;text-align:center">14</td>
+          <td style="padding:10px 12px;text-align:center">8</td>
+          <td style="padding:10px 12px;text-align:right">
+            <button class="btn outline small">編集</button>
+            <button class="btn danger small">削除</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:11px;color:#888;text-align:center">
+      🌐 = 運営塾が作成した全塾共通ジャンル ｜ 🏫 = 塾独自ジャンル（自塾の生徒のみ選択可）
+    </div>
+  </div>
+</div>
+
+<div class="contents-view" id="contentsView">
 
 <!-- フィルター -->
 <div class="filters-bar">
@@ -378,6 +479,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   <button class="btn outline">もっと表示 (残り 120件)</button>
 </div>
 
+</div><!-- /contents-view -->
+
 <div class="footer">
   100万人の速読 ｜ <a href="index.html">学習ガイド</a> ｜ <a href="teacher.html">先生用</a> ｜ <a href="parent.html">保護者用</a> ｜ <a href="student.html">生徒マイページ</a>
 </div>
@@ -423,12 +526,18 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
         <div class="form-row">
           <label>ジャンル <span class="required">*</span></label>
           <select>
-            <option>📖 物語</option>
-            <option>🌟 道徳</option>
-            <option>🔍 雑学</option>
-            <option>👤 伝記</option>
-            <option>🌍 社会</option>
-            <option>🔬 理科</option>
+            <optgroup label="🌐 共有ジャンル">
+              <option>📖 物語</option>
+              <option>🌟 道徳</option>
+              <option>🔍 雑学</option>
+              <option>👤 伝記</option>
+              <option>🌍 社会</option>
+              <option>🔬 理科</option>
+            </optgroup>
+            <optgroup label="🏫 自塾ジャンル">
+              <option>🌱 環境・SDGs</option>
+              <option>⚽ スポーツ</option>
+            </optgroup>
           </select>
         </div>
         <div class="form-row">
@@ -503,6 +612,57 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
   </div>
 </div>
 
+<!-- ジャンル追加モーダル -->
+<div class="modal-backdrop" id="genreModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <h2>🏷️ ジャンルを新規作成</h2>
+        <div style="font-size:12px;color:#888;margin-top:4px" id="genreScopeLabel">🌐 共有ジャンルとして登録（全塾で利用可）</div>
+      </div>
+      <button class="modal-close" onclick="closeGenreModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>ジャンル名 <span class="required">*</span></label>
+        <input type="text" placeholder="例: 環境・SDGs">
+      </div>
+      <div class="form-row">
+        <label>アイコン（絵文字） <span class="required">*</span></label>
+        <input type="text" placeholder="🌱" maxlength="2" style="font-size:24px;text-align:center;width:80px">
+        <div style="margin-top:10px">
+          <span style="font-size:11px;color:#888;display:block;margin-bottom:6px">よく使われる絵文字:</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn outline small" style="font-size:18px" type="button">🌱</button>
+            <button class="btn outline small" style="font-size:18px" type="button">⚽</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🎨</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🎵</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🍳</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🐾</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🚀</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🏛️</button>
+            <button class="btn outline small" style="font-size:18px" type="button">📰</button>
+            <button class="btn outline small" style="font-size:18px" type="button">🎌</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>説明（任意）</label>
+        <input type="text" placeholder="例: 地球環境やSDGsに関連するコンテンツ">
+      </div>
+      <div class="form-row">
+        <label>表示順</label>
+        <input type="text" value="7" style="width:100px">
+        <div style="font-size:11px;color:#888;margin-top:4px">数字が小さいほど前に表示されます</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f5f5f5;color:#888" onclick="closeGenreModal()">キャンセル</button>
+      <button class="btn primary">✓ 作成する</button>
+    </div>
+  </div>
+</div>
+
 <script>
   function switchRole(role) {
     const btns = document.querySelectorAll('.role-btn');
@@ -512,21 +672,45 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
     const schoolInfo = document.getElementById('role-school');
     const ownTab = document.getElementById('ownTab');
     const scopeLabel = document.getElementById('scopeLabel');
+    const genreScopeLabel = document.getElementById('genreScopeLabel');
     if (role === 'platform') {
       platformInfo.style.display = 'block';
       schoolInfo.style.display = 'none';
-      ownTab.style.display = 'none';
+      if (ownTab) ownTab.style.display = 'none';
       scopeLabel.innerHTML = '🌐 共有コンテンツとして登録（全塾で利用可）';
+      if (genreScopeLabel) genreScopeLabel.innerHTML = '🌐 共有ジャンルとして登録（全塾で利用可）';
     } else {
       platformInfo.style.display = 'none';
       schoolInfo.style.display = 'block';
-      ownTab.style.display = 'block';
+      if (ownTab) ownTab.style.display = 'block';
       scopeLabel.innerHTML = '🏫 自塾オリジナルとして登録（自塾の生徒のみ利用可）';
+      if (genreScopeLabel) genreScopeLabel.innerHTML = '🏫 自塾ジャンルとして登録（自塾の生徒のみ選択可）';
     }
   }
   function switchTab(el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
+    const genresSection = document.getElementById('genresSection');
+    const contentsView = document.getElementById('contentsView');
+    const filtersBar = document.querySelector('.filters-bar');
+    const infoBanner = document.querySelector('.info-banner');
+    if (el.textContent.includes('ジャンル')) {
+      genresSection.style.display = 'block';
+      contentsView.style.display = 'none';
+      if (filtersBar) filtersBar.style.display = 'none';
+      if (infoBanner) infoBanner.style.display = 'none';
+    } else {
+      genresSection.style.display = 'none';
+      contentsView.style.display = 'block';
+      if (filtersBar) filtersBar.style.display = 'flex';
+      if (infoBanner) infoBanner.style.display = 'block';
+    }
+  }
+  function openGenreModal() {
+    document.getElementById('genreModal').classList.add('open');
+  }
+  function closeGenreModal() {
+    document.getElementById('genreModal').classList.remove('open');
   }
   function openModal() {
     document.getElementById('modal').classList.add('open');
