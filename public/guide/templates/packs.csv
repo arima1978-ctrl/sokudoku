@@ -1,0 +1,5 @@
+﻿pack_id,title,target_course,koe_e,genre_id,grade_level,difficulty,is_active
+PACK_001,走れメロス 〜友情のお話〜,basic,koe,,g4-g6,2,TRUE
+PACK_002,雨の日の図書館,basic,e,,g4-g6,1,TRUE
+PACK_003,桃太郎,genre,,story,preschool-g3,1,TRUE
+PACK_004,宇宙のはじまり,genre,,science,jh-plus,3,TRUE

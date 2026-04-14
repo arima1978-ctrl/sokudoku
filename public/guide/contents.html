@@ -723,9 +723,22 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
           まずはテンプレートをダウンロードして、指定フォーマットに沿って記入してください。
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn primary">📊 Excelテンプレート (.xlsx)</button>
-          <button class="btn outline">📄 CSVテンプレート (.csv)</button>
-          <button class="btn outline">📖 記入例を見る</button>
+          <a href="templates/sokudoku_content_template.xlsx" download class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📊 Excelテンプレート (.xlsx)</a>
+          <details style="display:inline-block">
+            <summary class="btn outline" style="cursor:pointer;list-style:none">📄 CSVテンプレート (.csv) ▼</summary>
+            <div style="position:absolute;margin-top:6px;background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,0.1);z-index:10;display:flex;flex-direction:column;gap:4px;min-width:220px">
+              <a href="templates/packs.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px;hover:background:#f0f7ff">📘 packs.csv (パック基本情報)</a>
+              <a href="templates/barabara.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px">① barabara.csv (ばらばら単語)</a>
+              <a href="templates/line1.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px">② line1.csv (1行瞬間読み)</a>
+              <a href="templates/line2.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px">③ line2.csv (2行瞬間読み)</a>
+              <a href="templates/main.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px">④ main.csv (高速読み本文)</a>
+              <a href="templates/quizzes.csv" download style="text-decoration:none;color:#0984e3;font-size:12px;padding:6px 10px;border-radius:6px">🎯 quizzes.csv (理解度クイズ)</a>
+            </div>
+          </details>
+          <a href="templates/sokudoku_content_template.xlsx" download class="btn outline" style="text-decoration:none">📖 記入例付きサンプル</a>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:10px">
+          ※ Excelテンプレートは6シート構成（📘Packs・①Barabara・②Line1・③Line2・④Main・🎯Quizzes + 📖README）。記入例付き。
         </div>
       </div>
 
