@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コンテンツ管理（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+/* ヘッダー */
+.header { background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #fff; border-radius: 20px; padding: 28px 32px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 22px; font-weight: 900; }
+.header .sub { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+.role-switcher { display: flex; gap: 6px; background: rgba(255,255,255,0.15); padding: 4px; border-radius: 12px; }
+.role-btn { padding: 8px 16px; border-radius: 10px; border: none; background: transparent; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.role-btn.active { background: #fff; color: #1478C3; }
+
+/* 権限説明バー */
+.role-info { background: #fff; border-radius: 14px; padding: 14px 20px; margin-bottom: 16px; font-size: 13px; border-left: 4px solid #0984e3; }
+.role-info.school { border-left-color: #00b894; }
+.role-info strong { color: #0984e3; }
+.role-info.school strong { color: #00b894; }
+
+/* タブ */
+.tabs { display: flex; gap: 2px; margin-bottom: 16px; background: #fff; border-radius: 12px; padding: 4px; }
+.tab { flex: 1; padding: 10px 16px; text-align: center; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 700; color: #888; }
+.tab.active { background: #0984e3; color: #fff; }
+
+/* フィルター */
+.filters-bar { background: #fff; border-radius: 14px; padding: 16px 20px; margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 12px; color: #888; font-weight: 700; }
+.filter-group select, .filter-group input[type="search"] { padding: 6px 12px; border: 1px solid #e8ecf0; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; }
+.search-box { flex: 1; min-width: 200px; }
+
+/* ボタン */
+.btn { padding: 8px 16px; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.btn.primary { background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; }
+.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(9,132,227,0.3); }
+.btn.outline { background: #fff; color: #0984e3; border: 1px solid #0984e3; }
+.btn.danger { background: #fff; color: #e17055; border: 1px solid #e17055; }
+.btn.small { padding: 4px 10px; font-size: 11px; }
+
+/* コンテンツカード */
+.contents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.content-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid transparent; }
+.content-card.shared { border-left-color: #0984e3; }
+.content-card.own { border-left-color: #00b894; }
+
+.content-header { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.content-title { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.owner-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
+.owner-badge.shared { background: #e3f2fd; color: #1565c0; }
+.owner-badge.own { background: #e8f5e9; color: #2e7d32; }
+.owner-badge.other { background: #f5f5f5; color: #666; }
+
+.content-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.meta-pill { font-size: 10px; padding: 3px 10px; border-radius: 10px; background: #f8f9fa; color: #666; }
+.meta-pill.genre { font-weight: 700; }
+.meta-pill.genre-story { background: #e8f5e9; color: #2e7d32; }
+.meta-pill.genre-moral { background: #fff3e0; color: #e65100; }
+.meta-pill.genre-trivia { background: #e3f2fd; color: #1565c0; }
+.meta-pill.genre-biography { background: #fce4ec; color: #c62828; }
+.meta-pill.genre-social { background: #f3e5f5; color: #6a1b9a; }
+.meta-pill.genre-science { background: #e0f7fa; color: #00695c; }
+.meta-pill.type-shunkan { background: #fff9c4; color: #6c5400; font-weight: 700; }
+.meta-pill.type-fast { background: #fce4ec; color: #c62828; font-weight: 700; }
+
+.content-preview { font-size: 12px; color: #666; line-height: 1.5; margin-bottom: 12px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.content-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #999; }
+.content-actions { display: flex; gap: 6px; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: #999; }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+/* モーダル（編集フォーム） */
+.modal-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+.modal-backdrop.open { display: flex; }
+.modal { background: #fff; border-radius: 20px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 24px 28px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; border-radius: 20px 20px 0 0; }
+.modal-header h2 { font-size: 18px; font-weight: 900; }
+.modal-close { background: transparent; border: none; font-size: 24px; cursor: pointer; color: #888; }
+.modal-body { padding: 24px 28px; }
+.modal-footer { padding: 20px 28px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: 0; background: #fff; border-radius: 0 0 20px 20px; }
+
+/* フォーム */
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #555; }
+.form-row label .required { color: #e17055; }
+.form-row input[type="text"], .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; border: 1px solid #e8ecf0; border-radius: 10px; font-size: 14px; font-family: inherit; }
+.form-row textarea { min-height: 100px; resize: vertical; line-height: 1.7; }
+.form-row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row-triple { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* タイプ選択 */
+.type-select { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.type-option { padding: 16px; border: 2px solid #e8ecf0; border-radius: 12px; cursor: pointer; text-align: center; }
+.type-option.selected { border-color: #0984e3; background: #f0f7ff; }
+.type-option .icon { font-size: 28px; margin-bottom: 6px; }
+.type-option .label { font-size: 13px; font-weight: 700; }
+.type-option .desc { font-size: 10px; color: #888; margin-top: 4px; }
+
+/* 問題リスト */
+.question-block { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
+.question-block .q-num { position: absolute; top: 12px; right: 12px; background: #0984e3; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; }
+.question-block .q-title { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 8px; }
+.choices-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+.choice-row { display: flex; align-items: center; gap: 8px; }
+.choice-row input[type="radio"] { cursor: pointer; }
+.choice-row input[type="text"] { flex: 1; padding: 6px 10px; border: 1px solid #e8ecf0; border-radius: 8px; font-size: 13px; font-family: inherit; }
+
+/* バナー */
+.info-banner { padding: 10px 14px; border-radius: 10px; background: #fff3cd; color: #6c5400; font-size: 12px; margin-bottom: 14px; }
+
+/* フッター */
+.footer { text-align: center; padding: 20px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+
+@media (max-width: 768px) {
+  .contents-grid { grid-template-columns: 1fr; }
+  .form-row-split, .form-row-triple { grid-template-columns: 1fr; }
+  .type-select { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+<div class="page">
+
+<!-- ヘッダー -->
+<div class="header">
+  <div>
+    <h1>📚 コンテンツ管理</h1>
+    <div class="sub">速読トレーニングのコンテンツを管理</div>
+  </div>
+  <div class="role-switcher">
+    <button class="role-btn active" onclick="switchRole('platform')">🏢 運営塾 (名大SKY)</button>
+    <button class="role-btn" onclick="switchRole('school')">🏫 塾管理者</button>
+  </div>
+</div>
+
+<!-- 権限説明: 運営塾 -->
+<div class="role-info" id="role-platform">
+  <strong>🏢 運営塾モード</strong>：ここで作成したコンテンツは <strong>全ての導入塾</strong> で利用できる共有コンテンツになります。各塾が独自に登録したコンテンツも閲覧できます。
+</div>
+
+<!-- 権限説明: 塾管理者 -->
+<div class="role-info school" id="role-school" style="display:none">
+  <strong>🏫 塾管理者モード（名大SKY 本校）</strong>：ここで作成したコンテンツは <strong>自塾の生徒のみ</strong> が利用できる独自コンテンツです。運営塾が作成した共有コンテンツはあわせて閲覧・利用できます（編集は不可）。
+</div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(this)">📚 すべて (128)</div>
+  <div class="tab" onclick="switchTab(this)">🌐 共有コンテンツ (102)</div>
+  <div class="tab" onclick="switchTab(this)" id="ownTab">🏫 自塾オリジナル (26)</div>
+</div>
+
+<!-- フィルター -->
+<div class="filters-bar">
+  <div class="filter-group">
+    <label>ジャンル</label>
+    <select>
+      <option>すべて</option>
+      <option>📖 物語</option>
+      <option>🌟 道徳</option>
+      <option>🔍 雑学</option>
+      <option>👤 伝記</option>
+      <option>🌍 社会</option>
+      <option>🔬 理科</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>学年</label>
+    <select>
+      <option>すべて</option>
+      <option>幼児〜小3</option>
+      <option>小4〜小6</option>
+      <option>中学以上</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>タイプ</label>
+    <select>
+      <option>すべて</option>
+      <option>⚡ 瞬間読み</option>
+      <option>📖 高速読み</option>
+    </select>
+  </div>
+  <div class="filter-group search-box">
+    <label>🔍</label>
+    <input type="search" placeholder="タイトル・本文で検索..." style="width:100%">
+  </div>
+  <button class="btn primary" onclick="openModal()">＋ 新規作成</button>
+</div>
+
+<!-- 情報バナー -->
+<div class="info-banner">
+  💡 コンテンツを登録すると、ジャンル別コース（物語・道徳・雑学・伝記・社会・理科）のトレーニングで生徒が利用できるようになります。
+</div>
+
+<!-- コンテンツ一覧 -->
+<div class="contents-grid">
+
+  <!-- 自塾オリジナル -->
+  <div class="content-card own">
+    <div class="content-header">
+      <div class="content-title">名大SKYオリジナル「夏休みの思い出」</div>
+      <span class="owner-badge own">🏫 自塾</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-story">📖 物語</span>
+      <span class="meta-pill">小4-小6</span>
+      <span class="meta-pill">難易度 2</span>
+      <span class="meta-pill type-fast">📖 高速読み</span>
+    </div>
+    <div class="content-preview">太郎は夏休みの宿題に頭を悩ませていた。毎年のように決まって出される読書感想文。今年こそは…</div>
+    <div class="content-footer">
+      <span>📝 452字 / 理解度4択×5問</span>
+      <div class="content-actions">
+        <button class="btn outline small">編集</button>
+        <button class="btn danger small">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card own">
+    <div class="content-header">
+      <div class="content-title">先生が選ぶ偉人「野口英世」</div>
+      <span class="owner-badge own">🏫 自塾</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-biography">👤 伝記</span>
+      <span class="meta-pill">小4-小6</span>
+      <span class="meta-pill">難易度 3</span>
+      <span class="meta-pill type-shunkan">⚡ 瞬間読み</span>
+    </div>
+    <div class="content-preview">野口英世は明治9年、福島県の貧しい農家に生まれました。幼い頃にやけどで左手が不自由に…</div>
+    <div class="content-footer">
+      <span>📝 瞬間5問 / 4択</span>
+      <div class="content-actions">
+        <button class="btn outline small">編集</button>
+        <button class="btn danger small">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 共有コンテンツ -->
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">桃太郎</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-story">📖 物語</span>
+      <span class="meta-pill">幼児-小3</span>
+      <span class="meta-pill">難易度 1</span>
+      <span class="meta-pill type-fast">📖 高速読み</span>
+    </div>
+    <div class="content-preview">昔々、あるところにおじいさんとおばあさんが住んでいました。ある日、おばあさんが川で洗濯を…</div>
+    <div class="content-footer">
+      <span>📝 380字 / 理解度4択×5問</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">ふしぎな海の生き物</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-science">🔬 理科</span>
+      <span class="meta-pill">小4-小6</span>
+      <span class="meta-pill">難易度 2</span>
+      <span class="meta-pill type-fast">📖 高速読み</span>
+    </div>
+    <div class="content-preview">深海に住むチョウチンアンコウは、自ら光を発して獲物をおびき寄せる珍しい魚です。この光は…</div>
+    <div class="content-footer">
+      <span>📝 520字 / 理解度4択×5問</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">正直者の木こり</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-moral">🌟 道徳</span>
+      <span class="meta-pill">幼児-小3</span>
+      <span class="meta-pill">難易度 1</span>
+      <span class="meta-pill type-shunkan">⚡ 瞬間読み</span>
+    </div>
+    <div class="content-preview">むかしむかし、一人の正直な木こりがいました。ある日、川のほとりで木を切っていると、手がすべって…</div>
+    <div class="content-footer">
+      <span>📝 瞬間5問 / 4択</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">身近な雑学クイズ</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-trivia">🔍 雑学</span>
+      <span class="meta-pill">小4-小6</span>
+      <span class="meta-pill">難易度 2</span>
+      <span class="meta-pill type-shunkan">⚡ 瞬間読み</span>
+    </div>
+    <div class="content-preview">バナナが曲がっている理由を知っていますか？実はバナナは太陽の光を浴びるために…</div>
+    <div class="content-footer">
+      <span>📝 瞬間5問 / 4択</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">日本の歴史 〜戦国時代〜</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-social">🌍 社会</span>
+      <span class="meta-pill">中学以上</span>
+      <span class="meta-pill">難易度 3</span>
+      <span class="meta-pill type-fast">📖 高速読み</span>
+    </div>
+    <div class="content-preview">戦国時代は、応仁の乱（1467年）から豊臣秀吉による天下統一（1590年）までの約120年間を指します…</div>
+    <div class="content-footer">
+      <span>📝 680字 / 理解度4択×5問</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card shared">
+    <div class="content-header">
+      <div class="content-title">宇宙のはじまり</div>
+      <span class="owner-badge shared">🌐 共有</span>
+    </div>
+    <div class="content-meta">
+      <span class="meta-pill genre genre-science">🔬 理科</span>
+      <span class="meta-pill">中学以上</span>
+      <span class="meta-pill">難易度 3</span>
+      <span class="meta-pill type-fast">📖 高速読み</span>
+    </div>
+    <div class="content-preview">約138億年前、宇宙はビッグバンと呼ばれる大爆発によって誕生したと考えられています…</div>
+    <div class="content-footer">
+      <span>📝 720字 / 理解度4択×5問</span>
+      <div class="content-actions">
+        <button class="btn outline small">閲覧</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:24px">
+  <button class="btn outline">もっと表示 (残り 120件)</button>
+</div>
+
+<div class="footer">
+  100万人の速読 ｜ <a href="index.html">学習ガイド</a> ｜ <a href="teacher.html">先生用</a> ｜ <a href="parent.html">保護者用</a> ｜ <a href="student.html">生徒マイページ</a>
+</div>
+
+</div>
+
+<!-- 新規作成モーダル -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>📝 コンテンツを新規作成</h2>
+        <div style="font-size:12px;color:#888;margin-top:4px" id="scopeLabel">🌐 共有コンテンツとして登録（全塾で利用可）</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- タイプ選択 -->
+      <div class="form-row">
+        <label>コンテンツタイプ <span class="required">*</span></label>
+        <div class="type-select">
+          <div class="type-option selected" onclick="selectType(this, 'fast')">
+            <div class="icon">📖</div>
+            <div class="label">高速読み</div>
+            <div class="desc">本文＋内容理解4択×5問</div>
+          </div>
+          <div class="type-option" onclick="selectType(this, 'shunkan')">
+            <div class="icon">⚡</div>
+            <div class="label">瞬間読み</div>
+            <div class="desc">問題文5問＋選択肢4つ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 基本情報 -->
+      <div class="form-row">
+        <label>タイトル <span class="required">*</span></label>
+        <input type="text" placeholder="例: 夏休みの思い出" value="">
+      </div>
+
+      <div class="form-row-triple">
+        <div class="form-row">
+          <label>ジャンル <span class="required">*</span></label>
+          <select>
+            <option>📖 物語</option>
+            <option>🌟 道徳</option>
+            <option>🔍 雑学</option>
+            <option>👤 伝記</option>
+            <option>🌍 社会</option>
+            <option>🔬 理科</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>対象学年 <span class="required">*</span></label>
+          <select>
+            <option>幼児〜小3</option>
+            <option selected>小4〜小6</option>
+            <option>中学以上</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>難易度 <span class="required">*</span></label>
+          <select>
+            <option>1 (やさしい)</option>
+            <option selected>2 (ふつう)</option>
+            <option>3 (むずかしい)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 本文 -->
+      <div class="form-row">
+        <label>本文 <span class="required">*</span> <span style="font-weight:400;color:#888;font-size:11px">（目安: 300〜800字）</span></label>
+        <textarea placeholder="ここに本文を入力してください..."></textarea>
+        <div style="font-size:11px;color:#888;margin-top:4px">📊 0 字 / 想定読書時間: 約 0 秒</div>
+      </div>
+
+      <!-- クイズ（高速読み用：内容理解4択×5問） -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <label style="margin:0">理解度クイズ 5問 <span class="required">*</span></label>
+          <button class="btn outline small">🤖 AIで下書き生成</button>
+        </div>
+
+        <!-- 問題1 -->
+        <div class="question-block">
+          <div class="q-num">Q1</div>
+          <div class="q-title">問題文</div>
+          <input type="text" placeholder="主人公の名前は何ですか？" style="width:100%;padding:8px 10px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit">
+          <div class="q-title" style="margin-top:10px">選択肢（正解を選択）</div>
+          <div class="choices-grid">
+            <div class="choice-row"><input type="radio" name="q1" checked><span style="font-weight:700;font-size:12px">A</span><input type="text" placeholder="太郎"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">B</span><input type="text" placeholder="次郎"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">C</span><input type="text" placeholder="三郎"></div>
+            <div class="choice-row"><input type="radio" name="q1"><span style="font-weight:700;font-size:12px">D</span><input type="text" placeholder="花子"></div>
+          </div>
+        </div>
+
+        <!-- 問題2-5 (折りたたみ) -->
+        <div class="question-block">
+          <div class="q-num">Q2</div>
+          <div class="q-title">問題文</div>
+          <input type="text" placeholder="問題文を入力" style="width:100%;padding:8px 10px;border:1px solid #e8ecf0;border-radius:8px;font-size:13px;font-family:inherit">
+          <div class="q-title" style="margin-top:10px">選択肢</div>
+          <div class="choices-grid">
+            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">A</span><input type="text" placeholder="選択肢A"></div>
+            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">B</span><input type="text" placeholder="選択肢B"></div>
+            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">C</span><input type="text" placeholder="選択肢C"></div>
+            <div class="choice-row"><input type="radio" name="q2"><span style="font-weight:700;font-size:12px">D</span><input type="text" placeholder="選択肢D"></div>
+          </div>
+        </div>
+
+        <div style="padding:10px;background:#f8f9fa;border-radius:10px;text-align:center;font-size:12px;color:#888">... Q3 〜 Q5 も同様に入力 ...</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline">下書き保存</button>
+      <button class="btn" style="background:#f5f5f5;color:#888" onclick="closeModal()">キャンセル</button>
+      <button class="btn primary">✓ 公開する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchRole(role) {
+    const btns = document.querySelectorAll('.role-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    const platformInfo = document.getElementById('role-platform');
+    const schoolInfo = document.getElementById('role-school');
+    const ownTab = document.getElementById('ownTab');
+    const scopeLabel = document.getElementById('scopeLabel');
+    if (role === 'platform') {
+      platformInfo.style.display = 'block';
+      schoolInfo.style.display = 'none';
+      ownTab.style.display = 'none';
+      scopeLabel.innerHTML = '🌐 共有コンテンツとして登録（全塾で利用可）';
+    } else {
+      platformInfo.style.display = 'none';
+      schoolInfo.style.display = 'block';
+      ownTab.style.display = 'block';
+      scopeLabel.innerHTML = '🏫 自塾オリジナルとして登録（自塾の生徒のみ利用可）';
+    }
+  }
+  function switchTab(el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  function selectType(el, type) {
+    document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>
