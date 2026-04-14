@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ログイン（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: linear-gradient(135deg, #1478C3 0%, #00345B 100%); color: #2A3944; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+.login-container { max-width: 420px; width: 100%; }
+
+/* ロゴ */
+.logo { text-align: center; margin-bottom: 32px; color: #fff; }
+.logo .title { font-size: 28px; font-weight: 900; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.logo .sub { font-size: 13px; opacity: 0.9; }
+.logo .icon { font-size: 48px; margin-bottom: 8px; }
+
+/* ログインカード */
+.login-card { background: #fff; border-radius: 24px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.login-card h2 { font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 4px; }
+.login-card .desc { text-align: center; font-size: 12px; color: #888; margin-bottom: 24px; }
+
+/* タブ */
+.login-tabs { display: flex; gap: 4px; background: #f0f4f8; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+.login-tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #888; transition: all 0.2s; }
+.login-tab.active { background: #fff; color: #0984e3; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+/* フォーム */
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 6px; }
+.form-row input { width: 100%; padding: 12px 14px; border: 2px solid #e8ecf0; border-radius: 10px; font-size: 14px; font-family: inherit; transition: all 0.2s; }
+.form-row input:focus { outline: none; border-color: #0984e3; background: #f8fbff; }
+
+.login-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: 0 4px 16px rgba(9,132,227,0.3); transition: all 0.2s; }
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(9,132,227,0.4); }
+
+/* デモアカウント情報 */
+.demo-info { margin-top: 20px; padding: 14px; background: #fff9c4; border-radius: 10px; font-size: 11px; color: #6c5400; }
+.demo-info strong { display: block; margin-bottom: 6px; }
+.demo-info .account { font-family: 'Courier New', monospace; background: #fff; padding: 4px 8px; border-radius: 6px; display: inline-block; margin: 2px 4px 2px 0; }
+
+/* クイックアクセス */
+.quick-access { background: #fff; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+.quick-access .qa-title { font-size: 12px; font-weight: 700; color: #888; text-align: center; margin-bottom: 10px; }
+.quick-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.quick-link { padding: 12px 8px; border-radius: 10px; background: #f8f9fa; text-align: center; font-size: 11px; font-weight: 700; color: #555; text-decoration: none; transition: all 0.15s; }
+.quick-link:hover { background: #e3f2fd; color: #0984e3; }
+.quick-link .qa-emoji { display: block; font-size: 20px; margin-bottom: 4px; }
+
+/* フッター */
+.footer-text { text-align: center; font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 24px; }
+.footer-text a { color: #fff; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="demo-badge">DEMO</div>
+
+<div class="login-container">
+  <!-- ロゴ -->
+  <div class="logo">
+    <div class="icon">📖</div>
+    <div class="title">100万人の速読</div>
+    <div class="sub">読書スピードを飛躍的に向上させるトレーニング</div>
+  </div>
+
+  <!-- ログインカード -->
+  <div class="login-card">
+    <h2>ログイン</h2>
+    <div class="desc">学習情報を入力してください</div>
+
+    <!-- タブ -->
+    <div class="login-tabs">
+      <div class="login-tab active" onclick="switchLoginTab(this, 'student')">👤 生徒</div>
+      <div class="login-tab" onclick="switchLoginTab(this, 'school')">🏫 塾管理者</div>
+      <div class="login-tab" onclick="switchLoginTab(this, 'platform')">🏢 運営</div>
+    </div>
+
+    <!-- 生徒ログイン -->
+    <div id="tab-student">
+      <div class="form-row">
+        <label>塾ID</label>
+        <input type="text" placeholder="例: 999999" value="999999">
+      </div>
+      <div class="form-row">
+        <label>生徒ID</label>
+        <input type="text" placeholder="例: TEST01" value="TEST01">
+      </div>
+      <div class="form-row">
+        <label>パスワード</label>
+        <input type="password" placeholder="パスワード" value="TEST01">
+      </div>
+      <button class="login-btn" onclick="location.href='student.html'">🚀 ログイン</button>
+
+      <div class="demo-info">
+        <strong>💡 デモアカウント（すでに入力済み）</strong>
+        <span class="account">塾ID: 999999</span>
+        <span class="account">生徒ID: TEST01</span>
+        <span class="account">PW: TEST01</span>
+      </div>
+    </div>
+
+    <!-- 塾管理者ログイン -->
+    <div id="tab-school" style="display:none">
+      <div class="form-row">
+        <label>塾ID</label>
+        <input type="text" placeholder="例: 999999" value="999999">
+      </div>
+      <div class="form-row">
+        <label>管理者パスワード</label>
+        <input type="password" placeholder="パスワード" value="TEST01">
+      </div>
+      <button class="login-btn" onclick="location.href='teacher.html'">🚀 管理画面へ</button>
+
+      <div class="demo-info">
+        <strong>💡 デモアカウント</strong>
+        <span class="account">塾ID: 999999</span>
+        <span class="account">PW: TEST01</span>
+        <div style="margin-top:6px;font-size:10px">ログイン後、生徒一覧・統計・コンテンツ管理にアクセスできます</div>
+      </div>
+    </div>
+
+    <!-- 運営管理者ログイン -->
+    <div id="tab-platform" style="display:none">
+      <div class="form-row">
+        <label>管理者ID</label>
+        <input type="text" placeholder="admin" value="admin">
+      </div>
+      <div class="form-row">
+        <label>パスワード</label>
+        <input type="password" placeholder="パスワード" value="sokudoku2026">
+      </div>
+      <button class="login-btn" onclick="location.href='contents.html'">🚀 運営画面へ</button>
+
+      <div class="demo-info">
+        <strong>💡 デモアカウント</strong>
+        <span class="account">ID: admin</span>
+        <span class="account">PW: sokudoku2026</span>
+        <div style="margin-top:6px;font-size:10px">全塾のコンテンツ・ジャンル・生徒情報を管理できます</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- デモクイックアクセス -->
+  <div class="quick-access">
+    <div class="qa-title">🎭 デモ画面に直接ジャンプ</div>
+    <div class="quick-links">
+      <a href="student.html" class="quick-link">
+        <span class="qa-emoji">👤</span>生徒マイページ
+      </a>
+      <a href="select.html" class="quick-link">
+        <span class="qa-emoji">⚡</span>トレーニング選択
+      </a>
+      <a href="teacher.html" class="quick-link">
+        <span class="qa-emoji">📋</span>先生用ダッシュボード
+      </a>
+      <a href="parent.html" class="quick-link">
+        <span class="qa-emoji">📊</span>保護者レポート
+      </a>
+      <a href="contents.html" class="quick-link">
+        <span class="qa-emoji">📚</span>コンテンツ管理
+      </a>
+      <a href="index.html" class="quick-link">
+        <span class="qa-emoji">📖</span>学習ガイド
+      </a>
+    </div>
+  </div>
+
+  <div class="footer-text">
+    ※ これはデモ画面です。実際の認証は行いません。<br>
+    <a href="index.html">学習ガイドに戻る</a>
+  </div>
+</div>
+
+<script>
+  function switchLoginTab(el, type) {
+    document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['student', 'school', 'platform'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === type ? 'block' : 'none';
+    });
+  }
+</script>
+</body>
+</html>
