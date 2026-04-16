@@ -201,20 +201,20 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
 
 <!-- 2. 進級条件 -->
 <div class="section">
-  <h2 class="section-title">ステージアップの条件（2つすべて達成）</h2>
+  <h2 class="section-title">ステージアップの流れ</h2>
   <div class="conditions" style="grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto">
     <div class="cond-card">
       <div class="num">6〜8</div>
-      <div class="label">最低トレーニング回数</div>
+      <div class="label">STEP 1<br>最低トレーニング回数</div>
       <div class="desc">Stage 1は6回<br>Stage 2〜5は各8回</div>
     </div>
-    <div class="cond-card">
-      <div class="num">&times;5</div>
-      <div class="label">スピード ＋ 内容理解</div>
-      <div class="desc"><strong>目標カウント以上</strong>で高速読みを完走し<br>内容理解テスト <strong>6問中4問以上正解</strong>（2問間違いまでOK）<br>を5回達成</div>
+    <div class="cond-card" style="border-color:#e84393">
+      <div class="num" style="color:#e84393">✓</div>
+      <div class="label">STEP 2<br>ステージ修了テスト</div>
+      <div class="desc"><strong>目標カウント</strong>（固定速度）で高速読み<br>→ 内容理解テスト <strong>6問中4問以上正解</strong>で合格<br><span style="color:#e17055;font-size:11px">※不合格時は追加2回トレーニング後に再挑戦</span></div>
     </div>
   </div>
-  <p class="cond-note">※ ステージアップ時に達成カウントはすべてリセットされます<br>※ 高速読みは自動でカウントが上昇します。目標カウントに到達した状態でテスト合格すれば「スピードで読めている」と自動判定されます</p>
+  <p class="cond-note">※ ステージアップ時に達成カウントはすべてリセットされます<br>※ 通常トレーニング中の内容理解テスト（6問）は進捗記録用で、ステージアップ判定には使いません</p>
 
   <!-- 学年別カウント目標 -->
   <div style="margin-top:16px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
@@ -236,7 +236,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
         <div style="font-size:11px;color:#ef5350">カウント/分</div>
       </div>
     </div>
-    <p style="margin-top:10px;font-size:12px;color:#888;text-align:center">高速読み中のカウントがこの目標値以上に到達した状態で、直後の内容理解テストに合格した回数で判定します</p>
+    <p style="margin-top:10px;font-size:12px;color:#888;text-align:center">ステージ修了テストで、学年別の目標カウント（固定速度）で高速読みを行い、内容理解テストに合格するとステージアップします</p>
   </div>
 </div>
 
@@ -260,6 +260,42 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3
       <div class="step-icon">&#128200;</div>
       <div class="step-title">速度測定（後）</div>
       <div class="step-desc">約2〜3分<br>トレーニング効果を確認</div>
+    </div>
+  </div>
+</div>
+
+<!-- 3.5 ステージ修了テストの流れ -->
+<div class="section">
+  <h2 class="section-title">ステージ修了テストの流れ</h2>
+  <p style="font-size:13px;color:#666;margin-bottom:16px">最低トレーニング回数を消化すると、ステージ修了テストが解放されます。</p>
+  <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+    <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px;text-align:center;padding:16px;border-radius:12px;background:#f0f7ff;border:2px solid #0984e3">
+        <div style="font-size:28px;margin-bottom:6px">✅</div>
+        <div style="font-size:13px;font-weight:700;color:#0984e3">STEP 1<br>回数消化</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">Stage 1: 6回<br>Stage 2-5: 各8回</div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 8px;font-size:20px;color:#0984e3">→</div>
+      <div style="flex:1;min-width:140px;text-align:center;padding:16px;border-radius:12px;background:#fff5f7;border:2px solid #e84393">
+        <div style="font-size:28px;margin-bottom:6px">🎯</div>
+        <div style="font-size:13px;font-weight:700;color:#e84393">STEP 2<br>修了テスト</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">目標カウントで<br>高速読み完走</div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 8px;font-size:20px;color:#e84393">→</div>
+      <div style="flex:1;min-width:140px;text-align:center;padding:16px;border-radius:12px;background:#fff9c4;border:2px solid #ff9800">
+        <div style="font-size:28px;margin-bottom:6px">📝</div>
+        <div style="font-size:13px;font-weight:700;color:#e65100">STEP 3<br>内容理解テスト</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">6問中<br>4問以上正解</div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 8px;font-size:20px;color:#00b894">→</div>
+      <div style="flex:1;min-width:140px;text-align:center;padding:16px;border-radius:12px;background:#e8f5e9;border:2px solid #00b894">
+        <div style="font-size:28px;margin-bottom:6px">🎉</div>
+        <div style="font-size:13px;font-weight:700;color:#00b894">合格<br>ステージアップ</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">次のStageへ</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:12px 16px;background:#fff3cd;border-radius:10px;font-size:12px;color:#6c5400">
+      ⚠️ <strong>不合格だった場合</strong>: 追加で<strong>2回</strong>トレーニングしてから再挑戦できます。何度でも受け直し可能です。
     </div>
   </div>
 </div>
