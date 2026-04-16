@@ -83,6 +83,10 @@ export default async function TrainingPage() {
         speedMode: (progress.speed_mode as boolean) ?? false,
         countTarget: getCountTarget(student.grade_level_id ?? null),
         minSessions: coachMinSessions,
+        // 新フロー: 修了テスト関連
+        extraSessionsRequired: (progress.extra_sessions_required as number) ?? 0,
+        finalTestPassed: (progress.stage_final_test_passed as boolean) ?? false,
+        finalTestAttempts: (progress.stage_final_test_attempts as number) ?? 0,
       }}
       stats={{
         totalSessions: stats.total_sessions,

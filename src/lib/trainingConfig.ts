@@ -101,15 +101,25 @@ export const BLOCK_CONFIG = {
 /**
  * カウント自動上昇ルール
  * 8カウントごとに+1ずつ緩やかに上昇する。
- * 60 →(8回)→ 61 →(8回)→ 62 → ... → 260
- * 260到達後は60に戻りループ。
+ * 60 →(8回)→ 61 →(8回)→ 62 → ... → スタート速度×3（上限）
+ * 上限に達したらそのスピードを維持する。
  */
 export const COUNT_AUTO = {
   /** 何カウントで次の速度に上がるか */
   beatsPerStep: 8,
   /** 1回の上昇幅 */
   stepSize: 1,
+  /** 上限倍率（スタート速度 × この値） */
+  capMultiplier: 3,
 } as const
+
+/**
+ * カウント上限を計算する
+ * startWpm: トレーニング開始時のスタート速度
+ */
+export function getCountCap(startWpm: number): number {
+  return Math.floor(startWpm * COUNT_AUTO.capMultiplier)
+}
 
 /**
  * 学年別カウント目標（ステージアップ条件）

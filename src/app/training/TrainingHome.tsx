@@ -44,6 +44,10 @@ interface TrainingHomeProps {
     speedMode: boolean
     countTarget: number
     minSessions: number
+    // 修了テスト関連（新仕様）
+    extraSessionsRequired: number
+    finalTestPassed: boolean
+    finalTestAttempts: number
   }
   stats: {
     totalSessions: number
@@ -372,10 +376,10 @@ export default function TrainingHome({ student, progress, stats, basicMenus, gen
             stageName={progress.stageName}
             sessionCount={progress.stageSessionCount}
             minSessions={progress.minSessions}
+            extraSessionsRequired={progress.extraSessionsRequired}
+            finalTestPassed={progress.finalTestPassed}
+            finalTestAttempts={progress.finalTestAttempts}
             nextDirection={nextDirection}
-            block240Count={progress.block240Count}
-            block90Count={progress.block90Count}
-            speedMode={progress.speedMode}
             countTarget={progress.countTarget}
           />
         </div>

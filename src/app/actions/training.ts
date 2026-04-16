@@ -28,9 +28,14 @@ export interface StudentProgress {
   stage_session_count: number
   stage_direction_last: Direction | null
   fluency_reported: boolean
-  block_240_cleared: number  // 240カウント突破回数（5回で条件クリア）
-  block_accuracy_90: number  // 正答率90%達成回数（5回で条件クリア）
-  speed_mode: boolean         // Stage5完了後のスピードモード
+  block_240_cleared: number  // 240カウント突破回数（旧仕様・後方互換）
+  block_accuracy_90: number  // 正答率90%達成回数（旧仕様・後方互換）
+  speed_mode: boolean         // Stage5完了後のスピードモード（旧仕様・後方互換）
+  // 新フロー: 修了テスト制
+  stage_final_test_passed?: boolean
+  stage_final_test_attempts?: number
+  extra_sessions_required?: number
+  stage_mode?: 'standard' | 'professional'
 }
 
 // Note: CoachSessionConfig, DynamicSegment types are exported from @/lib/coach directly
