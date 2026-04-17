@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速読トレーニング体験（デモ）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; }
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+
+/* レイアウト: 左コンテンツ + 右サイドバー */
+.training-layout { display: grid; grid-template-columns: 1fr 280px; height: 100vh; }
+.main-area { display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.sidebar { background: #16213e; border-left: 1px solid #0f3460; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+/* ヘッダーバー */
+.header-bar { background: linear-gradient(90deg, #1478C3, #00345B); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+.header-bar .stage { font-size: 14px; font-weight: 700; }
+.header-bar .timer { font-size: 18px; font-weight: 900; font-family: monospace; }
+.header-bar .seg-name { font-size: 12px; opacity: 0.8; }
+
+/* 進捗バー */
+.progress-bar-wrap { height: 4px; background: rgba(255,255,255,0.1); }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00b894, #0984e3); transition: width 0.3s; }
+
+/* コンテンツエリア */
+.content-area { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+
+/* ばらばら瞬間読み */
+.barabara-circle { position: relative; width: 400px; height: 400px; }
+.barabara-word { position: absolute; font-size: 2.5rem; font-weight: 900; font-family: 'HG教科書体', 'Noto Sans JP', serif; color: #fff; transform: translate(-50%, -50%); text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+
+/* 1行/2行瞬間読み */
+.shunkan-text { font-size: 3rem; font-weight: 900; font-family: 'HG教科書体', 'Noto Sans JP', serif; text-align: center; line-height: 1.6; text-shadow: 0 2px 12px rgba(0,0,0,0.5); padding: 0 40px; }
+.shunkan-text.tate { writing-mode: vertical-rl; font-size: 2.5rem; letter-spacing: 0.1em; }
+
+/* カウントダウン */
+.countdown { font-size: 8rem; font-weight: 900; color: #0984e3; text-shadow: 0 0 40px rgba(9,132,227,0.5); }
+
+/* 高速読み */
+.speed-reading { padding: 24px; font-size: 1.1rem; line-height: 2.2; font-family: 'HG教科書体', 'Noto Sans JP', serif; position: relative; max-height: calc(100vh - 60px); overflow-y: auto; }
+.speed-reading .highlight-row { background: #ffe5e5; color: #1a1a2e; border-radius: 4px; padding: 2px 4px; }
+.speed-reading .marker { position: absolute; left: 0; right: 0; height: 2.4em; background: rgba(255,229,229,0.15); border-left: 3px solid #fd79a8; transition: top 0.3s; pointer-events: none; }
+
+/* テスト画面 */
+.test-area { padding: 24px; max-width: 640px; margin: 0 auto; width: 100%; }
+.test-question { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding: 16px; background: rgba(255,255,255,0.1); border-radius: 12px; }
+.test-choices { display: flex; flex-direction: column; gap: 8px; }
+.test-choice { padding: 14px 18px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 12px; transition: all 0.15s; }
+.test-choice:hover { border-color: #0984e3; background: rgba(9,132,227,0.1); }
+.test-choice.selected { border-color: #0984e3; background: rgba(9,132,227,0.2); }
+.test-choice .letter { font-weight: 900; color: #0984e3; min-width: 24px; }
+
+/* 測定画面 */
+.measurement { padding: 24px; text-align: center; }
+.measurement .wpm { font-size: 5rem; font-weight: 900; color: #00b894; }
+.measurement .label { font-size: 14px; color: #888; }
+
+/* サイドバー要素 */
+.sidebar-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 14px; }
+.sidebar-card .card-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.sidebar-card .card-value { font-size: 24px; font-weight: 900; }
+
+.count-display { text-align: center; }
+.count-display .count-num { font-size: 3rem; font-weight: 900; color: #fd79a8; font-family: monospace; }
+.count-display .count-label { font-size: 11px; color: #888; }
+.count-display .count-target { font-size: 12px; color: #a29bfe; margin-top: 4px; }
+
+.speed-display { text-align: center; }
+.speed-display .speed-num { font-size: 2rem; font-weight: 900; color: #00b894; }
+
+/* ボタン */
+.btn { padding: 10px 20px; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; width: 100%; }
+.btn-primary { background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; }
+.btn-warning { background: #ffeaa7; color: #6c5400; }
+.btn-danger { background: #fd79a8; color: #fff; }
+.btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* セグメントリスト */
+.segment-list { display: flex; flex-direction: column; gap: 4px; }
+.segment-item { padding: 8px 10px; border-radius: 8px; font-size: 11px; display: flex; align-items: center; gap: 8px; }
+.segment-item.active { background: rgba(9,132,227,0.2); border: 1px solid #0984e3; }
+.segment-item.done { background: rgba(0,184,148,0.1); color: #00b894; }
+.segment-item.pending { color: #636e72; }
+.segment-item .seg-icon { font-size: 14px; }
+.segment-item .seg-time { margin-left: auto; font-family: monospace; font-size: 10px; }
+
+/* 結果 */
+.result-card { text-align: center; padding: 40px; }
+.result-card .emoji { font-size: 64px; margin-bottom: 16px; }
+.result-card .title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.result-card .desc { font-size: 14px; color: #888; }
+
+/* 開始画面 */
+.start-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 24px; background: linear-gradient(135deg, #1a1a2e, #16213e); }
+.start-screen h1 { font-size: 32px; font-weight: 900; margin-bottom: 8px; }
+.start-screen .sub { font-size: 14px; color: #888; margin-bottom: 32px; }
+.start-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; max-width: 480px; }
+.start-info .info-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; text-align: center; }
+.start-info .info-card .num { font-size: 28px; font-weight: 900; }
+.start-info .info-card .label { font-size: 11px; color: #888; margin-top: 4px; }
+
+/* 音再生ボタン */
+.sound-indicator { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #a29bfe; }
+
+@media (max-width: 768px) {
+  .training-layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .barabara-circle { width: 300px; height: 300px; }
+  .shunkan-text { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+<div class="demo-badge">トレーニング体験DEMO</div>
+
+<!-- 開始画面 -->
+<div class="start-screen" id="startScreen">
+  <h1>⚡ 速読トレーニング体験</h1>
+  <div class="sub">実際のトレーニング画面を体験できます</div>
+  <div class="start-info">
+    <div class="info-card">
+      <div class="num" style="color:#0984e3">2</div>
+      <div class="label">Stage</div>
+    </div>
+    <div class="info-card">
+      <div class="num" style="color:#00b894">10</div>
+      <div class="label">分コース</div>
+    </div>
+    <div class="info-card">
+      <div class="num" style="color:#fd79a8">たて</div>
+      <div class="label">方向</div>
+    </div>
+  </div>
+  <div style="margin-bottom:24px">
+    <div style="font-size:13px;color:#888;margin-bottom:8px">トレーニング内容</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <span style="padding:6px 14px;border-radius:20px;background:#ffeaa7;color:#6c5400;font-size:12px;font-weight:700">ばらばら 1.5分</span>
+      <span style="padding:6px 14px;border-radius:20px;background:#74b9ff;color:#fff;font-size:12px;font-weight:700">1行瞬間 2分</span>
+      <span style="padding:6px 14px;border-radius:20px;background:#fd79a8;color:#fff;font-size:12px;font-weight:700">2点高速 6.5分</span>
+    </div>
+  </div>
+  <button class="btn btn-primary" style="max-width:300px;padding:16px;font-size:18px" onclick="startTraining()">🚀 トレーニング開始</button>
+  <div style="margin-top:16px"><a href="index.html" style="color:#0984e3;text-decoration:none;font-size:12px">← 学習ガイドに戻る</a></div>
+</div>
+
+<!-- トレーニング画面 -->
+<div class="training-layout" id="trainingScreen" style="display:none">
+  <!-- メインエリア -->
+  <div class="main-area">
+    <div class="header-bar">
+      <div>
+        <div class="stage">Stage 2: 2点高速読み</div>
+        <div class="seg-name" id="segName">ばらばら瞬間読み</div>
+      </div>
+      <div style="text-align:right">
+        <div class="timer" id="timer">00:00</div>
+        <div class="sound-indicator">🔊 <span id="soundLabel">カウント音ON</span></div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="content-area" id="contentArea">
+      <!-- ここにコンテンツが描画される -->
+    </div>
+  </div>
+
+  <!-- サイドバー -->
+  <div class="sidebar">
+    <div class="sidebar-card count-display">
+      <div class="count-label">カウント</div>
+      <div class="count-num" id="countNum">60</div>
+      <div class="count-target">目標: 220 / 上限: <span id="countCap">180</span></div>
+    </div>
+    <div class="sidebar-card speed-display">
+      <div class="card-label">読書スピード</div>
+      <div class="speed-num" id="speedNum">0 <span style="font-size:12px">字/分</span></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="card-label">セグメント進捗</div>
+      <div class="segment-list" id="segmentList"></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="card-label">操作</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-outline" id="btnNext" onclick="nextSegment()">次のセグメントへ →</button>
+        <button class="btn btn-outline" onclick="location.reload()">🔄 最初からやり直す</button>
+      </div>
+    </div>
+    <div style="margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+      <a href="index.html" style="color:#0984e3;text-decoration:none;font-size:11px">← 学習ガイドに戻る</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== データ ==========
+const SEGMENTS = [
+  { type: 'barabara', name: 'ばらばら瞬間読み', duration: 90, icon: '🔡', hasTest: true },
+  { type: 'shunkan_1line', name: 'たて1行瞬間読み', duration: 120, icon: '1️⃣', hasTest: true },
+  { type: 'block', name: 'たて2点高速読み', duration: 390, icon: '📖', hasTest: true },
+];
+
+const BARABARA_WORDS = ['りんご', 'みかん', 'ぶどう', 'いちご', 'バナナ', 'すいか', 'メロン'];
+const LINE1_TEXTS = [
+  'メロスは激怒した。',
+  '邪智暴虐の王を除かねばならぬ。',
+  'メロスには政治がわからぬ。',
+  'メロスは村の牧人である。',
+  '笛を吹き羊と遊んで暮らしてきた。',
+];
+const SPEED_TEXT = `メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ。メロスは、村の牧人である。笛を吹き、羊と遊んで暮して来た。けれども邪悪に対しては、人一倍に敏感であった。きょう未明メロスは村を出発し、野を越え山越え、十里はなれた此のシラクスの市にやって来た。メロスには父も、母も無い。女房も無い。十六の、内気な妹と二人暮しだ。この妹は、村のある律気な一牧人を、近々、花婿として迎える事になっていた。結婚式も間近かなのである。メロスは、それゆえ、花嫁の衣裳やら祝宴の御馳走やらを買いに、はるばる市にやって来たのだ。先ず、その品々を買い集め、それから都の大路をぶらぶら歩いた。メロスには竹馬の友があった。セリヌンティウスである。今は此のシラクスの市で、石工をしている。その友を、これから訪ねてみるつもりなのだ。久しく逢わなかったのだから、訪ねて行くのが楽しみである。`;
+const QUIZ_QUESTIONS = [
+  { q: '主人公の名前は？', choices: ['メロス', 'セリヌンティウス', 'ディオニス', '妹'], correct: 0 },
+  { q: 'メロスの職業は？', choices: ['商人', '牧人', '石工', '兵士'], correct: 1 },
+  { q: 'メロスがシラクスに来た目的は？', choices: ['王に会う', '石を買う', '妹の結婚準備', '旅行'], correct: 2 },
+  { q: 'メロスの友人は？', choices: ['セリヌンティウス', 'ディオニス', 'フィロストラトス', '妹'], correct: 0 },
+  { q: 'メロスの家族構成は？', choices: ['両親と妹', '妹と二人暮し', '一人暮らし', '妻と子供'], correct: 1 },
+  { q: 'シラクスまでの距離は？', choices: ['五里', '十里', '二十里', '百里'], correct: 1 },
+];
+
+let currentSegIdx = 0;
+let timerInterval = null;
+let elapsedSec = 0;
+let countValue = 60;
+let countBeat = 0;
+const startWpm = 60;
+const countCap = startWpm * 3;
+let phase = 'start'; // start, countdown, training, test, result
+
+// ========== 開始 ==========
+function startTraining() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('trainingScreen').style.display = 'grid';
+  document.getElementById('countCap').textContent = countCap;
+  renderSegmentList();
+  runSegment(0);
+}
+
+// ========== セグメント実行 ==========
+function runSegment(idx) {
+  currentSegIdx = idx;
+  if (idx >= SEGMENTS.length) { showFinalResult(); return; }
+  const seg = SEGMENTS[idx];
+  document.getElementById('segName').textContent = seg.name;
+  renderSegmentList();
+  phase = 'countdown';
+  showCountdown(3, () => {
+    phase = 'training';
+    if (seg.type === 'barabara') runBarabara(seg);
+    else if (seg.type === 'shunkan_1line') runShunkan1Line(seg);
+    else if (seg.type === 'block') runSpeedReading(seg);
+  });
+}
+
+function nextSegment() {
+  clearInterval(timerInterval);
+  const seg = SEGMENTS[currentSegIdx];
+  if (seg.hasTest && phase === 'training') {
+    showTest(seg.type === 'block' ? 'comprehension' : 'shunkan');
+  } else {
+    runSegment(currentSegIdx + 1);
+  }
+}
+
+// ========== カウントダウン ==========
+function showCountdown(n, callback) {
+  const area = document.getElementById('contentArea');
+  if (n <= 0) { callback(); return; }
+  area.innerHTML = `<div class="countdown">${n}</div>`;
+  setTimeout(() => showCountdown(n - 1, callback), 1000);
+}
+
+// ========== ばらばら瞬間読み ==========
+function runBarabara(seg) {
+  let flashCount = 0;
+  const maxFlash = 5;
+  function flash() {
+    if (flashCount >= maxFlash) { nextSegment(); return; }
+    const area = document.getElementById('contentArea');
+    const words = shuffleArray([...BARABARA_WORDS]).slice(0, 5);
+    const circle = document.createElement('div');
+    circle.className = 'barabara-circle';
+    const radius = 160;
+    const cx = 200, cy = 200;
+    words.forEach((w, i) => {
+      const angle = (i / words.length) * Math.PI * 2 - Math.PI / 2;
+      const rot = Math.random() * 60 - 30;
+      const span = document.createElement('span');
+      span.className = 'barabara-word';
+      span.style.left = (cx + Math.cos(angle) * radius) + 'px';
+      span.style.top = (cy + Math.sin(angle) * radius) + 'px';
+      span.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+      span.textContent = w;
+      circle.appendChild(span);
+    });
+    area.innerHTML = '';
+    area.appendChild(circle);
+    setTimeout(() => {
+      area.innerHTML = '<div style="font-size:2rem;color:#636e72">👁️</div>';
+      setTimeout(() => { flashCount++; flash(); }, 1500);
+    }, 300);
+  }
+  flash();
+  startTimer(seg.duration);
+}
+
+// ========== 1行瞬間読み ==========
+function runShunkan1Line(seg) {
+  let flashCount = 0;
+  const maxFlash = 5;
+  function flash() {
+    if (flashCount >= maxFlash) { nextSegment(); return; }
+    const area = document.getElementById('contentArea');
+    const text = LINE1_TEXTS[flashCount % LINE1_TEXTS.length];
+    area.innerHTML = '';
+    // カウントダウン 3-2-1
+    showCountdown(3, () => {
+      area.innerHTML = `<div class="shunkan-text tate">${text}</div>`;
+      setTimeout(() => {
+        area.innerHTML = `
+          <div style="text-align:center">
+            <div style="font-size:14px;color:#888;margin-bottom:12px">今見えた文を思い出してください</div>
+            <button class="btn btn-primary" style="max-width:200px" onclick="this.parentElement.innerHTML='<div style=\\'font-size:1.5rem;font-weight:700;color:#00b894\\'>${text}</div><div style=\\'margin-top:12px;font-size:12px;color:#888\\'>次の問題に進みます...</div>'; setTimeout(function(){${flashCount + 1 >= maxFlash ? 'nextSegment()' : 'flash()'}}, 2000)">解答を見る</button>
+          </div>`;
+        flashCount++;
+      }, 300);
+    });
+  }
+  flash();
+  startTimer(seg.duration);
+}
+
+// ========== 高速読み ==========
+function runSpeedReading(seg) {
+  const area = document.getElementById('contentArea');
+  // テキストを行分割
+  const charsPerLine = 25;
+  const lines = [];
+  for (let i = 0; i < SPEED_TEXT.length; i += charsPerLine) {
+    lines.push(SPEED_TEXT.slice(i, i + charsPerLine));
+  }
+  let currentLine = 0;
+
+  const container = document.createElement('div');
+  container.className = 'speed-reading';
+  container.style.color = '#e0e0e0';
+  const marker = document.createElement('div');
+  marker.className = 'marker';
+  marker.style.top = '0px';
+  container.appendChild(marker);
+  lines.forEach((line, i) => {
+    const p = document.createElement('div');
+    p.textContent = line;
+    p.id = `line-${i}`;
+    p.style.position = 'relative';
+    p.style.zIndex = '1';
+    container.appendChild(p);
+  });
+  area.innerHTML = '';
+  area.appendChild(container);
+
+  // カウント連動マーカー移動
+  const lineHeight = 2.42; // em
+  function moveMarker() {
+    if (currentLine >= lines.length) currentLine = 0;
+    marker.style.top = (currentLine * lineHeight) + 'em';
+    currentLine++;
+    updateCount();
+  }
+
+  // 8ビートで+1カウント
+  const bpm = countValue; // 初期BPM
+  let beatMs = Math.floor(60000 / bpm);
+  const beatInterval = setInterval(() => {
+    countBeat++;
+    moveMarker();
+    if (countBeat % 8 === 0 && countValue < countCap) {
+      countValue++;
+      document.getElementById('countNum').textContent = countValue;
+      // BPM更新
+      beatMs = Math.floor(60000 / countValue);
+    }
+    // スピード表示更新
+    const wpm = countValue * 7; // 近似
+    document.getElementById('speedNum').innerHTML = wpm + ' <span style="font-size:12px">字/分</span>';
+  }, beatMs);
+
+  startTimer(seg.duration);
+
+  // セグメント終了時にインターバルクリア
+  const origNext = window.nextSegment;
+  window._beatInterval = beatInterval;
+}
+
+function updateCount() {
+  document.getElementById('countNum').textContent = countValue;
+  const target = 220;
+  const num = document.getElementById('countNum');
+  if (countValue >= target) num.style.color = '#00b894';
+  else num.style.color = '#fd79a8';
+}
+
+// ========== テスト ==========
+function showTest(type) {
+  clearInterval(timerInterval);
+  if (window._beatInterval) clearInterval(window._beatInterval);
+  phase = 'test';
+
+  const area = document.getElementById('contentArea');
+  const questions = type === 'comprehension' ? QUIZ_QUESTIONS : QUIZ_QUESTIONS.slice(0, 5);
+  const totalQ = questions.length;
+  let currentQ = 0;
+  let correct = 0;
+
+  function renderQuestion() {
+    if (currentQ >= totalQ) {
+      // 結果表示
+      const passed = type === 'comprehension' ? correct >= 4 : correct >= 3;
+      area.innerHTML = `
+        <div class="result-card">
+          <div class="emoji">${passed ? '🎉' : '😢'}</div>
+          <div class="title">${correct}/${totalQ} 正解</div>
+          <div class="desc">${type === 'comprehension' ? '内容理解テスト' : '瞬間読みテスト'} ${passed ? '合格！' : ''}</div>
+          <button class="btn btn-primary" style="max-width:200px;margin-top:20px" onclick="runSegment(${currentSegIdx + 1})">次へ →</button>
+        </div>`;
+      return;
+    }
+    const q = questions[currentQ];
+    area.innerHTML = `
+      <div class="test-area">
+        <div style="font-size:12px;color:#888;margin-bottom:8px">Q${currentQ + 1} / ${totalQ}</div>
+        <div class="test-question">${q.q}</div>
+        <div class="test-choices">
+          ${q.choices.map((c, i) => `
+            <div class="test-choice" onclick="selectAnswer(${i}, ${q.correct})">
+              <span class="letter">${'ABCD'[i]}</span>
+              <span>${c}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  window.selectAnswer = (selected, correctIdx) => {
+    if (selected === correctIdx) correct++;
+    currentQ++;
+    setTimeout(renderQuestion, 300);
+  };
+
+  document.getElementById('segName').textContent = type === 'comprehension' ? '📝 内容理解テスト（6問）' : '📝 瞬間読みテスト（5問）';
+  renderQuestion();
+}
+
+// ========== 最終結果 ==========
+function showFinalResult() {
+  const area = document.getElementById('contentArea');
+  area.innerHTML = `
+    <div class="result-card">
+      <div class="emoji">🎊</div>
+      <div class="title">トレーニング完了！</div>
+      <div class="desc" style="margin-bottom:24px">お疲れ様でした！次は読書スピード測定（後）に進みます</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:400px;margin:0 auto 24px">
+        <div style="text-align:center;padding:16px;background:rgba(9,132,227,0.1);border-radius:12px">
+          <div style="font-size:28px;font-weight:900;color:#0984e3">${countValue}</div>
+          <div style="font-size:11px;color:#888">最終カウント</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:rgba(0,184,148,0.1);border-radius:12px">
+          <div style="font-size:28px;font-weight:900;color:#00b894">${countValue * 7}</div>
+          <div style="font-size:11px;color:#888">字/分</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:rgba(253,121,168,0.1);border-radius:12px">
+          <div style="font-size:28px;font-weight:900;color:#fd79a8">3/3</div>
+          <div style="font-size:11px;color:#888">セグメント</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="max-width:300px" onclick="location.reload()">🔄 もう一度体験する</button>
+      <div style="margin-top:12px"><a href="student.html" style="color:#0984e3;text-decoration:none;font-size:12px">生徒マイページを見る</a></div>
+    </div>`;
+  document.getElementById('segName').textContent = '✅ トレーニング完了';
+}
+
+// ========== ユーティリティ ==========
+function startTimer(totalSec) {
+  elapsedSec = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsedSec++;
+    const m = Math.floor(elapsedSec / 60);
+    const s = elapsedSec % 60;
+    document.getElementById('timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const pct = Math.min(100, (elapsedSec / totalSec) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    if (elapsedSec >= totalSec) nextSegment();
+  }, 1000);
+}
+
+function renderSegmentList() {
+  const list = document.getElementById('segmentList');
+  list.innerHTML = SEGMENTS.map((s, i) => {
+    const state = i < currentSegIdx ? 'done' : i === currentSegIdx ? 'active' : 'pending';
+    const icon = i < currentSegIdx ? '✅' : s.icon;
+    return `<div class="segment-item ${state}">
+      <span class="seg-icon">${icon}</span>
+      <span>${s.name}</span>
+      <span class="seg-time">${Math.floor(s.duration/60)}:${String(s.duration%60).padStart(2,'0')}</span>
+    </div>`;
+  }).join('');
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+</script>
+</body>
+</html>
