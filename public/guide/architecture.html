@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速読システム 設計ドキュメント</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #2A3944; }
+.page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+.demo-badge { position: fixed; top: 12px; right: 12px; background: #e84393; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 100; }
+.header { background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); color: #fff; border-radius: 20px; padding: 32px; margin-bottom: 24px; }
+.header h1 { font-size: 24px; font-weight: 900; margin-bottom: 4px; }
+.header .sub { font-size: 13px; opacity: 0.8; }
+.section { margin-bottom: 32px; }
+.section-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; padding-left: 16px; border-left: 5px solid #0984e3; }
+.card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { padding: 8px 10px; text-align: left; background: #f8f9fa; font-weight: 700; font-size: 11px; color: #888; border-bottom: 2px solid #e8ecf0; }
+td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+.pk { color: #e84393; font-weight: 700; }
+.fk { color: #0984e3; font-weight: 700; }
+.nullable { color: #b2bec3; }
+.tbl-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.tbl-desc { font-size: 11px; color: #888; margin-bottom: 12px; }
+.group-title { font-size: 16px; font-weight: 700; color: #fff; padding: 8px 16px; border-radius: 10px; margin-bottom: 12px; display: inline-block; }
+.flow-box { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+.flow-node { padding: 12px 16px; border-radius: 12px; text-align: center; font-size: 12px; font-weight: 700; min-width: 120px; }
+.flow-arrow { padding: 0 8px; font-size: 20px; color: #b2bec3; }
+.er-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.footer { text-align: center; padding: 20px 0; color: #999; font-size: 11px; }
+.footer a { color: #0984e3; text-decoration: none; }
+@media print { body { background: #fff; } .demo-badge { display: none; } .card { box-shadow: none; border: 1px solid #eee; break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="demo-badge">設計ドキュメント</div>
+<div class="page">
+
+<div class="header">
+  <h1>📐 100万人の速読 システム設計ドキュメント</h1>
+  <div class="sub">DB構造・画面遷移・技術スタック（外部開発委託用）</div>
+</div>
+
+<!-- 技術スタック -->
+<div class="section">
+  <h2 class="section-title">技術スタック</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <div class="card" style="text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">⚛️</div>
+      <div style="font-size:14px;font-weight:700">Next.js 16</div>
+      <div style="font-size:11px;color:#888">App Router / Server Actions</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">🗄️</div>
+      <div style="font-size:14px;font-weight:700">Supabase</div>
+      <div style="font-size:11px;color:#888">PostgreSQL / RLS / Auth</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">🎨</div>
+      <div style="font-size:14px;font-weight:700">Tailwind CSS</div>
+      <div style="font-size:11px;color:#888">UIスタイリング</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">📦</div>
+      <div style="font-size:14px;font-weight:700">TypeScript</div>
+      <div style="font-size:11px;color:#888">型安全</div>
+    </div>
+  </div>
+</div>
+
+<!-- 画面遷移図 -->
+<div class="section">
+  <h2 class="section-title">画面遷移図</h2>
+
+  <div class="card">
+    <div class="tbl-name">👤 生徒フロー</div>
+    <div class="flow-box">
+      <div class="flow-node" style="background:#e3f2fd;color:#1565c0">🔐 ログイン<br>/login</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">👤 マイページ<br>/training</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#fff3e0;color:#e65100">⚡ コース選択<br>コンテンツ選択</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#fce4ec;color:#c62828">📏 速度測定(前)<br>/training</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#f3e5f5;color:#6a1b9a">🏋️ トレーニング<br>/training/session</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#fce4ec;color:#c62828">📏 速度測定(後)<br>/training/post-speed</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">📊 結果表示<br>/training</div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="flow-box">
+        <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">👤 マイページ</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="background:#fce4ec;color:#c62828;border:2px solid #e84393">🎯 修了テスト<br>/training/final-test</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">🎉 合格 → 次Stage</div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:6px">※ 修了テストは最低回数消化後に解放。不合格→+2回追加後に再挑戦</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-name">🏫 塾管理者フロー</div>
+    <div class="flow-box">
+      <div class="flow-node" style="background:#e3f2fd;color:#1565c0">🔐 管理者ログイン<br>/admin/login</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">📋 ダッシュボード<br>/admin/dashboard</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#fff3e0;color:#e65100">👥 生徒管理<br>/admin/students</div>
+    </div>
+    <div class="flow-box" style="margin-top:8px">
+      <div class="flow-node" style="background:#e3f2fd;color:#1565c0">📚 コンテンツパック<br>/admin/contents</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#fff3e0;color:#e65100">📝 パック詳細編集<br>/admin/contents/[id]</div>
+    </div>
+    <div class="flow-box" style="margin-top:8px">
+      <div class="flow-node" style="background:#f3e5f5;color:#6a1b9a">📊 レポート・印刷<br>/admin/reports</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#e8f5e9;color:#2e7d32">📊 保護者レポート<br>/parent/report/[token]</div>
+    </div>
+  </div>
+</div>
+
+<!-- DB構造 -->
+<div class="section">
+  <h2 class="section-title">データベース構造（全30テーブル）</h2>
+
+  <!-- マスターデータ -->
+  <div class="group-title" style="background:#0984e3">🏢 マスターデータ</div>
+  <div class="er-group">
+    <div class="card">
+      <div class="tbl-name">schools</div>
+      <div class="tbl-desc">塾（導入校）管理</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td>school_id</td><td>TEXT UNIQUE</td><td>塾ID（ログイン用）</td></tr>
+        <tr><td>school_name</td><td>TEXT</td><td>塾名</td></tr>
+        <tr><td>password</td><td>TEXT</td><td>管理者PW</td></tr>
+        <tr><td>member_type</td><td>TEXT</td><td>culture_kids/eduplus/none</td></tr>
+        <tr><td>status</td><td>TEXT</td><td>active/trial/cancelled</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">students</div>
+      <div class="tbl-desc">生徒管理</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">school_id</td><td>UUID</td><td>FK→schools</td></tr>
+        <tr><td>student_login_id</td><td>TEXT</td><td>生徒ID</td></tr>
+        <tr><td>student_password</td><td>TEXT</td><td>パスワード</td></tr>
+        <tr><td>student_name</td><td>TEXT</td><td>氏名</td></tr>
+        <tr><td class="fk">grade_level_id</td><td>TEXT</td><td>FK→grade_levels</td></tr>
+        <tr><td>koe_e_style</td><td>TEXT</td><td>声/絵 ログイン交互</td></tr>
+        <tr><td>parent_report_token</td><td>TEXT</td><td>保護者レポートURL用</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">grade_levels</div>
+      <div class="tbl-desc">学年マスタ</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>TEXT</td><td>preschool/g1-g6/jh/hs/adult</td></tr>
+        <tr><td>name</td><td>TEXT</td><td>表示名</td></tr>
+        <tr><td>display_order</td><td>INT</td><td>表示順</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">subjects</div>
+      <div class="tbl-desc">ジャンルマスタ（独自追加可）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>TEXT</td><td>story/moral/trivia/...</td></tr>
+        <tr><td>name</td><td>TEXT</td><td>ジャンル名</td></tr>
+        <tr><td>icon</td><td>TEXT</td><td>絵文字</td></tr>
+        <tr><td class="fk nullable">owner_school_id</td><td>UUID</td><td>NULL=共有 / UUID=塾独自</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">coach_stages</div>
+      <div class="tbl-desc">ステージ定義（5段階）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>TEXT</td><td>stage_1〜stage_5</td></tr>
+        <tr><td>name</td><td>TEXT</td><td>3点高速読み 等</td></tr>
+        <tr><td>stage_number</td><td>INT</td><td>1〜5</td></tr>
+        <tr><td>segment_types</td><td>TEXT[]</td><td>含まれるセグメント種別</td></tr>
+        <tr><td>min_sessions</td><td>INT</td><td>最低回数（6 or 8）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- コンテンツパック -->
+  <div class="group-title" style="background:#00b894">📚 コンテンツパック（新規）</div>
+  <div class="er-group">
+    <div class="card">
+      <div class="tbl-name">content_packs</div>
+      <div class="tbl-desc">パック基本情報（生徒が選ぶ単位）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td>title</td><td>TEXT</td><td>パックタイトル</td></tr>
+        <tr><td>target_course</td><td>TEXT</td><td>basic / genre</td></tr>
+        <tr><td class="nullable">koe_e</td><td>TEXT</td><td>koe/e（basic時必須）</td></tr>
+        <tr><td class="fk nullable">subject_id</td><td>TEXT</td><td>FK→subjects（genre時必須）</td></tr>
+        <tr><td>grade_level_id</td><td>TEXT</td><td>対象学年</td></tr>
+        <tr><td>difficulty</td><td>INT</td><td>1-3</td></tr>
+        <tr><td class="fk nullable">owner_school_id</td><td>UUID</td><td>NULL=共有 / UUID=塾専用</td></tr>
+        <tr><td>is_active</td><td>BOOLEAN</td><td>公開フラグ</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">pack_barabara_words</div>
+      <div class="tbl-desc">ばらばら瞬間読み用単語（50個+推奨）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">pack_id</td><td>UUID</td><td>FK→content_packs CASCADE</td></tr>
+        <tr><td>word</td><td>TEXT</td><td>単語</td></tr>
+        <tr><td>is_decoy</td><td>BOOLEAN</td><td>ダミー選択肢用</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">pack_line1_texts</div>
+      <div class="tbl-desc">1行瞬間読み用短文（50問+推奨）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">pack_id</td><td>UUID</td><td>FK→content_packs CASCADE</td></tr>
+        <tr><td>line_text</td><td>TEXT</td><td>短文（24-30字以内）</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">pack_line2_pairs</div>
+      <div class="tbl-desc">2行瞬間読み用ペア（50ペア+推奨）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">pack_id</td><td>UUID</td><td>FK→content_packs CASCADE</td></tr>
+        <tr><td>pair_no</td><td>INT</td><td>ペア番号</td></tr>
+        <tr><td>line1</td><td>TEXT</td><td>1行目（30字以内）</td></tr>
+        <tr><td>line2</td><td>TEXT</td><td>2行目（30字以内）</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">pack_main_texts</div>
+      <div class="tbl-desc">高速読み用本文（5000-20000字推奨）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">pack_id</td><td>UUID</td><td>FK→content_packs UNIQUE CASCADE</td></tr>
+        <tr><td>body</td><td>TEXT</td><td>本文</td></tr>
+        <tr><td>char_count</td><td>INT</td><td>文字数</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">pack_quiz_questions</div>
+      <div class="tbl-desc">内容理解クイズ6問</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">pack_id</td><td>UUID</td><td>FK→content_packs CASCADE</td></tr>
+        <tr><td>question_no</td><td>INT</td><td>1-6</td></tr>
+        <tr><td>question_text</td><td>TEXT</td><td>問題文</td></tr>
+        <tr><td>choice_a/b/c/d</td><td>TEXT</td><td>4択</td></tr>
+        <tr><td>correct</td><td>TEXT</td><td>A/B/C/D</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 進捗・テスト -->
+  <div class="group-title" style="background:#e84393">📊 進捗・テスト・履歴</div>
+  <div class="er-group">
+    <div class="card">
+      <div class="tbl-name">student_progress</div>
+      <div class="tbl-desc">生徒の現在の進捗状態（1生徒1レコード）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students UNIQUE</td></tr>
+        <tr><td class="fk">coach_stage_id</td><td>TEXT</td><td>現在のステージ</td></tr>
+        <tr><td>stage_session_count</td><td>INT</td><td>現Stageの実施回数</td></tr>
+        <tr><td>stage_direction_last</td><td>TEXT</td><td>最後の方向（tate/yoko）</td></tr>
+        <tr><td>stage_final_test_passed</td><td>BOOLEAN</td><td>修了テスト合格済み</td></tr>
+        <tr><td>stage_final_test_attempts</td><td>INT</td><td>修了テスト受験回数</td></tr>
+        <tr><td>extra_sessions_required</td><td>INT</td><td>不合格後の追加回数</td></tr>
+        <tr><td>stage_mode</td><td>TEXT</td><td>standard / professional</td></tr>
+        <tr><td>latest_wpm, best_wpm</td><td>INT</td><td>最新/最高読書速度</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">stage_final_tests</div>
+      <div class="tbl-desc">修了テスト実施履歴</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students</td></tr>
+        <tr><td class="fk">coach_stage_id</td><td>TEXT</td><td>FK→coach_stages</td></tr>
+        <tr><td>target_count</td><td>INT</td><td>目標カウント（200/220/240）</td></tr>
+        <tr><td>correct_count</td><td>INT</td><td>正解数</td></tr>
+        <tr><td>total_questions</td><td>INT</td><td>6（固定）</td></tr>
+        <tr><td>passed</td><td>BOOLEAN</td><td>合否</td></tr>
+        <tr><td class="fk nullable">pack_id</td><td>UUID</td><td>使用コンテンツパック</td></tr>
+        <tr><td>attempted_at</td><td>TIMESTAMPTZ</td><td>受験日時</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">daily_sessions</div>
+      <div class="tbl-desc">1日のトレーニングセッション</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students</td></tr>
+        <tr><td>date</td><td>DATE</td><td>実施日</td></tr>
+        <tr><td>duration_min</td><td>INT</td><td>10/20/30</td></tr>
+        <tr><td class="fk nullable">pre_speed_id</td><td>UUID</td><td>FK→speed_measurements</td></tr>
+        <tr><td class="fk nullable">post_speed_id</td><td>UUID</td><td>FK→speed_measurements</td></tr>
+        <tr><td>status</td><td>TEXT</td><td>pre_speed/training/post_speed/completed</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">speed_measurements</div>
+      <div class="tbl-desc">読書速度測定（前/後）</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students</td></tr>
+        <tr><td>measurement_type</td><td>TEXT</td><td>pre / post</td></tr>
+        <tr><td>wpm</td><td>INT</td><td>読書速度（字/分）</td></tr>
+        <tr><td>quiz_correct, quiz_total</td><td>INT</td><td>クイズ結果</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">training_sessions</div>
+      <div class="tbl-desc">トレーニング実施記録</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students</td></tr>
+        <tr><td class="fk">menu_id</td><td>TEXT</td><td>FK→training_menus</td></tr>
+        <tr><td>is_completed</td><td>BOOLEAN</td><td>完了フラグ</td></tr>
+        <tr><td>segment_results</td><td>JSONB</td><td>セグメント結果</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="tbl-name">training_tests</div>
+      <div class="tbl-desc">通常トレーニング中のテスト結果</div>
+      <table>
+        <tr><th>カラム</th><th>型</th><th>説明</th></tr>
+        <tr><td class="pk">id</td><td>UUID</td><td>PK</td></tr>
+        <tr><td class="fk">training_session_id</td><td>UUID</td><td>FK→training_sessions</td></tr>
+        <tr><td class="fk">student_id</td><td>UUID</td><td>FK→students</td></tr>
+        <tr><td>segment_type</td><td>TEXT</td><td>セグメント種別</td></tr>
+        <tr><td>test_type</td><td>TEXT</td><td>shunkan_recall / content_comprehension</td></tr>
+        <tr><td>correct_count, total_questions</td><td>INT</td><td>正解数/全問数</td></tr>
+        <tr><td>accuracy_pct</td><td>NUMERIC</td><td>正答率</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ER図リレーション -->
+<div class="section">
+  <h2 class="section-title">主要リレーション</h2>
+  <div class="card">
+    <pre style="font-size:11px;line-height:1.8;overflow-x:auto">
+schools ─┬── students ─┬── student_progress ── coach_stages
+         │              ├── daily_sessions ── speed_measurements
+         │              ├── training_sessions ── training_tests
+         │              ├── stage_final_tests ── content_packs
+         │              └── speed_history
+         │
+         ├── subjects (owner_school_id)
+         └── content_packs (owner_school_id) ─┬── pack_barabara_words
+                                               ├── pack_line1_texts
+                                               ├── pack_line2_pairs
+                                               ├── pack_main_texts
+                                               └── pack_quiz_questions
+
+grade_levels ── students (grade_level_id)
+             └── content_packs (grade_level_id)
+
+subjects ── content_packs (subject_id)
+    </pre>
+  </div>
+</div>
+
+<div class="footer">
+  100万人の速読 設計ドキュメント ｜ <a href="index.html">学習ガイド</a> ｜ <a href="login.html">デモ画面</a>
+</div>
+
+</div>
+</body>
+</html>
