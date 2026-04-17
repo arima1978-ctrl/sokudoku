@@ -35,28 +35,21 @@ export async function loginStudent(
     return { success: false, error: 'すべての項目を入力してください' }
   }
 
-  // Look up the school first
-  const { data: school, error: schoolError } = await supabase
-    .from('schools')
-    .select('id, school_id')
-    .eq('school_id', schoolId)
-    .in('status', ['active', 'trial'])
-    .single()
-
-  if (schoolError || !school) {
-    return { success: false, error: 'スクールIDが見つかりません' }
-  }
-
-  // Look up the student (school_id is UUID reference to schools.id)
+  // schools + students を1クエリで取得（INNER JOIN）
   const { data: student, error: studentError } = await supabase
     .from('students')
-    .select('id, school_id, student_login_id, student_password, student_name, grade_level_id, preferred_subject_id, onboarding_completed, status, koe_e_style')
-    .eq('school_id', (school as Record<string, string>).id)
+    .select(`
+      id, school_id, student_login_id, student_password, student_name,
+      grade_level_id, preferred_subject_id, onboarding_completed, status, koe_e_style,
+      schools!inner(id, school_id, status)
+    `)
+    .eq('schools.school_id', schoolId)
+    .in('schools.status', ['active', 'trial'])
     .eq('student_login_id', loginId)
     .single()
 
   if (studentError || !student) {
-    return { success: false, error: 'ログインIDが見つかりません' }
+    return { success: false, error: 'スクールID または ログインID が正しくありません' }
   }
 
   const s = student as unknown as Student
@@ -69,10 +62,11 @@ export async function loginStudent(
     return { success: false, error: 'パスワードが正しくありません' }
   }
 
-  // ログインごとに koe_e_style を反転
+  // ログインごとに koe_e_style を反転（非同期 fire-and-forget）
   const prevStyle = (s as unknown as { koe_e_style?: string }).koe_e_style
   const nextStyle: 'koe' | 'e' = prevStyle === 'koe' ? 'e' : 'koe'
-  await supabase.from('students').update({ koe_e_style: nextStyle }).eq('id', s.id)
+  // awaitしない = ログインレスポンスを待たせない
+  void supabase.from('students').update({ koe_e_style: nextStyle }).eq('id', s.id).then(() => {})
 
   // Store student info in cookie
   const studentData: LoggedInStudent = {
